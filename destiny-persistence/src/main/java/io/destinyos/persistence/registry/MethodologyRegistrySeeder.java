@@ -73,13 +73,24 @@ public class MethodologyRegistrySeeder {
     private static final List<Entry> ENTRIES = List.of(
 
             new Entry("NUMEROLOGY_PYTHAGOREAN", "Thần số học - Pythagoras", "WESTERN",
-                    MethodologyStatus.DECISION_REQUIRED, null, null,
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Pythagorean",
+                    "Standard A-Z letter table (converging across all sources checked); "
+                            + "Vietnamese normalization policy (Unicode NFD + explicit đ/Đ "
+                            + "substitution) and Life Path per-component reduction order "
+                            + "sourced and recorded in RESEARCH_BLOCKERS.md R8, 2026-08-18",
                     Set.of("R8"),
-                    "Letter-to-number mapping is standard and fixed. What is "
-                            + "outstanding is the Vietnamese-orthography normalization "
-                            + "policy (diacritics, đ, reduction order) - RESEARCH_GAPS.md "
-                            + "worked example flags the reduction-order question "
-                            + "specifically. A decision, not open research."),
+                    "Algorithm implemented and golden-tested (destiny-engine-numerology) "
+                            + "against independently sourced worked examples: Life Path for "
+                            + "1990-03-15 = 1; day 29 preserves master number 11; Expression "
+                            + "for 'John Doe' = 8. Vietnamese interpretive meaning content for "
+                            + "each number (1-9, 11, 22, 33) is not yet authored - the engine "
+                            + "computes real numbers with no text attached, same situation as "
+                            + "Tarot (R11). Y is simplified to always-consonant for Soul "
+                            + "Urge/Personality pending a source for Vietnamese-specific "
+                            + "treatment - a labelled simplification, not a researched rule. "
+                            + "Chaldean remains RESEARCH_REQUIRED separately: no source for a "
+                            + "Vietnamese-orthography mapping exists."),
 
             new Entry("NUMEROLOGY_CHALDEAN", "Thần số học - Chaldea", "WESTERN",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
@@ -102,13 +113,18 @@ public class MethodologyRegistrySeeder {
 
             new Entry("CALENDAR_VN_TRADITIONAL", "Lịch Việt Nam truyền thống", "EASTERN",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
-                    Set.of("R9", "R10", "R14", "R15", "R16", "R17"),
-                    "Six open items per ADR D3 (Calendar Authority Rule): solar term "
-                            + "dataset sourcing (R9), giờ Tý/solar-time policy (R10), "
-                            + "historical timezone rules by date and region especially "
-                            + "1955-1975 (R14), new moon computation and its "
-                            + "localisation meridian (R15), leap month insertion rule "
-                            + "(R16), and region model granularity (R17). This is the "
+                    Set.of("R9", "R10", "R14a", "R14b", "R15", "R16", "R17"),
+                    "Seven open items per ADR D3 (Calendar Authority Rule). Four now "
+                            + "have a citable source and an adopted default pending "
+                            + "independent golden test vectors (R9 solar terms, R15 new "
+                            + "moon/meridian, R16 leap month rule - all traced to Jean "
+                            + "Meeus 1998 and Ho Ngoc Duc's documented conventions; R14a "
+                            + "historical timezone offsets by date, traced to Cong Bao "
+                            + "Viet Nam gazette citations). Two remain genuinely open: "
+                            + "R10 (gio Ty boundary policy - a decision never made) and "
+                            + "R14b (the North/South geographic boundary - no source "
+                            + "found across three research rounds). R17 (region model "
+                            + "granularity) depends on R14b. This cluster remains the "
                             + "project's critical path."),
 
             new Entry("BAZI", "Bát Tự - Tứ Trụ", "EASTERN",

@@ -116,7 +116,7 @@ class MethodologyRegistryTest {
             // These statuses are transcribed directly from
             // docs/RESEARCH_BLOCKERS.md's register index. If that document
             // changes, this test - and the seeder - must change with it.
-            assertStatus("NUMEROLOGY_PYTHAGOREAN", MethodologyStatus.DECISION_REQUIRED, "R8");
+            assertStatus("NUMEROLOGY_PYTHAGOREAN", MethodologyStatus.CONTENT_REQUIRED, "R8");
             assertStatus("NUMEROLOGY_CHALDEAN", MethodologyStatus.RESEARCH_REQUIRED, "R8");
             assertStatus("TAROT_RWS", MethodologyStatus.CONTENT_REQUIRED, "R11");
             assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED, "R1", "R2", "R3");
@@ -127,26 +127,30 @@ class MethodologyRegistryTest {
             assertStatus("MAIHOA", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("QIMEN", MethodologyStatus.OUT_OF_SCOPE, "R13");
             assertStatus("CALENDAR_VN_TRADITIONAL", MethodologyStatus.RESEARCH_REQUIRED,
-                    "R9", "R10", "R14", "R15", "R16", "R17");
+                    "R9", "R10", "R14a", "R14b", "R15", "R16", "R17");
         }
 
         @Test
-        @DisplayName("Only TAROT_RWS is calculable; every research/decision-blocked entry is not")
+        @DisplayName("Only content-gated entries (Tarot, Numerology Pythagorean) are calculable")
         void onlyContentGatedEntriesAreCalculable() {
-            // TAROT_RWS is CONTENT_REQUIRED: its algorithm (RWS deck
-            // structure, seeded shuffle) is fully specified, so
-            // MethodologyStatus.mayCalculate() is true even though the
-            // Vietnamese meaning corpus is still missing (R11). Every other
-            // seeded entry is RESEARCH_REQUIRED, DECISION_REQUIRED or
-            // OUT_OF_SCOPE and must not be calculable.
+            // TAROT_RWS and NUMEROLOGY_PYTHAGOREAN are CONTENT_REQUIRED:
+            // their algorithms are fully specified and golden-tested, so
+            // MethodologyStatus.mayCalculate() is true even though
+            // Vietnamese interpretive content is still missing (R11, R8).
+            // Every other seeded entry is RESEARCH_REQUIRED,
+            // DECISION_REQUIRED or OUT_OF_SCOPE and must not be calculable.
             seeder.seed();
             entityManager.flush();
             entityManager.clear();
 
-            assertThat(registry.isCalculable("TAROT_RWS")).isTrue();
+            Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN");
+
+            for (String id : calculable) {
+                assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();
+            }
 
             for (var methodology : registry.allMethodologies()) {
-                if (methodology.methodologyId().equals("TAROT_RWS")) {
+                if (calculable.contains(methodology.methodologyId())) {
                     continue;
                 }
                 assertThat(registry.isCalculable(methodology.methodologyId()))

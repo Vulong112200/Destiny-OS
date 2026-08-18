@@ -8,6 +8,37 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 4: Numerology (Pythagorean) engine
+
+- Module mới `destiny-engine-numerology` — không phụ thuộc framework,
+  không phụ thuộc Calendar (cùng tính chất với Tarot cho phép chạy song
+  song với nghiên cứu lịch)
+- **R8 đã được nghiên cứu và quyết định** (ghi ở `docs/RESEARCH_BLOCKERS.md`,
+  không push git): chuẩn hóa tên tiếng Việt bằng Unicode NFD + loại bỏ
+  combining mark, cộng thêm bước thay thế riêng cho `đ/Đ` vì Unicode không
+  phân rã ký tự này thành chữ cái gốc + dấu (khác `ế`, `ầ`...) — một sự thật
+  kỹ thuật cụ thể, không phải suy đoán
+- Thứ tự rút gọn Life Path: rút gọn tháng/ngày/năm **riêng biệt** trước khi
+  cộng lại — có nguồn giải thích rõ lý do (tránh mất số chủ đạo 11/22/33 do
+  gộp chữ số tùy tiện), không chỉ là quy ước
+- Chữ Y luôn được coi là phụ âm cho Soul Urge/Personality — **đơn giản hóa
+  có ghi nhận rõ ràng**, không phải kết luận có nguồn: quy tắc "Y là nguyên
+  âm khi là âm duy nhất trong âm tiết" của tiếng Anh không có cơ sở áp dụng
+  máy móc cho tên Việt đã Latin hóa
+- Golden test dùng ví dụ tính mẫu từ nguồn độc lập bên ngoài, không tự sinh
+  từ chính code: Life Path ngày 15/3/1990 = 1; ngày sinh 29 giữ số chủ đạo
+  11; Expression của "John Doe" = 8; "Jane Marie Doe" = 1
+- 5 chỉ số triển khai: Life Path, Expression, Soul Urge, Personality,
+  Birthday. **Chưa triển khai** Maturity, Personal Year/Month/Day — công
+  thức chưa được nghiên cứu trong đợt này, không đoán
+- Engine **không phát sinh signal** — cùng lý do với Tarot: gán ý nghĩa cho
+  một con số đòi hỏi nội dung diễn giải tiếng Việt chưa có
+- Cập nhật `MethodologyRegistrySeeder`: `NUMEROLOGY_PYTHAGOREAN` chuyển từ
+  `DECISION_REQUIRED` sang `CONTENT_REQUIRED` (thuật toán đã xong và có
+  golden test, chỉ thiếu nội dung diễn giải) — nhất quán với cách xử lý
+  Tarot
+- 29 test mới (117 tổng)
+
 ### Added — Phase 5: Tarot engine (seeded, reproducible)
 
 - Module mới `destiny-engine-tarot` — không phụ thuộc framework, không phụ
