@@ -46,6 +46,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-engine-api` | SPI `MetaphysicalEngine<I,O>` |
 | `destiny-execution` | Virtual Threads, timeout, cô lập lỗi |
 | `destiny-i18n` | Registry nhãn tiếng Việt |
+| `destiny-persistence` | JPA + Flyway migrations + methodology registry |
 | `destiny-app` | Spring Boot assembly + bộ test kiến trúc |
 
 Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit**, không chỉ ghi trong tài liệu:
@@ -57,17 +58,19 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 ## Trạng thái hiện tại
 
-**Phase 1 — Project foundation.** Chưa có bất kỳ phép tính huyền học nào trong codebase.
+**Phase 2 — Database + methodology registry.** Chưa có bất kỳ phép tính huyền học nào trong codebase.
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
 | 0 | Kiểm toán kiến trúc | Xong |
-| 1 | Nền tảng: domain, SPI, harness | **Xong** |
-| 2 | Database + methodology registry | Kế tiếp |
+| 1 | Nền tảng: domain, SPI, harness | Xong |
+| 2 | Database + methodology registry | **Xong** |
 | 3 | Nền tảng lịch | Chờ nghiên cứu |
 | 4–5 | Thần số học, Tarot | Sẵn sàng |
 | 6–7 | Fusion, Scenario | Chờ 2 quyết định |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
+
+11 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 1 ở trạng thái `CONTENT_REQUIRED` (Tarot — thuật toán xong, thiếu nội dung tiếng Việt), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`.
 
 Các engine chưa triển khai **vẫn được đăng ký và hiển thị**, kèm lý do — thay vì bị ẩn đi. Người dùng nhìn thấy `Chưa triển khai` hoặc `Cần xác minh thuật toán`, không phải một câu trả lời tự tin nhưng sai.
 
@@ -81,12 +84,15 @@ Yêu cầu JDK 21 trở lên và Maven 3.9+.
 mvn verify
 ```
 
-Bộ test hiện tại — 47 test:
+Bộ test hiện tại — 63 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
 - **kiến trúc** — ranh giới module, cấm phụ thuộc chéo, cấm số thực trong domain
 - **phủ nhãn tiếng Việt** — mọi enum hướng tới người dùng đều có nhãn, không nhãn nào ngụ ý xác suất
+- **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
+
+Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`).
 
 ---
 

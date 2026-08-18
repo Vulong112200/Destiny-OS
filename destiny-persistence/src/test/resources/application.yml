@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    # H2 in PostgreSQL-compatibility mode. This is a stand-in for local
+    # verification only - see destiny-persistence/pom.xml for why: this
+    # development environment has neither Docker nor a local PostgreSQL
+    # instance. DATABASE_TO_UPPER=false matches PostgreSQL's behaviour of
+    # folding unquoted identifiers to lowercase, which our migrations rely on.
+    url: jdbc:h2:mem:destinyos;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      # Not 'validate': matching Hibernate's PostgreSQL dialect against
+      # H2's actual column types is fragile in ways unrelated to whether the
+      # migrations or entities are correct. Round-trip repository tests
+      # (save, then read back and assert) give a stronger, more relevant
+      # guarantee than dialect-level schema comparison would.
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration

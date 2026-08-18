@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-persistence</artifactId>
+  <name>Destiny OS :: Persistence</name>
+  <description>
+    JPA entities, Flyway migrations, and the methodology registry
+    (DATA_MODEL_AND_RETENTION.md, ADR D7). Unlike destiny-core, this module is
+    deliberately Spring/JPA-aware - the architecture layout in
+    ARCHITECTURE_DECISIONS.md places persistence concerns here precisely so
+    they stay out of the framework-free domain.
+
+    Local test verification uses H2 in PostgreSQL-compatibility mode because
+    this development environment has neither Docker nor a local PostgreSQL
+    instance. That is a real gap, not a formality: H2 does not enforce every
+    PostgreSQL-specific constraint. CI runs a genuine PostgreSQL service
+    container (see .github/workflows/build.yml) so migrations are validated
+    against the real target database before merge.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Test-only. See class-level Javadoc: this is a stand-in for local
+         verification, not a claim that H2 behaves identically to PostgreSQL. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

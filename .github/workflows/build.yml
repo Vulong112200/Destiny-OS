@@ -19,8 +19,55 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Runs unit, architecture and label-coverage tests.
+      # Runs unit, architecture, label-coverage and persistence tests. The
+      # persistence tests here use H2 in PostgreSQL-compatibility mode (see
+      # destiny-persistence/pom.xml) because that is what runs locally too -
+      # this job is the fast default path.
+      #
       # The architecture suite is the gate that keeps ADR D5 and D6 true:
       # a violation fails the build rather than surviving review.
-      - name: Build and test
+      - name: Build and test (H2 compatibility mode)
         run: mvn -B verify
+
+  postgres-verify:
+    runs-on: ubuntu-latest
+    # Closes a real gap: local development here has neither Docker nor a
+    # PostgreSQL instance (see destiny-persistence/pom.xml), so Flyway
+    # migrations and JPA entity mappings are verified locally against H2's
+    # PostgreSQL-compatibility mode only. H2 does not enforce every
+    # PostgreSQL-specific constraint. This job re-runs the exact same
+    # persistence tests against a genuine PostgreSQL service container, so
+    # migrations are validated against the real production target before
+    # merge, not just a compatible stand-in.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: destinyos
+          POSTGRES_USER: destinyos
+          POSTGRES_PASSWORD: destinyos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Test destiny-persistence against real PostgreSQL
+        run: >
+          mvn -B -pl destiny-persistence -am test
+          -Dspring.datasource.url=jdbc:postgresql://localhost:5432/destinyos
+          -Dspring.datasource.driver-class-name=org.postgresql.Driver
+          -Dspring.datasource.username=destinyos
+          -Dspring.datasource.password=destinyos
