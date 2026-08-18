@@ -47,6 +47,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-execution` | Virtual Threads, timeout, cô lập lỗi |
 | `destiny-i18n` | Registry nhãn tiếng Việt |
 | `destiny-persistence` | JPA + Flyway migrations + methodology registry |
+| `destiny-engine-tarot` | Tarot — bộ bài RWS, rút bài có seed, tái lập được |
 | `destiny-app` | Spring Boot assembly + bộ test kiến trúc |
 
 Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit**, không chỉ ghi trong tài liệu:
@@ -58,17 +59,20 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 ## Trạng thái hiện tại
 
-**Phase 2 — Database + methodology registry.** Chưa có bất kỳ phép tính huyền học nào trong codebase.
+**Phase 5 — Tarot engine.** Tarot là phép tính huyền học đầu tiên trong codebase — rút bài có seed, không diễn giải ý nghĩa (vì nội dung tiếng Việt chưa có).
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
 | 0 | Kiểm toán kiến trúc | Xong |
 | 1 | Nền tảng: domain, SPI, harness | Xong |
-| 2 | Database + methodology registry | **Xong** |
-| 3 | Nền tảng lịch | Chờ nghiên cứu |
-| 4–5 | Thần số học, Tarot | Sẵn sàng |
-| 6–7 | Fusion, Scenario | Chờ 2 quyết định |
+| 2 | Database + methodology registry | Xong |
+| 3 | Nền tảng lịch | Chờ — xem ghi chú bên dưới |
+| 4 | Thần số học | Chờ quyết định chuẩn hóa tên (R8) |
+| 5 | Tarot | **Xong** — cấu trúc + rút bài; nội dung ý nghĩa còn thiếu |
+| 6–7 | Fusion, Scenario | Chờ 2 quyết định (C2, C5) |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
+
+**Cập nhật nghiên cứu lịch:** sau nhiều vòng tra cứu, 4/6 mục (thuật toán tiết khí/điểm sóc/tháng nhuận, và quy tắc múi giờ lịch sử theo ngày) đã có nguồn trích dẫn cụ thể (Jean Meeus 1998; Công Báo Việt Nam với số quyển/trang) và được nâng lên `DECISION_REQUIRED`. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` (không push lên git).
 
 11 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 1 ở trạng thái `CONTENT_REQUIRED` (Tarot — thuật toán xong, thiếu nội dung tiếng Việt), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`.
 
@@ -84,12 +88,13 @@ Yêu cầu JDK 21 trở lên và Maven 3.9+.
 mvn verify
 ```
 
-Bộ test hiện tại — 63 test:
+Bộ test hiện tại — 88 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
 - **kiến trúc** — ranh giới module, cấm phụ thuộc chéo, cấm số thực trong domain
 - **phủ nhãn tiếng Việt** — mọi enum hướng tới người dùng đều có nhãn, không nhãn nào ngụ ý xác suất
+- **Tarot** — đúng cấu trúc 78 lá RWS, rút bài xác định theo seed, không thiên vị khi xoay lá, không trùng lá trong một lần rút
 - **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
 
 Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`).

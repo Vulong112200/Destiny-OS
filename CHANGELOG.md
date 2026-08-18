@@ -8,6 +8,33 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 5: Tarot engine (seeded, reproducible)
+
+- Module mới `destiny-engine-tarot` — không phụ thuộc framework, không phụ
+  thuộc engine nào khác, không phụ thuộc Calendar (đúng tính chất cho phép
+  Phase 5 chạy song song với nghiên cứu lịch, ADR D2)
+- Bộ bài Rider-Waite-Smith đầy đủ 78 lá: 22 Major Arcana (đúng thứ tự
+  RWS — Strength lá thứ 8, Justice lá thứ 11, khác với thứ tự Marseille),
+  56 Minor Arcana (4 chất × 14 bậc). Đây là dữ kiện cấu trúc có thể kiểm
+  chứng, không phải nội dung cần nghiên cứu (khác `R11` — nội dung ý nghĩa
+  tiếng Việt vẫn thiếu, mỗi lá bài xuất xưởng với `TarotCardMeaning.EMPTY`,
+  không bịa nội dung)
+- `TarotEngine` — rút bài có seed: sinh seed bằng CSPRNG khi người gọi không
+  cung cấp, dùng seed đó cho `java.util.Random` xác định (Fisher-Yates +
+  xoay lá), luôn trả lại seed đã dùng để tái lập được — đúng theo giải pháp
+  đã ghi ở DECISION_LOG C6
+- Chính sách xoay lá (upright/reversed) mới — DECISION_LOG **C9**: xác định
+  bằng bit ngẫu nhiên độc lập từ cùng luồng seed, versioned, có thể tắt
+  (`UPRIGHT_ONLY`). Đây là lựa chọn kỹ thuật, không phải tranh chấp trường
+  phái, nên không cần xử lý theo Rule D
+- Engine **không phát sinh signal nào** — vì gán dimension/polarity cho một
+  lá bài đòi hỏi nội dung ý nghĩa (R11) chưa có; phát minh ra signal lúc này
+  sẽ đúng là hành vi Rule C cấm. Lần rút bài vẫn hoàn toàn hợp lệ và trung
+  thực, chỉ tầng diễn giải là chưa có
+- 25 test mới (88 tổng): tính đúng cấu trúc bộ bài, tính xác định theo seed,
+  không thiên vị khi xoay lá, không trùng lá trong một lần rút, số lá khớp
+  spread, versioning đầy đủ
+
 ### Added — Phase 2: Database + methodology registry
 
 - Module mới `destiny-persistence` — JPA + Flyway, khác `destiny-core` ở chỗ

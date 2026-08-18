@@ -26,6 +26,7 @@
     <module>destiny-execution</module>
     <module>destiny-i18n</module>
     <module>destiny-persistence</module>
+    <module>destiny-engine-tarot</module>
     <module>destiny-app</module>
   </modules>
 
