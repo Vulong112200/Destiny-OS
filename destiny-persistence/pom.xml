@@ -33,10 +33,32 @@
       <artifactId>destiny-engine-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-execution</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-fusion</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <!-- Serializing Evidence.fact() (Map<String,Object>) and small list
+         fields (rulesApplied, involvedEngines) to a portable TEXT column.
+         Per DATA_MODEL_AND_RETENTION.md: JSONB/JSON is for payloads read as
+         a whole, not queried piecemeal - exactly this case. Stored as TEXT
+         rather than a native JSON/JSONB column type so the same migration
+         works unchanged on both PostgreSQL and the H2 compatibility mode
+         used for local verification (see class Javadoc). -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
     </dependency>
 
     <dependency>

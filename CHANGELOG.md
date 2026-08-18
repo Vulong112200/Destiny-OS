@@ -8,6 +8,33 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — V4-V6: durable calculation storage (reproducibility, closed)
+
+Trước đây một lần chạy tính đúng nhưng **biến mất ngay khi JVM tắt** — domain
+model đã hứa reproducibility từ Phase 1 nhưng chưa có gì lưu lại thật sự.
+
+- **V4** `calculations`, `calculation_engine_results` — mỗi calculation là
+  một lần chạy scenario; mỗi engine tham gia có dòng riêng (Rule F: timeout
+  một engine không đụng tới dòng của engine khác). Bổ sung `result_hash`
+  (C7 — bản đặc tả gốc thiếu cột này dù §4 và §10 đều yêu cầu)
+- **V5** `evidence`, `signals`, `signal_evidence_refs` — `dimension` trên
+  Evidence theo C4; `NOT_APPLICABLE`/`NEUTRAL` vẫn là giá trị tách biệt ở
+  tầng DB (không gộp, RK7); `critical` là cách mã hóa duy nhất (C3)
+- **V6** `fusion_results`, `conflicts` — không tạo bảng `scenario_evaluations`
+  riêng dù tài liệu có nêu tên: `DATA_MODEL_AND_RETENTION.md` chỉ đặt tên
+  entity này mà không cho trường nào, khác hẳn Calculation/Evidence/Signal
+  đều có khối trường rõ ràng — tạo thêm bảng rỗng nội dung không phải là
+  "đặc tả", mà là suy đoán. Vai trò của nó coi như đã được `calculations`
+  (đã có scenario_id) + `fusion_results` đảm nhiệm
+- `fact_json`, `dimensions_json`, `involved_engines_json` dùng cột **TEXT**
+  chứa chuỗi JSON, không dùng kiểu JSONB gốc — để cùng một migration chạy
+  giống hệt nhau trên cả PostgreSQL thật lẫn H2 (môi trường test cục bộ)
+- `CalculationRecorder` — ghi toàn bộ một lần chạy trong một transaction;
+  `resultHash` = SHA-256 của (identity string của context) + (outcome tổng
+  hợp) — cùng input/version/seed + cùng outcome ⇒ cùng hash, đổi bất kỳ cái
+  nào ⇒ đổi hash (đúng yêu cầu CLAUDE.md §6, có test xác nhận cả hai chiều)
+- 20 test mới ở `destiny-persistence` (151 tổng)
+
 ### Added — Phase 7: Scenario engine
 
 - Module mới `destiny-scenario` — chỉ phụ thuộc `destiny-execution` và
