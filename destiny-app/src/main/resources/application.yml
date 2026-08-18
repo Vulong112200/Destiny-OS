@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: destiny-os
+  threads:
+    virtual:
+      enabled: true
+
+destiny:
+  execution:
+    default-timeout: 5s
+    max-concurrency: 16
+  # AI is optional by architecture (ADR D8). Disabled by default so the
+  # hard-data path is what runs unless someone deliberately turns narration on.
+  ai:
+    enabled: false
+
+logging:
+  level:
+    io.destinyos: INFO

@@ -1,0 +1,54 @@
+# ── JVM / Maven / Gradle ─────────────────────────────
+target/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+*.class
+*.jar
+*.war
+hs_err_pid*
+replay_pid*
+
+# ── Node / Next.js ───────────────────────────────────
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+.pnpm-store/
+
+# ── Secrets — KHÔNG BAO GIỜ commit (Master Spec §28) ──
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+application-local.yml
+application-secrets.yml
+
+# ── IDE ──────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+.settings/
+.classpath
+.project
+
+# ── OS ───────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Logs / temp ──────────────────────────────────────
+*.log
+logs/
+tmp/
+
+# ── Tài liệu nội bộ & cấu hình Claude — KHÔNG push lên public repo ──
+# Quyết định của chủ dự án 2026-08-18: chỉ push source code.
+# Các file này vẫn được giữ ở local làm source of truth cho việc phát triển.
+docs/
+CLAUDE.md
+DESTINY_OS_MASTER_SPECIFICATION.md
+.claude/
