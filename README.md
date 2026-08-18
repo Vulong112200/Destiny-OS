@@ -49,6 +49,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-persistence` | JPA + Flyway migrations + methodology registry |
 | `destiny-engine-tarot` | Tarot — bộ bài RWS, rút bài có seed, tái lập được |
 | `destiny-engine-numerology` | Thần số học Pythagoras — 5 chỉ số, chuẩn hóa tên tiếng Việt |
+| `destiny-fusion` | Tổng hợp kết luận theo luật (không phải trung bình có trọng số) |
 | `destiny-app` | Spring Boot assembly + bộ test kiến trúc |
 
 Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit**, không chỉ ghi trong tài liệu:
@@ -60,7 +61,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 ## Trạng thái hiện tại
 
-**Phase 4 — Numerology (Pythagorean) engine.** Hai phép tính huyền học đã có trong codebase (Tarot, Thần số học) — cả hai đều tính đúng và có golden test, đều chưa có nội dung diễn giải tiếng Việt.
+**Phase 6 — Fusion engine.** Ba engine đã hoạt động (Tarot, Thần số học) và tổng hợp có luật (Fusion) — đủ để chạy toàn bộ pipeline từ đầu đến cuối, dù chưa có nội dung diễn giải tiếng Việt.
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
@@ -68,9 +69,10 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 1 | Nền tảng: domain, SPI, harness | Xong |
 | 2 | Database + methodology registry | Xong |
 | 3 | Nền tảng lịch | Chờ — xem ghi chú bên dưới |
-| 4 | Thần số học (Pythagoras) | **Xong** — 5 chỉ số; Chaldean vẫn chặn (không có nguồn) |
+| 4 | Thần số học (Pythagoras) | Xong — 5 chỉ số; Chaldean vẫn chặn (không có nguồn) |
 | 5 | Tarot | Xong — cấu trúc + rút bài; nội dung ý nghĩa còn thiếu |
-| 6–7 | Fusion, Scenario | Chờ 2 quyết định (C2, C5) |
+| 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả |
+| 7 | Scenario | Kế tiếp |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
 
 **Cập nhật nghiên cứu lịch:** sau nhiều vòng tra cứu, 4/6 mục (thuật toán tiết khí/điểm sóc/tháng nhuận, và quy tắc múi giờ lịch sử theo ngày) đã có nguồn trích dẫn cụ thể (Jean Meeus 1998; Công Báo Việt Nam với số quyển/trang) và được nâng lên `DECISION_REQUIRED`. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` (không push lên git).
@@ -89,7 +91,7 @@ Yêu cầu JDK 21 trở lên và Maven 3.9+.
 mvn verify
 ```
 
-Bộ test hiện tại — 117 test:
+Bộ test hiện tại — 136 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
@@ -97,6 +99,7 @@ Bộ test hiện tại — 117 test:
 - **phủ nhãn tiếng Việt** — mọi enum hướng tới người dùng đều có nhãn, không nhãn nào ngụ ý xác suất
 - **Tarot** — đúng cấu trúc 78 lá RWS, rút bài xác định theo seed, không thiên vị khi xoay lá, không trùng lá trong một lần rút
 - **Thần số học** — golden test đối chiếu ví dụ tính mẫu từ nguồn độc lập (không tự sinh từ code), chuẩn hóa tên tiếng Việt đúng (kể cả trường hợp `đ` không phân rã Unicode), giữ số chủ đạo 11/22/33
+- **Fusion** — đủ 14/14 test case bắt buộc của đặc tả: đếm nguồn theo engine riêng biệt (không theo signal), tín hiệu critical sống sót qua đa số, methodology conflict không bị tự động gộp
 - **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
 
 Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`).

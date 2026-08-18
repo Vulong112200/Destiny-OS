@@ -8,6 +8,62 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Fixed — ArchUnit `enginesStayIndependent` rule was a false-positive generator
+
+Discovered while verifying Phase 6. `noClasses().that().resideInAPackage("io.destinyos.engines.(*)..").should().dependOnClassesThat().resideInAPackage("io.destinyos.engines.(*)..")`
+checks the same wildcard pattern independently on each side — it does not
+require the two `(*)` captures to differ. The rule was therefore satisfied
+by any class inside **one** engine depending on another class in that
+**same** engine (e.g. `TarotEngine` using `TarotCard`), firing 182 false
+violations the moment a second real engine package existed to compare
+against. Rewritten using ArchUnit's `SlicesRuleDefinition.slices()` API,
+which is built for exactly this "siblings must not depend on each other,
+internal dependencies are fine" shape.
+
+### Fixed — `destiny-app` never depended on the engine/fusion modules
+
+A second, related gap: `destiny-app` — the only module with every other
+module on its classpath, and the one that hosts the architecture test suite
+— never actually depended on `destiny-engine-tarot`,
+`destiny-engine-numerology`, or `destiny-fusion`. Every ArchUnit rule about
+those packages (including the one above, and "Fusion depends only on the
+Signal contract") had been scanning zero real classes since Phase 4/5 —
+passing, but proving nothing. Added the missing dependencies and
+strengthened `importerSeesRealClasses` to assert these packages are
+actually visible, so this specific gap cannot recur silently again.
+
+Both gaps were caught by the same discipline applied throughout this
+project: verify with a `mvn clean verify`, not an incremental build, and
+when a rule is meant to catch something, inject a deliberate violation and
+confirm it is actually caught before trusting a green run.
+
+### Added — Phase 6: Fusion engine
+
+- Module mới `destiny-fusion` — phụ thuộc duy nhất `destiny-core` (ADR D5,
+  đã kiểm chứng bằng cách tiêm vi phạm giả và xác nhận ArchUnit bắt được)
+- **C2 và C5 đã được anh xác nhận** (ghi ở `docs/DECISION_LOG.md`):
+  - C2: `FusionOutcome` — hợp cả hai tập enum của Master Spec §9 và
+    FUSION_ENGINE_SPEC.md §7, đủ 12 giá trị, không bỏ trạng thái nào
+  - C5: `DimensionState` (từ vựng Rule E, 8 giá trị) là tầng **theo từng
+    dimension**; `FusionOutcome` là tầng **kết quả tổng của cả kịch bản**
+- Cài đặt đầy đủ pipeline theo `FUSION_ENGINE_SPEC.md`: đếm phiếu theo
+  **engine riêng biệt** (không theo signal/evidence — 5 signal từ 1 engine
+  = 1 nguồn), phát hiện `DIRECT_CONFLICT` và `METHODOLOGY_CONFLICT`, tín
+  hiệu critical sống sót qua biểu quyết đa số (R5)
+- Ngưỡng biểu quyết cụ thể (đa số tuyệt đối = nhiều nguồn hơn tổng các cực
+  còn lại cộng lại) là **quyết định kỹ thuật của dự án**, không phải suy
+  đoán về một trường phái bên ngoài — đặc tả cố tình không cho số cụ thể,
+  ghi rõ trong Javadoc của `FusionEngine`
+- Bắt được 1 lỗi thật khi viết test: outcome tổng hợp dựa nhầm vào state
+  đã bị điều chỉnh bởi critical override thay vì đếm phiếu gốc, khiến
+  "critical caution vượt qua đa số 3 support" ra sai kết quả — sửa bằng
+  cách tính lại từ tập engine gốc
+- Đủ **14/14 test case bắt buộc** theo `FUSION_ENGINE_SPEC.md` §12: 0
+  engine, 1 support, 1 caution, đồng thuận support/caution, 2 vs 1, 2 vs 2,
+  critical caution, trùng lặp cùng engine, methodology conflict, scope
+  conflict, engine timeout, NOT_APPLICABLE, evidence chưa đầy đủ
+- 19 test mới (136 tổng)
+
 ### Added — Phase 4: Numerology (Pythagorean) engine
 
 - Module mới `destiny-engine-numerology` — không phụ thuộc framework,

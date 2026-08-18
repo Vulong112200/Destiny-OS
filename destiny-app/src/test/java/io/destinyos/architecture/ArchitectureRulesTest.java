@@ -72,6 +72,19 @@ class ArchitectureRulesTest {
                 .anyMatch(p -> p.startsWith("io.destinyos.core"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engine"))
                 .anyMatch(p -> p.startsWith("io.destinyos.execution"));
+
+        // This exact gap bit us once already: destiny-app never depended on
+        // destiny-fusion or the concrete engine modules, so
+        // fusionDependsOnlyOnTheSignalContract and enginesStayIndependent
+        // below had been passing vacuously - checking zero real classes -
+        // since Phase 5. Asserting these packages are actually on the
+        // classpath is what would have caught it immediately.
+        org.assertj.core.api.Assertions.assertThat(packages)
+                .as("Fusion and concrete engine packages must be visible, or the rules "
+                        + "that check them pass vacuously")
+                .anyMatch(p -> p.startsWith("io.destinyos.fusion"))
+                .anyMatch(p -> p.startsWith("io.destinyos.engines.tarot"))
+                .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"));
     }
 
     @Test
@@ -110,15 +123,28 @@ class ArchitectureRulesTest {
         // Cross-engine calls would make source diversity meaningless: two
         // supposedly independent sources would share a derivation, and Fusion
         // would count one finding twice (FUSION_ENGINE_SPEC section 5).
-        ArchRule rule = noClasses()
-                .that().resideInAPackage("io.destinyos.engines.(*)..")
-                .should().dependOnClassesThat()
-                .resideInAPackage("io.destinyos.engines.(*)..")
-                .because("Master Spec section 0 and command section 3 require "
-                        + "engines to stay independent, or source diversity "
-                        + "counts one finding as several.");
+        //
+        // MUST use the slices() API, not a plain noClasses()/should() pair
+        // with the same wildcard pattern on both sides: resideInAPackage
+        // matches the literal pattern independently on each side and does
+        // not correlate which concrete value "(*)" captured, so
+        // "io.destinyos.engines.(*).." depending on
+        // "io.destinyos.engines.(*).." is satisfied trivially by any class
+        // inside ONE engine depending on another class in that SAME engine
+        // (e.g. TarotEngine using TarotCard) - a false positive that fired
+        // 182 times the moment a second real engine package existed to
+        // compare against. slices() correctly treats each first-level
+        // sub-package as its own slice and only flags a dependency that
+        // crosses BETWEEN slices.
+        com.tngtech.archunit.lang.ArchRule rule =
+                com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices()
+                        .matching("io.destinyos.engines.(*)..")
+                        .should().notDependOnEachOther()
+                        .because("Master Spec section 0 and command section 3 require "
+                                + "engines to stay independent, or source diversity "
+                                + "counts one finding as several.");
 
-        rule.allowEmptyShould(true).check(production());
+        rule.check(production());
     }
 
     @Test
