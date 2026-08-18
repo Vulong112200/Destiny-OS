@@ -8,6 +8,27 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 7: Scenario engine
+
+- Module mới `destiny-scenario` — chỉ phụ thuộc `destiny-execution` và
+  `destiny-fusion`, **không phụ thuộc bất kỳ engine cụ thể nào**, có luật
+  ArchUnit mới bắt buộc điều này (giống cách D5 bảo vệ Fusion)
+- 10 loại scenario theo Master Spec §11, nhưng **chỉ 2 loại có chính sách
+  applicability thật** (`BUSINESS`, `DAILY_ACTION`) — lấy đúng nguyên văn
+  2 ví dụ cụ thể ở Master Spec §7 ("Mở rộng kinh doanh", "Hôm nay nên làm
+  gì"). 8 loại còn lại được đăng ký (có thể truy vấn) nhưng đánh dấu rõ
+  `policyDefined = false` — không bịa chính sách cho scenario nào tài liệu
+  chưa đặc tả, đúng tinh thần áp dụng cho quyết định sản phẩm chứ không chỉ
+  thuật toán huyền học
+- `ScenarioEngine`: chỉ chạy các engine mà **chính sách scenario nêu tên**,
+  bỏ qua hoàn toàn engine không liên quan (không tốn tài nguyên hỏi rồi bỏ
+  qua câu trả lời); engine được nêu tên nhưng người gọi không cung cấp thì
+  báo cáo trung thực trong `unavailableEngines`, không im lặng bỏ qua
+- Applicability của scenario **chỉ có thể thu hẹp**, không bao giờ mở rộng
+  applicability mà chính engine tự khai báo — một engine tự nhận LOW không
+  thể được scenario nâng lên HIGH
+- 7 test mới (144 tổng)
+
 ### Fixed — ArchUnit `enginesStayIndependent` rule was a false-positive generator
 
 Discovered while verifying Phase 6. `noClasses().that().resideInAPackage("io.destinyos.engines.(*)..").should().dependOnClassesThat().resideInAPackage("io.destinyos.engines.(*)..")`

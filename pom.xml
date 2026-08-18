@@ -29,6 +29,7 @@
     <module>destiny-engine-tarot</module>
     <module>destiny-engine-numerology</module>
     <module>destiny-fusion</module>
+    <module>destiny-scenario</module>
     <module>destiny-app</module>
   </modules>
 

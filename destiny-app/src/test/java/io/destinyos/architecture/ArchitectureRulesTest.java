@@ -84,7 +84,8 @@ class ArchitectureRulesTest {
                         + "that check them pass vacuously")
                 .anyMatch(p -> p.startsWith("io.destinyos.fusion"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.tarot"))
-                .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"));
+                .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"))
+                .anyMatch(p -> p.startsWith("io.destinyos.scenario"));
     }
 
     @Test
@@ -159,6 +160,24 @@ class ArchitectureRulesTest {
                 .resideInAPackage("io.destinyos.engines..")
                 .because("ADR D5: Fusion consumes the Signal contract only. "
                         + "Violating this invalidates the phase ordering in ADR D2.");
+
+        rule.allowEmptyShould(true).check(production());
+    }
+
+    @Test
+    @DisplayName("Scenario must not depend on any concrete engine (only the SPI and Fusion)")
+    void scenarioDependsOnlyOnTheEngineSpi() {
+        // ScenarioEngine's Javadoc states it is engine-agnostic - wiring a
+        // scenario to concrete engines is the caller's job. This makes that
+        // a build-enforced guarantee rather than a comment someone can
+        // violate without the test suite noticing.
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("io.destinyos.scenario..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("io.destinyos.engines..")
+                .because("A scenario is wired to concrete engine instances by its "
+                        + "caller, keeping destiny-scenario as engine-agnostic as "
+                        + "destiny-fusion.");
 
         rule.allowEmptyShould(true).check(production());
     }

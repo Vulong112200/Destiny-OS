@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-scenario</artifactId>
+  <name>Destiny OS :: Scenario</name>
+  <description>
+    Scenario orchestration (Master Spec section 11): which engines apply to a
+    real-world question, at what applicability level, and feeding their
+    signals into Fusion. Depends on the engine SPI and destiny-execution's
+    task runner, never on a concrete destiny-engine-* module - a scenario is
+    wired to concrete engine instances by its caller (destiny-app), which
+    keeps this module as engine-agnostic as destiny-fusion.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-execution</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-fusion</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>
