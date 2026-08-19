@@ -54,7 +54,7 @@ class DestinyOsApplicationTest {
         assertThat(bazi.status()).isEqualTo(MethodologyStatus.RESEARCH_REQUIRED);
 
         var tarot = registry.latestVersion("TAROT_RWS").orElseThrow();
-        assertThat(tarot.status()).isEqualTo(MethodologyStatus.CONTENT_REQUIRED);
+        assertThat(tarot.status()).isEqualTo(MethodologyStatus.PRODUCTION_READY);
         assertThat(registry.isCalculable("TAROT_RWS")).isTrue();
     }
 }

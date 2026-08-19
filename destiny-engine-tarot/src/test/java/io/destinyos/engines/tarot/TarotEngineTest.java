@@ -143,13 +143,20 @@ class TarotEngineTest {
     }
 
     @Test
-    @DisplayName("The engine reports no signals: no meaning content exists yet to derive them from (R11)")
-    void noSignalsWithoutMeaningContent() {
+    @DisplayName("The engine emits one signal per authored dimension field per card (R11, resolved)")
+    void emitsSignalsFromAuthoredMeaning() {
         var result = engine.calculate(
                 TarotDrawInput.withSeed(TarotSpread.PAST_PRESENT_FUTURE, 3L), context());
 
         assertThat(result.status()).isEqualTo(EngineStatus.SUCCESS);
-        assertThat(result.signals()).isEmpty();
+        // 3 cards x up to 5 dimension fields each; every card is fully
+        // authored (TarotDeckTest), so exactly 5 signals per card.
+        assertThat(result.signals()).hasSize(15);
+        assertThat(result.signals()).allSatisfy(signal -> {
+            assertThat(signal.engine()).isEqualTo(TarotEngine.ENGINE_ID);
+            assertThat(signal.critical()).isFalse();
+            assertThat(signal.evidenceIds()).isNotEmpty();
+        });
     }
 
     @Test

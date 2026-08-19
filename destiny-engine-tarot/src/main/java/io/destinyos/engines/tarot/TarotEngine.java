@@ -3,7 +3,11 @@ package io.destinyos.engines.tarot;
 import io.destinyos.core.context.CalculationContext;
 import io.destinyos.core.evidence.Evidence;
 import io.destinyos.core.result.EngineResult;
+import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
+import io.destinyos.core.signal.Polarity;
+import io.destinyos.core.signal.Signal;
+import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.EngineCapability;
 import io.destinyos.engine.EngineMetadata;
 import io.destinyos.engine.MetaphysicalEngine;
@@ -32,14 +36,16 @@ import java.util.UUID;
  * replayed could not be audited, so the two properties are sequential steps,
  * not alternatives.
  *
- * <p><strong>What this engine does not do:</strong> assign meaning. Without
- * the Vietnamese meaning corpus (research item R11, {@code CONTENT_REQUIRED}),
- * there is no basis to assign a {@code Dimension} or {@code Polarity} to a
- * card, so this engine returns an empty signal list. Producing a
- * {@code FINANCE_SUPPORT}-style signal from a card with no sourced meaning
- * would be exactly the fabrication CLAUDE.md Rule C forbids — the mechanical
- * draw is complete and honest; the interpretive layer is not, and says so by
- * omission rather than by invention.
+ * <p><strong>Signals (research item R11, resolved):</strong> each drawn card
+ * emits up to five signals, one per non-empty {@link TarotCardMeaning} field
+ * ({@link TarotCardMeaningsMajor} and its four suit counterparts carry the
+ * authored Vietnamese content, versioned as {@link TarotCardMeanings#CONTENT_VERSION}).
+ * A card with no authored meaning yields no signal for that draw — an honest
+ * omission, never a fabricated one. Polarity is authored once per orientation
+ * (not per dimension, see {@link TarotCardMeaning#polarityFor}); strength
+ * follows the standard convention that Major Arcana carry major life themes,
+ * court cards a secondary significance, and numbered Minor cards day-to-day
+ * matters.
  */
 public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, TarotReading> {
 
@@ -81,26 +87,86 @@ public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, Tar
         List<String> positions = input.spread().positions();
         List<TarotCardDraw> draws = new ArrayList<>(positions.size());
         List<Evidence> evidence = new ArrayList<>(positions.size());
+        List<Signal> signals = new ArrayList<>();
         String drawGroupId = UUID.randomUUID().toString();
 
         for (int i = 0; i < positions.size(); i++) {
             TarotCard card = shuffled.get(i);
             TarotOrientation orientation = decideOrientation(input.orientationPolicy(), random);
             String position = positions.get(i);
+            String evidenceId = UUID.randomUUID().toString();
 
             draws.add(new TarotCardDraw(position, card, orientation));
-            evidence.add(buildEvidence(position, card, orientation, drawGroupId));
+            evidence.add(buildEvidence(evidenceId, position, card, orientation, drawGroupId));
+            signals.addAll(buildSignals(evidenceId, card, orientation, drawGroupId));
         }
 
         var reading = new TarotReading(input.spread(), draws, seed, TarotDeck.DECK_VERSION,
                 SHUFFLE_ALGORITHM_VERSION, input.orientationPolicy());
 
-        // No signals: see class Javadoc. The draw is fully valid; assigning
-        // a dimension/polarity to it is not possible without R11's content.
-        return EngineResult.success(reading, evidence, List.of());
+        return EngineResult.success(reading, evidence, signals);
     }
 
-    private static Evidence buildEvidence(String position, TarotCard card,
+    /**
+     * One signal per non-empty meaning field on the drawn card (up to 5:
+     * career, finance, relationship, decision, general), per R11's now-authored
+     * content. A card with no authored meaning ({@link TarotCardMeaning#EMPTY})
+     * yields no signals for that draw — an honest omission, not a fabricated one.
+     *
+     * <p>Polarity is authored once per orientation, not per dimension
+     * ({@link TarotCardMeaning#polarityFor}) — a documented simplification,
+     * see that method's Javadoc. Strength follows the standard Tarot
+     * convention that Major Arcana carry the deck's major life themes, court
+     * cards a secondary significance, and numbered Minor cards day-to-day
+     * matters: {@code MAJOR -> STRONG}, court card -> {@code MEDIUM},
+     * numbered Minor -> {@code WEAK}.
+     */
+    private static List<Signal> buildSignals(String evidenceId, TarotCard card,
+                                             TarotOrientation orientation, String groupId) {
+        TarotCardMeaning meaning = card.meaning();
+        Polarity polarity = meaning.polarityFor(orientation);
+        if (polarity == null) {
+            return List.of();
+        }
+        Strength strength = card.arcana() == TarotArcana.MAJOR ? Strength.STRONG
+                : card.isCourtCard() ? Strength.MEDIUM : Strength.WEAK;
+
+        List<Signal> signals = new ArrayList<>();
+        addSignalIfPresent(signals, card, Dimension.CAREER, meaning.careerMeaning(),
+                polarity, strength, evidenceId, groupId);
+        addSignalIfPresent(signals, card, Dimension.FINANCE, meaning.financeMeaning(),
+                polarity, strength, evidenceId, groupId);
+        addSignalIfPresent(signals, card, Dimension.RELATIONSHIP, meaning.relationshipMeaning(),
+                polarity, strength, evidenceId, groupId);
+        addSignalIfPresent(signals, card, Dimension.DECISION, meaning.decisionMeaning(),
+                polarity, strength, evidenceId, groupId);
+        addSignalIfPresent(signals, card, Dimension.OTHER, meaning.generalMeaning(),
+                polarity, strength, evidenceId, groupId);
+        return signals;
+    }
+
+    private static void addSignalIfPresent(List<Signal> signals, TarotCard card, Dimension dimension,
+                                           String text, Polarity polarity, Strength strength,
+                                           String evidenceId, String groupId) {
+        if (text == null) {
+            return;
+        }
+        signals.add(new Signal(
+                UUID.randomUUID().toString(),
+                ENGINE_ID,
+                METADATA.school(),
+                dimension,
+                card.id() + "_" + dimension.name(),
+                polarity,
+                strength,
+                Applicability.HIGH,
+                false,
+                List.of(evidenceId),
+                groupId
+        ));
+    }
+
+    private static Evidence buildEvidence(String evidenceId, String position, TarotCard card,
                                           TarotOrientation orientation, String groupId) {
         Map<String, Object> fact = new LinkedHashMap<>();
         fact.put("position", position);
@@ -109,7 +175,7 @@ public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, Tar
         fact.put("orientation", orientation.name());
 
         return new Evidence(
-                UUID.randomUUID().toString(),
+                evidenceId,
                 TarotEngine.ENGINE_ID,
                 METADATA.school(),
                 "TAROT_SEEDED_DRAW",

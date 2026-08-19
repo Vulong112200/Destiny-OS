@@ -116,9 +116,9 @@ class MethodologyRegistryTest {
             // These statuses are transcribed directly from
             // docs/RESEARCH_BLOCKERS.md's register index. If that document
             // changes, this test - and the seeder - must change with it.
-            assertStatus("NUMEROLOGY_PYTHAGOREAN", MethodologyStatus.CONTENT_REQUIRED, "R8");
+            assertStatus("NUMEROLOGY_PYTHAGOREAN", MethodologyStatus.PRODUCTION_READY, "R8");
             assertStatus("NUMEROLOGY_CHALDEAN", MethodologyStatus.RESEARCH_REQUIRED, "R8");
-            assertStatus("TAROT_RWS", MethodologyStatus.CONTENT_REQUIRED, "R11");
+            assertStatus("TAROT_RWS", MethodologyStatus.PRODUCTION_READY, "R11");
             assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED, "R1", "R2", "R3");
             assertStatus("ZIWEI", MethodologyStatus.RESEARCH_REQUIRED, "R4");
             assertStatus("WESTERN_ASTROLOGY", MethodologyStatus.DECISION_REQUIRED, "R5", "R6");
@@ -133,10 +133,9 @@ class MethodologyRegistryTest {
         @Test
         @DisplayName("Only content-gated and production-ready entries are calculable")
         void onlyContentGatedEntriesAreCalculable() {
-            // TAROT_RWS and NUMEROLOGY_PYTHAGOREAN are CONTENT_REQUIRED:
-            // their algorithms are fully specified and golden-tested, so
-            // MethodologyStatus.mayCalculate() is true even though
-            // Vietnamese interpretive content is still missing (R11, R8).
+            // TAROT_RWS and NUMEROLOGY_PYTHAGOREAN are PRODUCTION_READY:
+            // algorithms golden-tested and Vietnamese interpretive content
+            // now authored (R11, R8) - both emit real signals.
             // CALENDAR_VN_TRADITIONAL is PRODUCTION_READY (destiny-calendar,
             // golden-tested against Ho Ngoc Duc's published tables) despite
             // R14b/R17 remaining open - those affect specific (date, region)

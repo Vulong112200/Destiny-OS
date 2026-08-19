@@ -4,13 +4,17 @@ import io.destinyos.core.context.CalculationContext;
 import io.destinyos.core.evidence.Evidence;
 import io.destinyos.core.result.EngineError;
 import io.destinyos.core.result.EngineResult;
+import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
+import io.destinyos.core.signal.Signal;
+import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.EngineCapability;
 import io.destinyos.engine.EngineMetadata;
 import io.destinyos.engine.MetaphysicalEngine;
 import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engine.SupportedDateRange;
 import io.destinyos.engine.ValidationResult;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,12 +27,16 @@ import java.util.UUID;
  * for it, and constructing one would be inventing a methodology
  * (CLAUDE.md Rule C).
  *
- * <p><strong>What this engine does not do:</strong> assign meaning to a
- * number. "Life Path 8" has no interpretive text attached — that Vietnamese
- * content does not exist yet, the same situation {@code TarotEngine} is in
- * with card meanings (research item R11). This engine reports the computed
- * numbers as evidence and produces no signals, rather than inventing what a
- * number implies for FINANCE or CAREER.
+ * <p><strong>Signals:</strong> each computed number emits one signal,
+ * {@code dimension = OTHER} — Pythagorean numbers describe personality-level
+ * traits (Master Spec section 16), not a specific life-area question the way
+ * Tarot's own fields do, so no CAREER/FINANCE/etc. split applies here.
+ * Polarity is authored per (type, value) pair in
+ * {@link NumerologyNumberMeanings}, since the same number reads differently
+ * by type (e.g. Life Path 8 vs Personality 8) — content grounded in the
+ * standard, widely-converged Pythagorean meaning corpus, authored once as
+ * versioned reference data (CLAUDE.md Rule B), the same discipline
+ * {@code TarotEngine} applies to card meanings (research item R11).
  */
 public final class NumerologyEngine implements MetaphysicalEngine<NumerologyInput, NumerologyProfile> {
 
@@ -70,21 +78,39 @@ public final class NumerologyEngine implements MetaphysicalEngine<NumerologyInpu
                     EngineError.of("NUMEROLOGY_INVALID_NAME", e.getMessage(), ENGINE_ID)));
         }
 
-        List<Evidence> evidence = List.of(
-                buildEvidence("NUMEROLOGY_LIFE_PATH", profile.lifePath(), profile),
-                buildEvidence("NUMEROLOGY_EXPRESSION", profile.expression(), profile),
-                buildEvidence("NUMEROLOGY_SOUL_URGE", profile.soulUrge(), profile),
-                buildEvidence("NUMEROLOGY_PERSONALITY", profile.personality(), profile),
-                buildEvidence("NUMEROLOGY_BIRTHDAY", profile.birthday(), profile)
-        );
+        List<Evidence> evidence = new ArrayList<>(5);
+        List<Signal> signals = new ArrayList<>(5);
+        addNumber(evidence, signals, "NUMEROLOGY_LIFE_PATH", profile.lifePath(), profile);
+        addNumber(evidence, signals, "NUMEROLOGY_EXPRESSION", profile.expression(), profile);
+        addNumber(evidence, signals, "NUMEROLOGY_SOUL_URGE", profile.soulUrge(), profile);
+        addNumber(evidence, signals, "NUMEROLOGY_PERSONALITY", profile.personality(), profile);
+        addNumber(evidence, signals, "NUMEROLOGY_BIRTHDAY", profile.birthday(), profile);
 
-        // No signals: see class Javadoc. Numbers are computed and honest;
-        // what a given number implies for any Dimension is content that
-        // does not exist yet.
-        return EngineResult.success(profile, evidence, List.of());
+        return EngineResult.success(profile, evidence, signals);
     }
 
-    private static Evidence buildEvidence(String ruleId, NumerologyResult result,
+    private static void addNumber(List<Evidence> evidence, List<Signal> signals, String ruleId,
+                                  NumerologyResult result, NumerologyProfile profile) {
+        String evidenceId = UUID.randomUUID().toString();
+        evidence.add(buildEvidence(evidenceId, ruleId, result, profile));
+
+        NumerologyNumberMeanings.of(result.type(), result.value()).ifPresent(meaning ->
+                signals.add(new Signal(
+                        UUID.randomUUID().toString(),
+                        ENGINE_ID,
+                        METADATA.school(),
+                        Dimension.OTHER,
+                        ruleId,
+                        meaning.polarity(),
+                        Strength.MEDIUM,
+                        Applicability.HIGH,
+                        false,
+                        List.of(evidenceId),
+                        null
+                )));
+    }
+
+    private static Evidence buildEvidence(String evidenceId, String ruleId, NumerologyResult result,
                                           NumerologyProfile profile) {
         Map<String, Object> fact = new LinkedHashMap<>();
         fact.put("value", result.value());
@@ -95,7 +121,7 @@ public final class NumerologyEngine implements MetaphysicalEngine<NumerologyInpu
         }
 
         return new Evidence(
-                UUID.randomUUID().toString(),
+                evidenceId,
                 ENGINE_ID,
                 METADATA.school(),
                 ruleId,

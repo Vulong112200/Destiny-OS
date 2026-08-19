@@ -73,23 +73,28 @@ public class MethodologyRegistrySeeder {
     private static final List<Entry> ENTRIES = List.of(
 
             new Entry("NUMEROLOGY_PYTHAGOREAN", "Thần số học - Pythagoras", "WESTERN",
-                    MethodologyStatus.CONTENT_REQUIRED,
+                    MethodologyStatus.PRODUCTION_READY,
                     "Pythagorean",
                     "Standard A-Z letter table (converging across all sources checked); "
                             + "Vietnamese normalization policy (Unicode NFD + explicit đ/Đ "
                             + "substitution) and Life Path per-component reduction order "
-                            + "sourced and recorded in RESEARCH_BLOCKERS.md R8, 2026-08-18",
+                            + "sourced and recorded in RESEARCH_BLOCKERS.md R8, 2026-08-18. "
+                            + "Interpretive meaning content grounded in the standard, "
+                            + "widely-converged Pythagorean numerology corpus (65 entries: "
+                            + "5 number types x values 1-9/11/22/33), authored 2026-08-19.",
                     Set.of("R8"),
                     "Algorithm implemented and golden-tested (destiny-engine-numerology) "
                             + "against independently sourced worked examples: Life Path for "
                             + "1990-03-15 = 1; day 29 preserves master number 11; Expression "
-                            + "for 'John Doe' = 8. Vietnamese interpretive meaning content for "
-                            + "each number (1-9, 11, 22, 33) is not yet authored - the engine "
-                            + "computes real numbers with no text attached, same situation as "
-                            + "Tarot (R11). Y is simplified to always-consonant for Soul "
-                            + "Urge/Personality pending a source for Vietnamese-specific "
-                            + "treatment - a labelled simplification, not a researched rule. "
-                            + "Chaldean remains RESEARCH_REQUIRED separately: no source for a "
+                            + "for 'John Doe' = 8. Vietnamese interpretive content for every "
+                            + "(type, value) pair now authored (NumerologyNumberMeanings) - "
+                            + "the engine emits one real signal per computed number, "
+                            + "dimension OTHER, polarity authored per pair since the same "
+                            + "number reads differently by type. Y is simplified to "
+                            + "always-consonant for Soul Urge/Personality pending a source "
+                            + "for Vietnamese-specific treatment - a labelled "
+                            + "simplification, not a researched rule. Chaldean remains "
+                            + "RESEARCH_REQUIRED separately: no source for a "
                             + "Vietnamese-orthography mapping exists."),
 
             new Entry("NUMEROLOGY_CHALDEAN", "Thần số học - Chaldea", "WESTERN",
@@ -100,16 +105,23 @@ public class MethodologyRegistrySeeder {
                             + "inventing a methodology, which CLAUDE.md Rule C forbids."),
 
             new Entry("TAROT_RWS", "Tarot - Rider-Waite-Smith", "WESTERN",
-                    MethodologyStatus.CONTENT_REQUIRED,
+                    MethodologyStatus.PRODUCTION_READY,
                     "Rider-Waite-Smith (RWS) - 78 cards: 22 Major Arcana, 56 Minor Arcana",
-                    "DESTINY_OS_MASTER_SPECIFICATION.md section 17",
+                    "DESTINY_OS_MASTER_SPECIFICATION.md section 17; interpretive content "
+                            + "grounded in the standard Rider-Waite-Smith tradition (A.E. "
+                            + "Waite, 1910, Pictorial Key to the Tarot, and the consistent "
+                            + "derivative corpus since), authored 2026-08-19 "
+                            + "(TarotCardMeanings, contentVersion 1.0)",
                     Set.of("R11"),
                     "Deck structure, seeded shuffle and orientation rule are fully "
-                            + "specified. Only the 78-card Vietnamese meaning corpus is "
-                            + "outstanding, and that is content authorship, not "
-                            + "algorithm - this is why CONTENT_REQUIRED (not "
-                            + "RESEARCH_REQUIRED) is the correct status: the engine may "
-                            + "ship."),
+                            + "specified. All 78 cards now carry authored Vietnamese "
+                            + "meaning content (upright/reversed keywords, polarity, and "
+                            + "career/finance/relationship/decision/general text) - the "
+                            + "engine emits up to 5 real signals per drawn card. Polarity "
+                            + "is authored once per orientation, not per dimension, and "
+                            + "strength follows arcana/rank (Major -> STRONG, court -> "
+                            + "MEDIUM, numbered Minor -> WEAK) - both documented "
+                            + "simplifications, not fabrications."),
 
             new Entry("CALENDAR_VN_TRADITIONAL", "Lịch Việt Nam truyền thống", "EASTERN",
                     MethodologyStatus.PRODUCTION_READY,

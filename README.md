@@ -64,7 +64,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 ## Trạng thái hiện tại
 
-**REST API — pipeline MVP có thể gọi được qua HTTP thật.** Toàn bộ luồng chạy từ đầu đến cuối qua API: chọn engine theo kịch bản → chạy song song → tổng hợp theo luật → ghi vào database trong một transaction → trả về JSON có nhãn tiếng Việt. Chưa có nội dung diễn giải tiếng Việt (R8/R11) và chưa có UI.
+**Pipeline MVP đầy đủ, có kết quả Fusion thật.** Toàn bộ luồng chạy từ đầu đến cuối qua API: chọn engine theo kịch bản → chạy song song → sinh signal thật từ nội dung diễn giải đã viết → tổng hợp theo luật → ghi vào database trong một transaction → trả về JSON có nhãn tiếng Việt. Chưa có UI.
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
@@ -72,17 +72,19 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 1 | Nền tảng: domain, SPI, harness | Xong |
 | 2 | Database + methodology registry | Xong |
 | 3 | Nền tảng lịch | **Xong** — Can Chi + lịch âm dương đủ dùng; xem ghi chú bên dưới |
-| 4 | Thần số học (Pythagoras) | Xong — 5 chỉ số; Chaldean vẫn chặn (không có nguồn) |
-| 5 | Tarot | Xong — cấu trúc + rút bài; nội dung ý nghĩa còn thiếu |
-| 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả |
+| 4 | Thần số học (Pythagoras) | **Xong** — 5 chỉ số + nội dung diễn giải 65 tổ hợp; Chaldean vẫn chặn (không có nguồn) |
+| 5 | Tarot | **Xong** — cấu trúc, rút bài, và nội dung diễn giải đủ 78 lá |
+| 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả, đã có kết quả thật từ engine thật |
 | 7 | Scenario | Xong — 2/10 scenario có chính sách thật (BUSINESS, DAILY_ACTION), 8 còn lại đăng ký nhưng chưa có chính sách |
 | — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | Xong — `CalculationRecorder`, `result_hash` tái lập được |
-| — | REST API (`destiny-api`) | **Xong** — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
+| — | REST API (`destiny-api`) | Xong — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
+
+**Cập nhật nội dung diễn giải (2026-08-19):** Tarot (R11) và Numerology đã có đủ nội dung tiếng Việt (78 lá × 7 trường; 65 tổ hợp số), bám theo truyền thống Rider-Waite-Smith và Pythagorean hội tụ rộng rãi, viết một lần thành dữ liệu Java tĩnh — không sinh lúc runtime (CLAUDE.md Rule B). Hai engine giờ phát sinh signal thật, và Fusion lần đầu tiên cho ra kết quả thật (không còn `INSUFFICIENT_EVIDENCE`) — ví dụ một lượt Tarot với 3 lá mang polarity trái chiều cho ra `MAJOR_CONFLICT`, đúng tinh thần Rule E.
 
 **Cập nhật Calendar Engine (2026-08-19):** R10 (ranh giới giờ Tý 23:00 + chính sách giờ mặt trời) đã được chủ dự án chốt. R9, R14a, R15, R16 (tiết khí, múi giờ lịch sử, điểm sóc, tháng nhuận) đã **`RESOLVED`** — cài đặt độc lập bằng Java, trích dẫn Jean Meeus *Astronomical Algorithms* (1998), đối chiếu byte-chính-xác với 2 bản port cộng đồng lâu năm và golden-test trực tiếp với bảng ví dụ gốc của Hồ Ngọc Đức. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 (R14b) vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này; một lần tính rơi vào vùng chưa xác định sẽ trả về "chưa xác định được", không suy đoán. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` và `docs/DECISION_LOG.md` (không push lên git).
 
-11 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 2 `CONTENT_REQUIRED` (Tarot, Numerology Pythagoras — thuật toán xong, thiếu nội dung tiếng Việt), 1 `PRODUCTION_READY` (Lịch Việt Nam truyền thống), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`.
+11 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 3 `PRODUCTION_READY` (Tarot, Numerology Pythagoras, Lịch Việt Nam truyền thống), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`.
 
 Các engine chưa triển khai **vẫn được đăng ký và hiển thị**, kèm lý do — thay vì bị ẩn đi. Người dùng nhìn thấy `Chưa triển khai` hoặc `Cần xác minh thuật toán`, không phải một câu trả lời tự tin nhưng sai.
 
@@ -122,8 +124,8 @@ Bộ test hiện tại — 257 test:
 - **kiến trúc** — ranh giới module, cấm phụ thuộc chéo, cấm số thực trong domain
 - **phủ nhãn tiếng Việt** — mọi enum hướng tới người dùng đều có nhãn, không nhãn nào ngụ ý xác suất
 - **Calendar** — bảng ví dụ tính mẫu gốc của Hồ Ngọc Đức (1983-1986), 4 năm lệch Việt/Trung có tên cụ thể (1985, 2007, 2030, 2053), quét Tết toàn bộ 1900-2100, chu kỳ Can Chi 60 năm, ranh giới giờ Tý 23:00, không suy đoán khi vùng miền chưa xác định (R14b)
-- **Tarot** — đúng cấu trúc 78 lá RWS, rút bài xác định theo seed, không thiên vị khi xoay lá, không trùng lá trong một lần rút
-- **Thần số học** — golden test đối chiếu ví dụ tính mẫu từ nguồn độc lập (không tự sinh từ code), chuẩn hóa tên tiếng Việt đúng (kể cả trường hợp `đ` không phân rã Unicode), giữ số chủ đạo 11/22/33
+- **Tarot** — đúng cấu trúc 78 lá RWS, rút bài xác định theo seed, không thiên vị khi xoay lá, không trùng lá trong một lần rút, cả 78 lá đều có nội dung diễn giải thật và sinh đúng tối đa 5 signal/lá
+- **Thần số học** — golden test đối chiếu ví dụ tính mẫu từ nguồn độc lập (không tự sinh từ code), chuẩn hóa tên tiếng Việt đúng (kể cả trường hợp `đ` không phân rã Unicode), giữ số chủ đạo 11/22/33, cả 65 tổ hợp (loại số × giá trị) đều có nội dung diễn giải và sinh signal thật
 - **Fusion** — đủ 14/14 test case bắt buộc của đặc tả: đếm nguồn theo engine riêng biệt (không theo signal), tín hiệu critical sống sót qua đa số, methodology conflict không bị tự động gộp
 - **Scenario** — chỉ chạy engine được chính sách nêu tên, applicability chỉ thu hẹp không mở rộng, scenario chưa có chính sách thì không chạy gì cả thay vì đoán
 - **Lưu trữ tính toán** — round-trip đầy đủ Calculation/Evidence/Signal/Fusion/Conflict, `result_hash` giống hệt nhau khi cùng input/version/seed/outcome và khác nhau khi bất kỳ yếu tố nào đổi

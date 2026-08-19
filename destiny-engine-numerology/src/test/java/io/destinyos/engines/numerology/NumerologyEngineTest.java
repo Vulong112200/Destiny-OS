@@ -59,13 +59,21 @@ class NumerologyEngineTest {
     }
 
     @Test
-    @DisplayName("Evidence is recorded for all five numbers, and no signals are produced")
-    void evidenceRecordedNoSignals() {
+    @DisplayName("Evidence is recorded for all five numbers, and one signal per number is produced")
+    void evidenceAndSignalsRecordedForEveryNumber() {
         var input = new NumerologyInput("Lê Văn Bình", LocalDate.of(2000, 1, 1));
         var result = engine.calculate(input, context());
 
         assertThat(result.evidence()).hasSize(5);
-        assertThat(result.signals()).isEmpty(); // R11-equivalent: no meaning content yet
+        // Every (type, value) pair the engine can produce is authored in
+        // NumerologyNumberMeanings, so all 5 numbers yield a signal.
+        assertThat(result.signals()).hasSize(5);
+        assertThat(result.signals()).allSatisfy(signal -> {
+            assertThat(signal.engine()).isEqualTo(NumerologyEngine.ENGINE_ID);
+            assertThat(signal.dimension()).isEqualTo(io.destinyos.core.signal.Dimension.OTHER);
+            assertThat(signal.critical()).isFalse();
+            assertThat(signal.evidenceIds()).isNotEmpty();
+        });
     }
 
     @Test

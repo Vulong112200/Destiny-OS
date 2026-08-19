@@ -101,13 +101,27 @@ class TarotDeckTest {
     }
 
     @Test
-    @DisplayName("Every card ships with EMPTY meaning content (R11 is content-gated, not invented)")
-    void noCardHasInventedMeaning() {
+    @DisplayName("Every one of the 78 cards has authored meaning content (R11, resolved)")
+    void everyCardHasAuthoredMeaning() {
         for (TarotCard card : TarotDeck.allCards()) {
-            assertThat(card.meaning())
-                    .as("card %s must not have invented meaning content", card.id())
-                    .isEqualTo(TarotCardMeaning.EMPTY);
-            assertThat(card.meaning().isEmpty()).isTrue();
+            assertThat(card.meaning().isEmpty())
+                    .as("card %s must have authored meaning content, not EMPTY", card.id())
+                    .isFalse();
+            assertThat(card.meaning().uprightPolarity())
+                    .as("card %s must have an authored upright polarity", card.id())
+                    .isNotNull();
+            assertThat(card.meaning().reversedPolarity())
+                    .as("card %s must have an authored reversed polarity", card.id())
+                    .isNotNull();
+            assertThat(card.meaning().uprightKeywords())
+                    .as("card %s must have upright keywords", card.id())
+                    .isNotEmpty();
+            assertThat(card.meaning().reversedKeywords())
+                    .as("card %s must have reversed keywords", card.id())
+                    .isNotEmpty();
+            assertThat(card.meaning().generalMeaning())
+                    .as("card %s must have a general meaning", card.id())
+                    .isNotBlank();
         }
     }
 

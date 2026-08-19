@@ -28,13 +28,13 @@ import org.springframework.test.context.ActiveProfiles;
  * whose applicable-engines list includes both {@code TAROT} and
  * {@code NUMEROLOGY_PYTHAGOREAN} — the two engines this MVP actually has.
  *
- * <p>Both engines currently emit evidence but no signals (research items
- * R11 / R8's interpretive-content gap — the mechanical computation is done,
- * the meaning layer is not written yet). Asserting
- * {@code FusionOutcome.INSUFFICIENT_EVIDENCE} here is therefore the honest,
- * currently-correct expectation, not a placeholder — it will change the
- * moment either engine starts emitting real signals, and this test should
- * be updated at that point rather than loosened preemptively.
+ * <p>Both engines now emit real signals (research items R11/R8's Vietnamese
+ * interpretive content, authored 2026-08-19) — this is the first test in the
+ * project to exercise a genuine, non-{@code INSUFFICIENT_EVIDENCE} Fusion
+ * result end to end. For this fixed seed, the three drawn Tarot cards carry
+ * disagreeing polarities, so the real, honest outcome is
+ * {@code MAJOR_CONFLICT} — Rule E's "conflict is a valid result" made
+ * concrete, not a consensus forced where none exists.
  */
 @SpringBootTest(classes = DestinyOsApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -69,11 +69,23 @@ class ScenarioApiIntegrationTest {
         // yet (R8/R11) - evidence is real, signals are not fabricated to fill
         // the gap.
         assertThat(body.evidence()).isNotEmpty();
-        assertThat(body.signals()).isEmpty();
+        // Both engines now emit real signals (R11/R8 content authored) - 3
+        // Tarot cards x 5 dimension fields + 5 Numerology numbers, for this
+        // fixed seed/name/birthdate.
+        assertThat(body.signals()).hasSize(20);
 
         assertThat(body.fusion()).isNotNull();
-        assertThat(body.fusion().overallOutcome().technical()).isEqualTo("INSUFFICIENT_EVIDENCE");
-        assertThat(body.fusion().overallOutcome().labelVi()).isEqualTo("Chưa đủ dữ liệu");
+        // A genuine, honest MAJOR_CONFLICT: the three Tarot cards drawn for
+        // this seed carry different polarities (SUPPORT, CAUTION, NEGATIVE),
+        // so every dimension they touch shows real internal disagreement -
+        // Rule E's "conflict is a valid result" is not aspirational, this is
+        // the first real Fusion output the project has ever produced from
+        // authored engine content, and it correctly does not force a false
+        // consensus.
+        assertThat(body.fusion().overallOutcome().technical()).isEqualTo("MAJOR_CONFLICT");
+        assertThat(body.fusion().dimensions()).isNotEmpty();
+        assertThat(body.fusion().dimensions()).allSatisfy(dimension ->
+                assertThat(dimension.state().technical()).isEqualTo("CONFLICT"));
 
         ResponseEntity<ScenarioRunResponse> replay = rest.getForEntity(
                 "/api/v1/calculations/" + body.calculationId(), ScenarioRunResponse.class);

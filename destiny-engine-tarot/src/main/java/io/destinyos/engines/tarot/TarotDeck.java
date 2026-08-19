@@ -56,7 +56,7 @@ public final class TarotDeck {
         for (int i = 0; i < MAJOR_ARCANA_NAMES.length; i++) {
             String id = "MAJOR_%02d_%s".formatted(i, slug(MAJOR_ARCANA_NAMES[i]));
             cards.add(new TarotCard(id, MAJOR_ARCANA_NAMES[i], i, TarotArcana.MAJOR, null,
-                    TarotCardMeaning.EMPTY));
+                    TarotCardMeanings.forId(id).orElse(TarotCardMeaning.EMPTY)));
         }
 
         for (TarotSuit suit : TarotSuit.values()) {
@@ -65,7 +65,7 @@ public final class TarotDeck {
                 String id = "MINOR_%s_%02d_%s".formatted(suit.name(), rank, slug(rankName));
                 String name = rankName + " of " + capitalize(suit.name());
                 cards.add(new TarotCard(id, name, rank, TarotArcana.MINOR, suit,
-                        TarotCardMeaning.EMPTY));
+                        TarotCardMeanings.forId(id).orElse(TarotCardMeaning.EMPTY)));
             }
         }
 
