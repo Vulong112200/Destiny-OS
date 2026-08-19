@@ -95,6 +95,16 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${spring-boot.version}</version>
+        <!-- Not inheriting spring-boot-starter-parent (D1: custom multi-module
+             parent), so the repackage goal that turns this into a runnable
+             fat jar needs an explicit binding - it is not automatic here. -->
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
