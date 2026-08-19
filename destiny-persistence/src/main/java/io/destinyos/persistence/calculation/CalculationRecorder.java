@@ -53,15 +53,33 @@ public class CalculationRecorder {
     }
 
     /**
+     * Records a full run with no associated scenario (e.g. a bare engine
+     * run outside {@code destiny-scenario}'s orchestration). See
+     * {@link #record(CalculationContext, String, ExecutionOutcome, FusionResult)}.
+     */
+    @Transactional
+    public CalculationEntity record(CalculationContext context, ExecutionOutcome execution,
+                                    FusionResult fusion) {
+        return record(context, null, execution, fusion);
+    }
+
+    /**
      * Records a full run. {@code fusion} may be {@code null} — a scenario
      * with no defined applicability policy (see {@code destiny-scenario}'s
      * {@code ScenarioDefinition#policyDefined()}) legitimately never reaches
      * Fusion, and that absence is itself worth recording honestly rather
      * than being forced through with a fabricated outcome.
+     *
+     * <p>{@code scenarioId} is separate from {@link CalculationContext#school()}:
+     * {@code school} is Rule D's per-methodology selection, meaningless at
+     * the level of a whole scenario run that may span several engines with
+     * several different schools, so a scenario orchestrator has nothing
+     * correct to put there. {@code scenarioId} is this table's own way of
+     * recording which scenario the run was for.
      */
     @Transactional
-    public CalculationEntity record(CalculationContext context, ExecutionOutcome execution,
-                                    FusionResult fusion) {
+    public CalculationEntity record(CalculationContext context, String scenarioId,
+                                    ExecutionOutcome execution, FusionResult fusion) {
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(execution, "execution");
 
@@ -74,6 +92,7 @@ public class CalculationRecorder {
                 context.timezone().getId(),
                 context.calculatedAt());
         calculation.setCalendarVersion(context.versions().calendarVersion());
+        calculation.setScenarioId(scenarioId);
         context.seedIfPresent().ifPresent(calculation::setSeed);
         calculations.save(calculation);
 

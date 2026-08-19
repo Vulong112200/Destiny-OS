@@ -30,6 +30,7 @@
     <module>destiny-engine-numerology</module>
     <module>destiny-fusion</module>
     <module>destiny-scenario</module>
+    <module>destiny-api</module>
     <module>destiny-app</module>
   </modules>
 

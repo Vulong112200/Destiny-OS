@@ -51,6 +51,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-engine-numerology` | Thần số học Pythagoras — 5 chỉ số, chuẩn hóa tên tiếng Việt |
 | `destiny-fusion` | Tổng hợp kết luận theo luật (không phải trung bình có trọng số) |
 | `destiny-scenario` | Điều phối kịch bản — chọn engine áp dụng, không phụ thuộc engine cụ thể |
+| `destiny-api` | REST controllers — không phụ thuộc engine cụ thể nào (qua `EngineTaskFactory`) |
 | `destiny-app` | Spring Boot assembly + bộ test kiến trúc |
 
 Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit**, không chỉ ghi trong tài liệu:
@@ -62,7 +63,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 ## Trạng thái hiện tại
 
-**V4-V6 — lưu trữ tính toán.** Toàn bộ pipeline MVP chạy được từ đầu đến cuối **và kết quả được lưu lại thật sự**: chọn engine theo kịch bản → chạy song song → tổng hợp theo luật → ghi vào database trong một transaction. Chưa có nội dung diễn giải tiếng Việt và chưa có API/UI.
+**REST API — pipeline MVP có thể gọi được qua HTTP thật.** Toàn bộ luồng chạy từ đầu đến cuối qua API: chọn engine theo kịch bản → chạy song song → tổng hợp theo luật → ghi vào database trong một transaction → trả về JSON có nhãn tiếng Việt. Chưa có nội dung diễn giải tiếng Việt (R8/R11) và chưa có UI.
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
@@ -74,7 +75,8 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 5 | Tarot | Xong — cấu trúc + rút bài; nội dung ý nghĩa còn thiếu |
 | 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả |
 | 7 | Scenario | Xong — 2/10 scenario có chính sách thật (BUSINESS, DAILY_ACTION), 8 còn lại đăng ký nhưng chưa có chính sách |
-| — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | **Xong** — `CalculationRecorder`, `result_hash` tái lập được |
+| — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | Xong — `CalculationRecorder`, `result_hash` tái lập được |
+| — | REST API (`destiny-api`) | **Xong** — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
 
 **Cập nhật nghiên cứu lịch:** sau nhiều vòng tra cứu, 4/6 mục (thuật toán tiết khí/điểm sóc/tháng nhuận, và quy tắc múi giờ lịch sử theo ngày) đã có nguồn trích dẫn cụ thể (Jean Meeus 1998; Công Báo Việt Nam với số quyển/trang) và được nâng lên `DECISION_REQUIRED`. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` (không push lên git).
@@ -93,7 +95,7 @@ Yêu cầu JDK 21 trở lên và Maven 3.9+.
 mvn verify
 ```
 
-Bộ test hiện tại — 151 test:
+Bộ test hiện tại — 171 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
@@ -105,6 +107,7 @@ Bộ test hiện tại — 151 test:
 - **Scenario** — chỉ chạy engine được chính sách nêu tên, applicability chỉ thu hẹp không mở rộng, scenario chưa có chính sách thì không chạy gì cả thay vì đoán
 - **Lưu trữ tính toán** — round-trip đầy đủ Calculation/Evidence/Signal/Fusion/Conflict, `result_hash` giống hệt nhau khi cùng input/version/seed/outcome và khác nhau khi bất kỳ yếu tố nào đổi
 - **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
+- **REST API** — unit test cho từng service (dùng `StubEngine` cục bộ, không phụ thuộc engine thật), slice `@WebMvcTest` cho từng controller (status code, `ApiExceptionHandler`, methodology bị chặn nghiên cứu trả 200 chứ không phải 404), và một test tích hợp HTTP đầu-cuối chạy `TarotEngine`+`NumerologyEngine` thật qua cổng ngẫu nhiên, có ghi vào database rồi đọc lại đúng `resultHash`
 
 Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`).
 

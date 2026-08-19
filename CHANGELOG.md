@@ -8,6 +8,45 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — REST API layer (`destiny-api`)
+
+- Module mới `destiny-api` — chỉ phụ thuộc `destiny-scenario`, `destiny-persistence`,
+  `destiny-i18n`; **không bao giờ import một `destiny-engine-*` cụ thể nào**
+  (CLAUDE.md §3). Ranh giới này được thực thi bằng cơ chế mới
+  `EngineTaskFactory`: interface sống ở `destiny-api`, cài đặt cụ thể
+  (`TarotTaskFactory`, `NumerologyTaskFactory`) sống ở `destiny-app` — nơi
+  duy nhất được phép biết cả hình dạng request lẫn kiểu input cụ thể của
+  từng engine. Đã tiêm một vi phạm giả (`TempProbe` gọi thẳng `TarotDeck`
+  từ package controller) để xác nhận luật ArchUnit `controllersStayThin`
+  thật sự bắt được lỗi trước khi xóa file thử nghiệm
+- 3 nhóm endpoint (command §41): `POST /api/v1/scenarios/{scenarioType}`,
+  `GET /api/v1/methodologies[/{id}]`, `GET /api/v1/calculations/{id}` — một
+  methodology bị chặn nghiên cứu là một dòng 200 với status trung thực
+  (ADR D7), không phải 404
+- `LabeledValue` — mọi enum trả về API đều kèm nhãn tiếng Việt
+  (UI_UX_VIETNAMESE_SPEC §1: không để lộ enum kỹ thuật một mình). Thiết kế
+  lại một lần: bản đầu nhận `Function<E, String>` qua `VietnameseLabels::of`
+  nhưng method reference bị overload khiến Java không suy luận đồng thời
+  được cả "overload nào" lẫn "E là gì" — mọi lời gọi báo lỗi "cannot infer
+  type-variable(s) E". Sửa bằng cách nhận thẳng `String` đã tính sẵn
+- **Lỗi thật phát hiện bởi `ScenarioApiIntegrationTest`** (test tích hợp
+  HTTP thật đầu tiên, chạy `TarotEngine`+`NumerologyEngine` thật qua
+  `EngineWiringConfig`): `CalculationRecorder.record()` không bao giờ gọi
+  `setScenarioId()`, nên `GET /api/v1/calculations/{id}` luôn trả về
+  `scenarioId: null`. Đồng thời `ScenarioOrchestrationService` gán nhầm
+  `scenarioType.name()` vào field `school` của `CalculationContext` — sai
+  ngữ nghĩa, vì `school` (Rule D) là lựa chọn trường phái của **một
+  engine**, không có ý nghĩa ở tầng một scenario chạy nhiều engine khác
+  trường phái cùng lúc. Sửa bằng cách thêm overload
+  `record(context, scenarioId, execution, fusion)` (bản 3 tham số cũ vẫn
+  giữ nguyên, gọi qua bản mới với `scenarioId = null`, không phá test cũ ở
+  `destiny-persistence`), và để `school = null` khi tạo context ở tầng
+  scenario
+- 16 test mới ở `destiny-api` (unit cho 3 service + slice `@WebMvcTest` cho
+  3 controller, dùng `StubEngine` cục bộ thay vì phụ thuộc engine thật),
+  4 test tích hợp HTTP đầu-cuối mới ở `destiny-app`
+  (`ScenarioApiIntegrationTest`, 171 tổng)
+
 ### Added — V4-V6: durable calculation storage (reproducibility, closed)
 
 Trước đây một lần chạy tính đúng nhưng **biến mất ngay khi JVM tắt** — domain

@@ -7,6 +7,10 @@ import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
+import io.destinyos.engine.MethodologyStatus;
+import io.destinyos.fusion.ConflictType;
+import io.destinyos.fusion.DimensionState;
+import io.destinyos.fusion.FusionOutcome;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -119,6 +123,72 @@ public final class VietnameseLabels {
                         + "Hệ thống không đưa ra kết quả thay vì đoán.");
     });
 
+    /**
+     * Per-dimension state (DECISION_LOG C5 — {@code CLAUDE.md} Rule E's
+     * vocabulary). Labels reuse the exact wording already prescribed in
+     * UI_UX_VIETNAMESE_SPEC section 6 for the shared members (CONFLICT,
+     * MAJOR_CONFLICT, INSUFFICIENT_EVIDENCE) so a Vietnamese reader never
+     * sees the same underlying idea worded two different ways depending on
+     * which layer produced it.
+     */
+    private static final Map<DimensionState, String> DIMENSION_STATE = ordered(map -> {
+        map.put(DimensionState.POSITIVE, "Thuận lợi");
+        map.put(DimensionState.NEUTRAL, "Trung tính");
+        map.put(DimensionState.CAUTION, "Cần thận trọng");
+        map.put(DimensionState.NEGATIVE, "Không thuận lợi");
+        map.put(DimensionState.MIXED, "Trái chiều");
+        map.put(DimensionState.CONFLICT, "Có mâu thuẫn");
+        map.put(DimensionState.MAJOR_CONFLICT, "Mâu thuẫn đáng chú ý");
+        map.put(DimensionState.INSUFFICIENT_EVIDENCE, "Chưa đủ dữ liệu");
+    });
+
+    /**
+     * Overall scenario outcome (DECISION_LOG C2, the union of Master Spec
+     * section 9 and FUSION_ENGINE_SPEC.md section 7). None of these imply a
+     * probability (ADR D6, Fusion section 11) — they name which rule fired,
+     * not a likelihood.
+     */
+    private static final Map<FusionOutcome, String> FUSION_OUTCOME = ordered(map -> {
+        map.put(FusionOutcome.CONSENSUS_SUPPORT, "Đồng thuận thuận lợi");
+        map.put(FusionOutcome.CONSENSUS_CAUTION, "Đồng thuận cần thận trọng");
+        map.put(FusionOutcome.CONSENSUS_NEGATIVE, "Đồng thuận không thuận lợi");
+        map.put(FusionOutcome.SUPPORT_WITH_CAUTION, "Thuận lợi, kèm điểm cần lưu ý");
+        map.put(FusionOutcome.SUPPORT_WITH_CRITICAL_CAUTION,
+                "Thuận lợi, nhưng có cảnh báo quan trọng cần chú ý");
+        map.put(FusionOutcome.CAUTION_WITH_SUPPORT, "Cần thận trọng, kèm điểm thuận lợi");
+        map.put(FusionOutcome.CAUTION_WITH_CRITICAL_SUPPORT,
+                "Cần thận trọng, nhưng có điểm thuận lợi đáng chú ý");
+        map.put(FusionOutcome.MIXED, "Kết quả trái chiều giữa các phương pháp");
+        map.put(FusionOutcome.MAJOR_CONFLICT, "Mâu thuẫn đáng chú ý");
+        map.put(FusionOutcome.METHODOLOGY_CONFLICT, "Khác biệt giữa các trường phái");
+        map.put(FusionOutcome.INSUFFICIENT_EVIDENCE, "Chưa đủ dữ liệu");
+        map.put(FusionOutcome.NOT_APPLICABLE, "Không áp dụng");
+    });
+
+    /** The five conflict categories (FUSION_ENGINE_SPEC.md section 8). */
+    private static final Map<ConflictType, String> CONFLICT_TYPE = ordered(map -> {
+        map.put(ConflictType.DIRECT_CONFLICT, "Mâu thuẫn trực tiếp");
+        map.put(ConflictType.SCOPE_CONFLICT, "Khác phạm vi, không phải mâu thuẫn thật sự");
+        map.put(ConflictType.METHODOLOGY_CONFLICT, "Khác biệt giữa các trường phái");
+        map.put(ConflictType.INPUT_SENSITIVITY_CONFLICT, "Do dữ liệu đầu vào chưa chắc chắn");
+        map.put(ConflictType.TEMPORAL_CONFLICT, "Khác thời điểm");
+    });
+
+    /**
+     * Methodology registry lifecycle (ADR D7) — distinct from
+     * {@link EngineStatus}, which is a per-calculation result. This is the
+     * status of a whole methodology as registered, e.g. what
+     * {@code GET /api/v1/methodologies} reports.
+     */
+    private static final Map<MethodologyStatus, String> METHODOLOGY_STATUS = ordered(map -> {
+        map.put(MethodologyStatus.PRODUCTION_READY, "Đã sẵn sàng");
+        map.put(MethodologyStatus.RESEARCH_REQUIRED, "Cần xác minh thuật toán");
+        map.put(MethodologyStatus.DECISION_REQUIRED, "Cần chọn trường phái");
+        map.put(MethodologyStatus.CONTENT_REQUIRED, "Thiếu nội dung diễn giải");
+        map.put(MethodologyStatus.NOT_IMPLEMENTED, "Chưa triển khai");
+        map.put(MethodologyStatus.OUT_OF_SCOPE, "Ngoài phạm vi hiện tại");
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -147,6 +217,22 @@ public final class VietnameseLabels {
         return require(UNCERTAINTY, value);
     }
 
+    public static String of(DimensionState value) {
+        return require(DIMENSION_STATE, value);
+    }
+
+    public static String of(FusionOutcome value) {
+        return require(FUSION_OUTCOME, value);
+    }
+
+    public static String of(ConflictType value) {
+        return require(CONFLICT_TYPE, value);
+    }
+
+    public static String of(MethodologyStatus value) {
+        return require(METHODOLOGY_STATUS, value);
+    }
+
     /** Non-throwing lookup, for the coverage test. */
     public static Optional<String> lookup(Enum<?> value) {
         if (value == null) {
@@ -164,7 +250,8 @@ public final class VietnameseLabels {
     /** Every registry, so the coverage test can walk them all. */
     public static java.util.List<Map<? extends Enum<?>, String>> allRegistries() {
         return java.util.List.of(ENGINE_STATUS, POLARITY, STRENGTH, APPLICABILITY,
-                DIMENSION, DATA_CONFIDENCE, UNCERTAINTY);
+                DIMENSION, DATA_CONFIDENCE, UNCERTAINTY, DIMENSION_STATE, FUSION_OUTCOME,
+                CONFLICT_TYPE, METHODOLOGY_STATUS);
     }
 
     @SuppressWarnings("unchecked")

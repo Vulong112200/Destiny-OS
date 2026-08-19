@@ -22,7 +22,12 @@ import org.springframework.test.context.ActiveProfiles;
  * application depends on. This test boots the real application class and
  * checks that they do.
  */
-@SpringBootTest(classes = DestinyOsApplication.class)
+// WebEnvironment.NONE: this test is about persistence/registry wiring, not
+// HTTP behaviour (that is destiny-api's ScenarioApiIntegrationTest) - no
+// need to start a real embedded servlet container just to check a bean
+// exists.
+@SpringBootTest(classes = DestinyOsApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
 class DestinyOsApplicationTest {
 

@@ -10,6 +10,10 @@ import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
+import io.destinyos.engine.MethodologyStatus;
+import io.destinyos.fusion.ConflictType;
+import io.destinyos.fusion.DimensionState;
+import io.destinyos.fusion.FusionOutcome;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -39,7 +43,11 @@ class LabelCoverageTest {
             Applicability.class,
             Dimension.class,
             DataConfidence.class,
-            UncertaintyKind.class);
+            UncertaintyKind.class,
+            DimensionState.class,
+            FusionOutcome.class,
+            ConflictType.class,
+            MethodologyStatus.class);
 
     @Test
     @DisplayName("Every constant of every user-facing enum has a Vietnamese label")

@@ -85,7 +85,8 @@ class ArchitectureRulesTest {
                 .anyMatch(p -> p.startsWith("io.destinyos.fusion"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.tarot"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"))
-                .anyMatch(p -> p.startsWith("io.destinyos.scenario"));
+                .anyMatch(p -> p.startsWith("io.destinyos.scenario"))
+                .anyMatch(p -> p.startsWith("io.destinyos.api"));
     }
 
     @Test
@@ -185,6 +186,12 @@ class ArchitectureRulesTest {
     @Test
     @DisplayName("Controllers must not contain domain calculation (CLAUDE.md section 3)")
     void controllersStayThin() {
+        // destiny-api now has real classes (Phase: API layer). The concrete
+        // engine wiring lives in io.destinyos.app.wiring instead - the one
+        // place allowed to import TarotEngine/NumerologyEngine by name -
+        // and destiny-api reaches engines only through the EngineTaskFactory
+        // interface it defines. No longer allowEmptyShould: this rule is
+        // meant to actually check something now.
         ArchRule rule = noClasses()
                 .that().resideInAPackage("io.destinyos.api..")
                 .should().dependOnClassesThat()
@@ -192,7 +199,7 @@ class ArchitectureRulesTest {
                 .because("CLAUDE.md section 3: controllers hold no domain "
                         + "calculation. They call the orchestrator, not engines.");
 
-        rule.allowEmptyShould(true).check(production());
+        rule.check(production());
     }
 
     @Test
