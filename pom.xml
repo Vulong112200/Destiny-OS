@@ -22,6 +22,7 @@
   -->
   <modules>
     <module>destiny-core</module>
+    <module>destiny-calendar</module>
     <module>destiny-engine-api</module>
     <module>destiny-execution</module>
     <module>destiny-i18n</module>

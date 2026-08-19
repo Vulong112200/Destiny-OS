@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-calendar</artifactId>
+  <name>Destiny OS :: Calendar</name>
+  <description>
+    Vietnamese lunisolar calendar and Can Chi (sexagenary cycle) arithmetic
+    (ADR D3, research items R9/R10/R14a/R15/R16). Foundation infrastructure,
+    not a MetaphysicalEngine: nothing in the codebase yet consumes calendar
+    output as a scenario-participating engine (Bat Tu and Tu Vi, the future
+    consumers, are independently research-blocked on their own algorithms),
+    so this module depends only on destiny-core, the same way destiny-core
+    itself has no framework dependency.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>

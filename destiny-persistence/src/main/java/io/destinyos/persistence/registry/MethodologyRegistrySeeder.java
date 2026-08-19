@@ -112,20 +112,36 @@ public class MethodologyRegistrySeeder {
                             + "ship."),
 
             new Entry("CALENDAR_VN_TRADITIONAL", "Lịch Việt Nam truyền thống", "EASTERN",
-                    MethodologyStatus.RESEARCH_REQUIRED, null, null,
-                    Set.of("R9", "R10", "R14a", "R14b", "R15", "R16", "R17"),
-                    "Seven open items per ADR D3 (Calendar Authority Rule). Four now "
-                            + "have a citable source and an adopted default pending "
-                            + "independent golden test vectors (R9 solar terms, R15 new "
-                            + "moon/meridian, R16 leap month rule - all traced to Jean "
-                            + "Meeus 1998 and Ho Ngoc Duc's documented conventions; R14a "
-                            + "historical timezone offsets by date, traced to Cong Bao "
-                            + "Viet Nam gazette citations). Two remain genuinely open: "
-                            + "R10 (gio Ty boundary policy - a decision never made) and "
-                            + "R14b (the North/South geographic boundary - no source "
-                            + "found across three research rounds). R17 (region model "
-                            + "granularity) depends on R14b. This cluster remains the "
-                            + "project's critical path."),
+                    MethodologyStatus.PRODUCTION_READY,
+                    "Vietnamese lunisolar calendar, 105 degrees East meridian, "
+                            + "no-zhongqi leap-month rule",
+                    "Jean Meeus, Astronomical Algorithms (1998) - low-precision solar "
+                            + "longitude and new-moon series; cross-checked byte-for-byte "
+                            + "against two independent implementations (vanng822/amlich "
+                            + "JS port and Vietnamese Wikipedia's \"Mo dun:Am lich\" Lua "
+                            + "module) and against Ho Ngoc Duc's own published worked "
+                            + "tables (xemamlich.uhm.vn/calrules_en.html, 1983-1986, "
+                            + "second-precision) plus four named Vietnamese/Chinese "
+                            + "divergence years (1985, 2007, 2030, 2053). Historical "
+                            + "timezone table per Cong Bao Viet Nam gazette citations "
+                            + "(R14a). Gio Ty 23:00 boundary and solar time policy per "
+                            + "owner decision R10, 2026-08-19.",
+                    Set.of("R14b", "R17"),
+                    "destiny-calendar: astronomical core (new moon, solar longitude, "
+                            + "solar terms, leap month) and Can Chi Year/Month/Day/Hour "
+                            + "arithmetic implemented and golden-tested against 86 "
+                            + "assertions, including an exhaustive 1900-2100 Tet scan and "
+                            + "every date in Ho Ngoc Duc's published worked tables - none "
+                            + "generated from this project's own code (CLAUDE.md section "
+                            + "32). R14b (North/South geographic boundary, no source found "
+                            + "across three research rounds) and R17 (region granularity, "
+                            + "depends on R14b) remain genuinely open: a birth in an "
+                            + "affected (date, region) resolves to RESEARCH_REQUIRED with "
+                            + "no Can Chi fabricated, never a silent default - this is a "
+                            + "per-calculation limitation, not a reason to withhold "
+                            + "PRODUCTION_READY from the cases this methodology does cover, "
+                            + "the same model TAROT_RWS and NUMEROLOGY_PYTHAGOREAN already "
+                            + "use for their own content gaps (R11/R8)."),
 
             new Entry("BAZI", "Bát Tự - Tứ Trụ", "EASTERN",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,

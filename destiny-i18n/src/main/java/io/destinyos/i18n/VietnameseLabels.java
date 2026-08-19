@@ -121,6 +121,9 @@ public final class VietnameseLabels {
         map.put(UncertaintyKind.METHODOLOGY_UNRESOLVED,
                 "Phương pháp tính cho trường hợp này chưa được xác minh. "
                         + "Hệ thống không đưa ra kết quả thay vì đoán.");
+        map.put(UncertaintyKind.LONGITUDE_UNKNOWN,
+                "Chưa có kinh độ nơi sinh nên hệ thống dùng giờ đồng hồ dân sự "
+                        + "thay vì giờ mặt trời thực. Kết quả có thể thay đổi nếu bổ sung kinh độ.");
     });
 
     /**

@@ -126,24 +126,28 @@ class MethodologyRegistryTest {
             assertStatus("ICHING", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("MAIHOA", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("QIMEN", MethodologyStatus.OUT_OF_SCOPE, "R13");
-            assertStatus("CALENDAR_VN_TRADITIONAL", MethodologyStatus.RESEARCH_REQUIRED,
-                    "R9", "R10", "R14a", "R14b", "R15", "R16", "R17");
+            assertStatus("CALENDAR_VN_TRADITIONAL", MethodologyStatus.PRODUCTION_READY,
+                    "R14b", "R17");
         }
 
         @Test
-        @DisplayName("Only content-gated entries (Tarot, Numerology Pythagorean) are calculable")
+        @DisplayName("Only content-gated and production-ready entries are calculable")
         void onlyContentGatedEntriesAreCalculable() {
             // TAROT_RWS and NUMEROLOGY_PYTHAGOREAN are CONTENT_REQUIRED:
             // their algorithms are fully specified and golden-tested, so
             // MethodologyStatus.mayCalculate() is true even though
             // Vietnamese interpretive content is still missing (R11, R8).
+            // CALENDAR_VN_TRADITIONAL is PRODUCTION_READY (destiny-calendar,
+            // golden-tested against Ho Ngoc Duc's published tables) despite
+            // R14b/R17 remaining open - those affect specific (date, region)
+            // calculations, not the methodology as a whole.
             // Every other seeded entry is RESEARCH_REQUIRED,
             // DECISION_REQUIRED or OUT_OF_SCOPE and must not be calculable.
             seeder.seed();
             entityManager.flush();
             entityManager.clear();
 
-            Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN");
+            Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN", "CALENDAR_VN_TRADITIONAL");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();

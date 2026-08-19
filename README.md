@@ -43,6 +43,7 @@ Input → Validation → Calendar/Astronomy
 | Module | Vai trò |
 |---|---|
 | `destiny-core` | Kiểu miền cốt lõi. **Không phụ thuộc framework** |
+| `destiny-calendar` | Lịch Việt Nam truyền thống + Can Chi — hạ tầng, không phải `MetaphysicalEngine` |
 | `destiny-engine-api` | SPI `MetaphysicalEngine<I,O>` |
 | `destiny-execution` | Virtual Threads, timeout, cô lập lỗi |
 | `destiny-i18n` | Registry nhãn tiếng Việt |
@@ -70,7 +71,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 0 | Kiểm toán kiến trúc | Xong |
 | 1 | Nền tảng: domain, SPI, harness | Xong |
 | 2 | Database + methodology registry | Xong |
-| 3 | Nền tảng lịch | Chờ — xem ghi chú bên dưới |
+| 3 | Nền tảng lịch | **Xong** — Can Chi + lịch âm dương đủ dùng; xem ghi chú bên dưới |
 | 4 | Thần số học (Pythagoras) | Xong — 5 chỉ số; Chaldean vẫn chặn (không có nguồn) |
 | 5 | Tarot | Xong — cấu trúc + rút bài; nội dung ý nghĩa còn thiếu |
 | 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả |
@@ -79,9 +80,9 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | — | REST API (`destiny-api`) | **Xong** — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
 
-**Cập nhật nghiên cứu lịch:** sau nhiều vòng tra cứu, 4/6 mục (thuật toán tiết khí/điểm sóc/tháng nhuận, và quy tắc múi giờ lịch sử theo ngày) đã có nguồn trích dẫn cụ thể (Jean Meeus 1998; Công Báo Việt Nam với số quyển/trang) và được nâng lên `DECISION_REQUIRED`. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` (không push lên git).
+**Cập nhật Calendar Engine (2026-08-19):** R10 (ranh giới giờ Tý 23:00 + chính sách giờ mặt trời) đã được chủ dự án chốt. R9, R14a, R15, R16 (tiết khí, múi giờ lịch sử, điểm sóc, tháng nhuận) đã **`RESOLVED`** — cài đặt độc lập bằng Java, trích dẫn Jean Meeus *Astronomical Algorithms* (1998), đối chiếu byte-chính-xác với 2 bản port cộng đồng lâu năm và golden-test trực tiếp với bảng ví dụ gốc của Hồ Ngọc Đức. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 (R14b) vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này; một lần tính rơi vào vùng chưa xác định sẽ trả về "chưa xác định được", không suy đoán. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` và `docs/DECISION_LOG.md` (không push lên git).
 
-11 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 1 ở trạng thái `CONTENT_REQUIRED` (Tarot — thuật toán xong, thiếu nội dung tiếng Việt), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`.
+11 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 2 `CONTENT_REQUIRED` (Tarot, Numerology Pythagoras — thuật toán xong, thiếu nội dung tiếng Việt), 1 `PRODUCTION_READY` (Lịch Việt Nam truyền thống), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`.
 
 Các engine chưa triển khai **vẫn được đăng ký và hiển thị**, kèm lý do — thay vì bị ẩn đi. Người dùng nhìn thấy `Chưa triển khai` hoặc `Cần xác minh thuật toán`, không phải một câu trả lời tự tin nhưng sai.
 
@@ -114,12 +115,13 @@ credentials vào file commit (Master Spec §28).
    repo** (nơi `.env` nằm) — `spring-dotenv` tự nạp file này vào Spring
    Environment lúc khởi động, Flyway tự chạy migration lên Postgres thật.
 
-Bộ test hiện tại — 171 test:
+Bộ test hiện tại — 257 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
 - **kiến trúc** — ranh giới module, cấm phụ thuộc chéo, cấm số thực trong domain
 - **phủ nhãn tiếng Việt** — mọi enum hướng tới người dùng đều có nhãn, không nhãn nào ngụ ý xác suất
+- **Calendar** — bảng ví dụ tính mẫu gốc của Hồ Ngọc Đức (1983-1986), 4 năm lệch Việt/Trung có tên cụ thể (1985, 2007, 2030, 2053), quét Tết toàn bộ 1900-2100, chu kỳ Can Chi 60 năm, ranh giới giờ Tý 23:00, không suy đoán khi vùng miền chưa xác định (R14b)
 - **Tarot** — đúng cấu trúc 78 lá RWS, rút bài xác định theo seed, không thiên vị khi xoay lá, không trùng lá trong một lần rút
 - **Thần số học** — golden test đối chiếu ví dụ tính mẫu từ nguồn độc lập (không tự sinh từ code), chuẩn hóa tên tiếng Việt đúng (kể cả trường hợp `đ` không phân rã Unicode), giữ số chủ đạo 11/22/33
 - **Fusion** — đủ 14/14 test case bắt buộc của đặc tả: đếm nguồn theo engine riêng biệt (không theo signal), tín hiệu critical sống sót qua đa số, methodology conflict không bị tự động gộp

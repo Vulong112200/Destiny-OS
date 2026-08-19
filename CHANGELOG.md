@@ -8,6 +8,52 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 3: Calendar Engine (`destiny-calendar`)
+
+- Module mới `destiny-calendar` — hạ tầng thuần Java, không phải
+  `MetaphysicalEngine` (chưa scenario nào gọi tới Calendar; Bát Tự/Tử Vi —
+  người tiêu thụ tương lai — vẫn đang chặn nghiên cứu ở chính thuật toán
+  của họ). Chỉ phụ thuộc `destiny-core`
+- **R10 đã được anh chốt** (2026-08-19): giờ Tý tính sang trụ ngày mới từ
+  23:00 (quy ước Tử Bình phổ biến); áp dụng chân thái dương giờ khi có
+  kinh độ, fallback giờ dân sự + `Uncertainty` khi không có (không âm thầm
+  bỏ qua)
+- **R9, R14a, R15, R16 đã RESOLVED** — lấy đúng thuật toán byte-chính-xác
+  mà 2 bản port cộng đồng lâu năm dùng (JS `vanng822/amlich`, Lua
+  "Mô đun:Âm lịch" của Wikipedia tiếng Việt), cả hai đều trích dẫn trực
+  tiếp Jean Meeus, *Astronomical Algorithms* (1998) và trùng khớp từng hệ
+  số. Bản Wikipedia còn cho công thức Can Chi Năm/Tháng/Ngày dạng đóng
+  (`canchi(năm+57)`, `canchi(năm*12+tháng+14)`, `canchi(floor(JD+51.5))`)
+  — chưa từng có nguồn nào trong dự án trước đây
+- **Không copy code** — do code gốc của Hồ Ngọc Đức ghi rõ "personal,
+  non-commercial use". Các hệ số là công thức trong sách Meeus (giống hệt
+  nhau qua 3 giấy phép độc lập là bằng chứng chúng đến từ sách, không phải
+  từ một tác giả riêng) — viết lại độc lập bằng Java, trích dẫn Meeus làm
+  nguồn, dùng 2 bản port trên làm oracle đối chiếu kết quả (đúng vai trò
+  ADR D3 đã gán cho triển khai của Hồ Ngọc Đức)
+- Golden test lấy trực tiếp từ bảng ví dụ tính mẫu giây-chính-xác của
+  chính Hồ Ngọc Đức (1983-1986) và 4 năm lệch Việt/Trung có tên cụ thể
+  (1985 — lệch nguyên 1 tháng, 2007, 2030, 2053) — không có giá trị nào tự
+  sinh từ code của dự án (CLAUDE.md §32)
+- **Bắt được 1 lỗi thật khi viết test**: công thức trụ ngày ban đầu dùng
+  nhầm quy ước Julian Day (JDN theo giờ trưa từ bản port JS) trong khi
+  công thức Can Chi ngày của Wikipedia định nghĩa theo JD-0h-UT (lệch đúng
+  0.5) — làm lệch toàn bộ trụ ngày/giờ đi một bước. Phát hiện nhờ đối
+  chiếu với dữ kiện độc lập "1/1/2000 = ngày Mậu Ngọ"; sửa bằng cách xử lý
+  quy đổi một lần duy nhất bên trong `CanChi.dayPillar`
+- **Lệch khỏi kế hoạch V3 migration ban đầu (Phase 0)**: theo tiền lệ đã
+  thiết lập ở Phase 5 (bộ bài Tarot là dữ liệu Java thuần, không phải
+  bảng DB), tiết khí/điểm sóc/tháng nhuận tính runtime (không cần dataset
+  tiền tính), bảng múi giờ lịch sử R14a là Java record tĩnh — không tạo
+  migration V3
+- `CALENDAR_VN_TRADITIONAL` chuyển từ `RESEARCH_REQUIRED` sang
+  `PRODUCTION_READY` — R14b (ranh giới địa lý Bắc/Nam) và R17 vẫn mở,
+  nhưng chỉ ảnh hưởng các trường hợp (ngày, vùng) cụ thể, không chặn cả
+  phương pháp — cùng mô hình đã áp dụng cho Tarot/Numerology với R11/R8
+- 86 test mới (257 tổng): bảng golden gốc, 4 năm lệch Việt/Trung, quét
+  Tết toàn bộ 1900-2100, chu kỳ Can Chi 60 năm, ranh giới giờ Tý 23:00,
+  R14a/R14b không âm thầm chọn một bên khi vùng chưa xác định
+
 ### Added — REST API layer (`destiny-api`)
 
 - Module mới `destiny-api` — chỉ phụ thuộc `destiny-scenario`, `destiny-persistence`,

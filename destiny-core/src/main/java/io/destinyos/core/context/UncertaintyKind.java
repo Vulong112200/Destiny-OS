@@ -24,5 +24,12 @@ public enum UncertaintyKind {
     /** Requested date falls outside the sourced dataset's validity range. */
     OUTSIDE_DATASET_RANGE,
     /** The methodology itself is unresolved for this case (CLAUDE.md Rule C). */
-    METHODOLOGY_UNRESOLVED
+    METHODOLOGY_UNRESOLVED,
+    /**
+     * Birth longitude was not supplied, so true/mean solar time correction
+     * (R10) was skipped in favor of civil clock time. Only affects results
+     * sensitive to which side of an hour-branch boundary the birth time
+     * falls on.
+     */
+    LONGITUDE_UNKNOWN
 }
