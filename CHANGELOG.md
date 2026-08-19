@@ -8,6 +8,42 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Frontend: Next.js Decision Center (ADR D4)
+
+- Module mới `destiny-web` (Next.js 16, App Router, TypeScript, Tailwind) —
+  dự án npm riêng, không nằm trong Maven reactor
+- Chỉ xây **3 trang thật có backend hỗ trợ** thay vì làm đủ 13 mục nav
+  trong `UI_UX_VIETNAMESE_SPEC.md`: **Tổng quan** (danh sách methodology,
+  `GET /api/v1/methodologies`), **Trung tâm quyết định** (luồng đúng theo
+  đặc tả §3, `POST /api/v1/scenarios/{type}` với BUSINESS/DAILY_ACTION —
+  2 kịch bản duy nhất có chính sách thật), **Lịch sử** (tra cứu theo mã,
+  không phải danh sách duyệt được vì chưa có hệ thống tài khoản). 10 mục
+  nav còn lại hiện "Sắp ra mắt" — nhãn trung thực, không phải trang giả
+  trông như hoạt động
+- `LabeledBadge` — component duy nhất render `{technical, labelVi}`,
+  nhãn tiếng Việt hiển thị, tên kỹ thuật chỉ nằm trong tooltip
+  (UI_UX_VIETNAMESE_SPEC §1)
+- Thêm `WebCorsConfig` ở `destiny-app` — trước đây chưa có CORS nào, frontend
+  không gọi được API
+- **Bắt được 1 bug thật khi verify end-to-end bằng trình duyệt thật**: mô tả
+  xung đột (`Conflict.description`) do `FusionEngine` tự sinh nhúng thẳng
+  token enum tiếng Anh ("SUPPORT", "NEGATIVE") và `Dimension.toString()`
+  thô vào câu tiếng Việt — tồn tại từ Phase 6, không bộ test nào bắt được vì
+  không test nào assert nội dung `description`. Chỉ lộ ra khi render thật
+  ra HTML và soi bằng mắt. Sửa bằng cách bỏ hẳn phần nội dung kỹ thuật khỏi
+  câu (thông tin đó đã có sẵn dưới dạng `LabeledValue` riêng trên chính
+  `Conflict`) — không thể dùng `VietnameseLabels` vì sẽ tạo phụ thuộc vòng
+  (`destiny-i18n` phụ thuộc `destiny-fusion`, không phải chiều ngược lại)
+- **Bắt được 1 lỗi kiến trúc thật khi verify với Supabase (database bền
+  vững, không phải H2 reset mỗi lần)**: `MethodologyRegistrySeeder` vốn chỉ
+  seed khi "chưa có version nào" — nên khi nâng trạng thái `TAROT_RWS`/
+  `NUMEROLOGY_PYTHAGOREAN`/`CALENDAR_VN_TRADITIONAL` lên `PRODUCTION_READY`
+  trong code, database Supabase đã seed từ trước trong phiên không hề được
+  cập nhật, âm thầm. Sửa bằng cách versioned từng entry ("1.1" cho 3 mục
+  vừa nâng cấp) và seed theo cặp (methodologyId, version) — đúng triết lý
+  "thay đổi là bump version, không phải thay đổi ngầm" áp dụng nhất quán
+  với mọi nơi khác trong dự án
+
 ### Added — R11/R8: Tarot + Numerology Vietnamese interpretive content
 
 - Cả hai engine giờ đây phát sinh signal thật lần đầu tiên. Trước đây

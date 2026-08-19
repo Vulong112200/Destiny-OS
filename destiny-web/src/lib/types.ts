@@ -1,0 +1,119 @@
+/**
+ * TypeScript mirror of destiny-api's DTOs (destiny-api/src/main/java/io/destinyos/api/dto).
+ * Field names and nesting match exactly - keep this file in sync by hand
+ * whenever a DTO changes, there is no shared schema generator yet.
+ */
+
+/** A technical enum value paired with its Vietnamese label. Never render `technical` alone. */
+export interface LabeledValue {
+  technical: string;
+  labelVi: string;
+}
+
+export interface EngineOutcomeDto {
+  engine: string;
+  status: LabeledValue;
+  timedOut: boolean;
+  durationMs: number;
+}
+
+export interface EvidenceDto {
+  evidenceId: string;
+  engine: string;
+  school: string | null;
+  ruleId: string;
+  ruleVersion: string;
+  dimension: LabeledValue | null;
+  fact: Record<string, unknown>;
+  source: string | null;
+}
+
+export interface SignalDto {
+  signalId: string;
+  engine: string;
+  school: string | null;
+  dimension: LabeledValue;
+  tag: string;
+  polarity: LabeledValue;
+  strength: LabeledValue;
+  applicability: LabeledValue;
+  critical: boolean;
+  evidenceIds: string[];
+}
+
+export interface DimensionResultDto {
+  dimension: LabeledValue;
+  state: LabeledValue;
+  supportingEngines: string[];
+  cautionEngines: string[];
+  negativeEngines: string[];
+  rulesApplied: string[];
+}
+
+export interface ConflictDto {
+  type: LabeledValue;
+  dimension: LabeledValue | null;
+  involvedEngines: string[];
+  description: string;
+}
+
+export interface FusionResultDto {
+  overallOutcome: LabeledValue;
+  dimensions: DimensionResultDto[];
+  conflicts: ConflictDto[];
+  rulesApplied: string[];
+  supportingSources: string[];
+  cautionSources: string[];
+}
+
+export interface ScenarioRunResponse {
+  calculationId: string;
+  scenarioId: string;
+  policyDefined: boolean;
+  engines: EngineOutcomeDto[];
+  unavailableEngines: string[];
+  evidence: EvidenceDto[];
+  signals: SignalDto[];
+  fusion: FusionResultDto | null;
+  resultHash: string;
+}
+
+export interface MethodologyDto {
+  methodologyId: string;
+  displayNameVi: string;
+  domain: string | null;
+  version: string | null;
+  status: LabeledValue | null;
+  calculable: boolean;
+  school: string | null;
+  source: string | null;
+  researchIds: string[];
+  notes: string | null;
+}
+
+export interface ErrorResponse {
+  code: string;
+  message: string;
+}
+
+/** Only the two scenarios with a real applicability policy (ScenarioRegistry). */
+export type SupportedScenarioType = "BUSINESS" | "DAILY_ACTION";
+
+export interface NumerologyRequestInput {
+  fullName: string;
+  /** ISO date, e.g. "1990-05-15". */
+  birthDate: string;
+}
+
+export type TarotSpreadName = "PAST_PRESENT_FUTURE" | "CHOICE_A_B" | "SITUATION_CHALLENGE_ADVICE";
+
+export interface TarotRequestInput {
+  spread: TarotSpreadName;
+  seed: number | null;
+  question: string | null;
+}
+
+export interface ScenarioRunRequestInput {
+  numerology: NumerologyRequestInput | null;
+  tarot: TarotRequestInput | null;
+}

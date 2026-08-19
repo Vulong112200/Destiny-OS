@@ -231,8 +231,18 @@ public final class FusionEngine {
                 involved.addAll(analysis.negativeEngines());
                 conflicts.add(new Conflict(ConflictType.DIRECT_CONFLICT, analysis.dimension(),
                         List.copyOf(involved),
-                        "Tín hiệu SUPPORT và NEGATIVE cùng xuất hiện ở " + analysis.dimension()
-                                + " mà không có bên nào chiếm ưu thế rõ ràng."));
+                        // Never embed a raw enum token (SUPPORT/NEGATIVE) or
+                        // Dimension.toString() here: this string reaches the
+                        // UI as plain prose, and destiny-fusion cannot depend
+                        // on destiny-i18n (VietnameseLabels) without a
+                        // circular dependency (i18n depends on fusion, not
+                        // the reverse) - so this description must stand on
+                        // its own without technical identifiers. The
+                        // dimension itself already travels as its own
+                        // LabeledValue on Conflict, so it does not need to
+                        // be repeated here (UI_UX_VIETNAMESE_SPEC section 1).
+                        "Có tín hiệu ủng hộ và tín hiệu không thuận lợi cùng xuất hiện, "
+                                + "không bên nào chiếm ưu thế rõ ràng."));
             }
 
             List<Signal> methodologyConflict = detectMethodologyConflict(
@@ -245,7 +255,10 @@ public final class FusionEngine {
                         .collect(Collectors.joining(" vs "));
                 conflicts.add(new Conflict(ConflictType.METHODOLOGY_CONFLICT, analysis.dimension(),
                         engines,
-                        "Hai trường phái trong cùng engine bất đồng ở " + analysis.dimension()
+                        // Same reasoning as the DIRECT_CONFLICT case above:
+                        // no raw Dimension.toString() - the dimension already
+                        // travels as its own LabeledValue on Conflict.
+                        "Hai trường phái trong cùng engine bất đồng"
                                 + (schools.isBlank() ? "" : " (" + schools + ")")
                                 + " - không tự động gộp thành một kết quả."));
             }

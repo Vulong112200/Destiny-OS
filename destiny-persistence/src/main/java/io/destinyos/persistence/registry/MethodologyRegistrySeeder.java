@@ -44,20 +44,35 @@ public class MethodologyRegistrySeeder {
         seed();
     }
 
-    /** Idempotent: entries already present are left untouched. */
+    /**
+     * Idempotent per (methodologyId, version): a version already present is
+     * left untouched, but a code change that bumps {@code entry.version()}
+     * (e.g. promoting a status once real content/algorithm work lands) adds
+     * a new version row even on an already-seeded, persistent database
+     * (Supabase, not just the in-memory H2 test stand-in) - the same
+     * "a version bump, not a silent change" discipline this project applies
+     * everywhere else. Caught in practice: promoting TAROT_RWS,
+     * NUMEROLOGY_PYTHAGOREAN and CALENDAR_VN_TRADITIONAL to
+     * PRODUCTION_READY in code silently had no effect on a real Supabase
+     * instance already seeded at "1.0" earlier in the same session, because
+     * the previous check only asked "does any version exist" - fixed by
+     * versioning the seed data itself.
+     */
     @Transactional
     public void seed() {
         for (Entry entry : ENTRIES) {
-            if (registry.allVersions(entry.methodologyId).isEmpty()) {
+            boolean versionAlreadySeeded = registry.allVersions(entry.methodologyId).stream()
+                    .anyMatch(v -> v.version().equals(entry.version));
+            if (!versionAlreadySeeded) {
                 registry.register(entry.methodologyId, entry.displayNameVi, entry.domain,
-                        "1.0", entry.status, entry.school, entry.source, entry.researchIds,
+                        entry.version, entry.status, entry.school, entry.source, entry.researchIds,
                         entry.notes);
             }
         }
     }
 
     private record Entry(String methodologyId, String displayNameVi, String domain,
-                         MethodologyStatus status, String school, String source,
+                         String version, MethodologyStatus status, String school, String source,
                          Set<String> researchIds, String notes) {
     }
 
@@ -73,6 +88,7 @@ public class MethodologyRegistrySeeder {
     private static final List<Entry> ENTRIES = List.of(
 
             new Entry("NUMEROLOGY_PYTHAGOREAN", "Thần số học - Pythagoras", "WESTERN",
+                    "1.1",
                     MethodologyStatus.PRODUCTION_READY,
                     "Pythagorean",
                     "Standard A-Z letter table (converging across all sources checked); "
@@ -98,6 +114,7 @@ public class MethodologyRegistrySeeder {
                             + "Vietnamese-orthography mapping exists."),
 
             new Entry("NUMEROLOGY_CHALDEAN", "Thần số học - Chaldea", "WESTERN",
+                    "1.0",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R8"),
                     "No standard Chaldean letter-value mapping exists for "
@@ -105,6 +122,7 @@ public class MethodologyRegistrySeeder {
                             + "inventing a methodology, which CLAUDE.md Rule C forbids."),
 
             new Entry("TAROT_RWS", "Tarot - Rider-Waite-Smith", "WESTERN",
+                    "1.1",
                     MethodologyStatus.PRODUCTION_READY,
                     "Rider-Waite-Smith (RWS) - 78 cards: 22 Major Arcana, 56 Minor Arcana",
                     "DESTINY_OS_MASTER_SPECIFICATION.md section 17; interpretive content "
@@ -124,6 +142,7 @@ public class MethodologyRegistrySeeder {
                             + "simplifications, not fabrications."),
 
             new Entry("CALENDAR_VN_TRADITIONAL", "Lịch Việt Nam truyền thống", "EASTERN",
+                    "1.1",
                     MethodologyStatus.PRODUCTION_READY,
                     "Vietnamese lunisolar calendar, 105 degrees East meridian, "
                             + "no-zhongqi leap-month rule",
@@ -156,6 +175,7 @@ public class MethodologyRegistrySeeder {
                             + "use for their own content gaps (R11/R8)."),
 
             new Entry("BAZI", "Bát Tự - Tứ Trụ", "EASTERN",
+                    "1.0",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R1", "R2", "R3"),
                     "Dụng Thần/Hỷ Thần/Kỵ Thần school selection (R1), Đại Vận start "
@@ -165,12 +185,14 @@ public class MethodologyRegistrySeeder {
                             + "boundaries."),
 
             new Entry("ZIWEI", "Tử Vi Đẩu Số", "EASTERN",
+                    "1.0",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R4"),
                     "No authoritative an sao rulebook selected. Master Spec section "
                             + "14 explicitly forbids placeholder star placement."),
 
             new Entry("WESTERN_ASTROLOGY", "Chiêm tinh học phương Tây", "WESTERN",
+                    "1.0",
                     MethodologyStatus.DECISION_REQUIRED, null, null,
                     Set.of("R5", "R6"),
                     "Ephemeris source and its licence (R5 - Swiss Ephemeris is "
@@ -179,6 +201,7 @@ public class MethodologyRegistrySeeder {
                             + "Phase 11."),
 
             new Entry("FENGSHUI_KUA", "Phong Thủy - Số Cung Phi (Kua)", "EASTERN",
+                    "1.0",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R7"),
                     "Female Kua formula, year-boundary policy (Lập Xuân vs Tết vs "
@@ -186,18 +209,21 @@ public class MethodologyRegistrySeeder {
                             + "by school and are unresolved."),
 
             new Entry("ICHING", "Kinh Dịch", "EASTERN",
+                    "1.0",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R12"),
                     "Three Coins, Yarrow, Number and Time methods each need their "
                             + "own algorithmVersion and changing-line specification."),
 
             new Entry("MAIHOA", "Mai Hoa Dịch Số", "EASTERN",
+                    "1.0",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R12"),
                     "Number extraction, timestamp conversion, and trigram/hexagram "
                             + "derivation are not yet specified."),
 
             new Entry("QIMEN", "Kỳ Môn Độn Giáp", "EASTERN",
+                    "1.0",
                     MethodologyStatus.OUT_OF_SCOPE, null, null,
                     Set.of("R13"),
                     "METHODOLOGY_RESEARCH_REGISTER.md section 9: not to be "

@@ -54,6 +54,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-scenario` | Điều phối kịch bản — chọn engine áp dụng, không phụ thuộc engine cụ thể |
 | `destiny-api` | REST controllers — không phụ thuộc engine cụ thể nào (qua `EngineTaskFactory`) |
 | `destiny-app` | Spring Boot assembly + bộ test kiến trúc |
+| `destiny-web` | Frontend Next.js (TypeScript, Tailwind) — dự án npm riêng, **không** thuộc Maven reactor |
 
 Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit**, không chỉ ghi trong tài liệu:
 
@@ -64,7 +65,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 ## Trạng thái hiện tại
 
-**Pipeline MVP đầy đủ, có kết quả Fusion thật.** Toàn bộ luồng chạy từ đầu đến cuối qua API: chọn engine theo kịch bản → chạy song song → sinh signal thật từ nội dung diễn giải đã viết → tổng hợp theo luật → ghi vào database trong một transaction → trả về JSON có nhãn tiếng Việt. Chưa có UI.
+**MVP hoàn chỉnh đầu-cuối — có UI thật, gọi API thật, ra kết quả Fusion thật.** Toàn bộ luồng chạy từ trình duyệt: chọn kịch bản → nhập dữ liệu → gọi API → chạy engine song song → sinh signal thật → tổng hợp theo luật → ghi database → hiển thị kết quả có nhãn tiếng Việt, đúng thứ tự ưu tiên trong `UI_UX_VIETNAMESE_SPEC.md`.
 
 | Phase | Nội dung | Trạng thái |
 |---|---|---|
@@ -78,6 +79,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 7 | Scenario | Xong — 2/10 scenario có chính sách thật (BUSINESS, DAILY_ACTION), 8 còn lại đăng ký nhưng chưa có chính sách |
 | — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | Xong — `CalculationRecorder`, `result_hash` tái lập được |
 | — | REST API (`destiny-api`) | Xong — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
+| — | Frontend (`destiny-web`) | **Xong** — Tổng quan, Trung tâm quyết định, Lịch sử; 10 mục nav còn lại ghi "Sắp ra mắt" |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
 
 **Cập nhật nội dung diễn giải (2026-08-19):** Tarot (R11) và Numerology đã có đủ nội dung tiếng Việt (78 lá × 7 trường; 65 tổ hợp số), bám theo truyền thống Rider-Waite-Smith và Pythagorean hội tụ rộng rãi, viết một lần thành dữ liệu Java tĩnh — không sinh lúc runtime (CLAUDE.md Rule B). Hai engine giờ phát sinh signal thật, và Fusion lần đầu tiên cho ra kết quả thật (không còn `INSUFFICIENT_EVIDENCE`) — ví dụ một lượt Tarot với 3 lá mang polarity trái chiều cho ra `MAJOR_CONFLICT`, đúng tinh thần Rule E.
@@ -116,6 +118,28 @@ credentials vào file commit (Master Spec §28).
 3. Chạy `java -jar destiny-app/target/destiny-app-*.jar` **từ thư mục gốc
    repo** (nơi `.env` nằm) — `spring-dotenv` tự nạp file này vào Spring
    Environment lúc khởi động, Flyway tự chạy migration lên Postgres thật.
+
+**Lưu ý (phát hiện khi verify frontend):** `application-test.yml` chỉ nằm ở
+`src/test/resources` nên **không** được đóng gói vào jar chạy thật —
+`-Dspring.profiles.active=test` trên jar đã build vô nghĩa (không có H2
+trong classpath runtime). Chạy jar đã build luôn nghĩa là chạy với Postgres
+thật; H2 chỉ tồn tại trong vòng đời `mvn test`. Ngoài ra, nếu chạy jar từ
+thư mục gốc repo (để `.env` được nạp), biến `SPRING_DATASOURCE_URL` từ
+`.env` có độ ưu tiên **cao hơn** `application-test.yml` dù profile nào đang
+bật — một lý do nữa để không cố ép H2 vào jar đã đóng gói.
+
+### Chạy frontend (`destiny-web`)
+
+```bash
+cd destiny-web
+npm install
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+npm run dev
+```
+
+Cần `destiny-app` đang chạy (xem trên) — frontend gọi thẳng 3 nhóm endpoint
+của `destiny-api` qua CORS (`WebCorsConfig`, chỉ mở cho
+`http://localhost:3000`). Mở `http://localhost:3000`.
 
 Bộ test hiện tại — 257 test:
 
