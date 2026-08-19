@@ -4,6 +4,22 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Real database (e.g. Supabase Postgres). Values come from environment
+  # variables - loaded from a local, gitignored .env at the repo root via
+  # spring-dotenv, never hardcoded here (Master Spec §28). The "test" profile
+  # (application-test.yml) overrides all of this with an in-memory H2 stand-in.
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 destiny:
   execution:

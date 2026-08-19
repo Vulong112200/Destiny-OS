@@ -95,6 +95,25 @@ Yêu cầu JDK 21 trở lên và Maven 3.9+.
 mvn verify
 ```
 
+### Chạy thật với database (Supabase Postgres)
+
+`mvn verify` chỉ dùng H2 trong bộ nhớ (profile `test`) — không cần cấu hình gì
+thêm. Nhưng để **chạy** ứng dụng thật (`mvn -pl destiny-app spring-boot:run`
+hoặc `java -jar`), cần một Postgres thật vì profile mặc định
+(`application.yml`) chưa cấu hình sẵn datasource nào — tránh hardcode
+credentials vào file commit (Master Spec §28).
+
+1. Sao chép `.env.example` thành `.env` ở gốc repo, điền 3 biến lấy từ
+   Supabase (Project Settings → Database → Connection string → tab JDBC):
+   `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`,
+   `SPRING_DATASOURCE_PASSWORD`. Dùng **Session pooler** (cổng 5432), không
+   dùng Transaction pooler (cổng 6543) — Hibernate cần prepared statement mà
+   transaction pooler không hỗ trợ.
+2. `.env` bị `.gitignore` loại trừ, không bao giờ được commit.
+3. Chạy `java -jar destiny-app/target/destiny-app-*.jar` **từ thư mục gốc
+   repo** (nơi `.env` nằm) — `spring-dotenv` tự nạp file này vào Spring
+   Environment lúc khởi động, Flyway tự chạy migration lên Postgres thật.
+
 Bộ test hiện tại — 171 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
