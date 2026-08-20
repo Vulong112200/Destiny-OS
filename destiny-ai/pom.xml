@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-ai</artifactId>
+  <name>Destiny OS :: AI Narrative</name>
+  <description>
+    Phase 12: the AI narrative layer (AI_NARRATIVE_SPEC.md, ADR D8). Depends
+    only on destiny-core - never on destiny-fusion, destiny-scenario, or any
+    destiny-engine-* module (enforced in destiny-app's ArchitectureRulesTest,
+    same pattern as ADR D5 for destiny-fusion). This is deliberate: nothing
+    upstream of this module depends on it either (D8 - "AI is a non-blocking
+    optional stage"), so the whole system must remain fully usable with this
+    module absent, disabled, or failing. Callers (destiny-api) build a
+    NarrativeInput from already Vietnamese-labeled data and get back either a
+    real AI narrative or a deterministic hard-data fallback - never an
+    exception, never a fabricated result, never a blocked request.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- @ConfigurationProperties, @Service/@Component, @ConditionalOnProperty -
+         no web server needed, this module is a library, not a deployable. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- org.springframework.web.client.RestClient for the OpenRouter HTTP
+         call (ADR: reuse what's already transitively on the classpath via
+         spring-boot-starter-web elsewhere, rather than adding a new HTTP
+         client dependency/convention to the project). -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

@@ -94,6 +94,45 @@ class ScenarioApiIntegrationTest {
         assertThat(replay.getBody()).isNotNull();
         assertThat(replay.getBody().resultHash()).isEqualTo(body.resultHash());
         assertThat(replay.getBody().scenarioId()).isEqualTo("BUSINESS");
+
+        // Phase 12 (AI Narrative, ADR D8): the test profile leaves
+        // destiny.ai.enabled at its real default (false) rather than
+        // stubbing it out - this is deliberately exercising the actual
+        // "AI absent" path through the real Spring context, not a mock.
+        ResponseEntity<io.destinyos.api.dto.NarrativeResponseDto> narrative = rest.postForEntity(
+                "/api/v1/calculations/" + body.calculationId() + "/narrative", null,
+                io.destinyos.api.dto.NarrativeResponseDto.class);
+
+        assertThat(narrative.getStatusCode()).isEqualTo(HttpStatus.OK);
+        var narrativeBody = narrative.getBody();
+        assertThat(narrativeBody).isNotNull();
+        assertThat(narrativeBody.source().technical()).isEqualTo("FALLBACK");
+        assertThat(narrativeBody.fallbackReason().technical()).isEqualTo("AI_DISABLED");
+        assertThat(narrativeBody.summary()).isNotBlank();
+        // The fallback digest is built from this run's own real conflict -
+        // never fabricated, and traceable straight back to Fusion's output.
+        assertThat(narrativeBody.conflicts()).isNotEmpty();
+
+        ResponseEntity<io.destinyos.api.dto.NarrativeResponseDto> replayedNarrative = rest.getForEntity(
+                "/api/v1/calculations/" + body.calculationId() + "/narrative",
+                io.destinyos.api.dto.NarrativeResponseDto.class);
+
+        assertThat(replayedNarrative.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(replayedNarrative.getBody()).isNotNull();
+        assertThat(replayedNarrative.getBody().summary()).isEqualTo(narrativeBody.summary());
+    }
+
+    @Test
+    @DisplayName("Requesting a narrative for an unknown calculation is a 404, and reading one before it's generated is too")
+    void narrativeEndpointsAre404ForUnknownOrUngeneratedCalculations() {
+        ResponseEntity<io.destinyos.api.dto.NarrativeResponseDto> generate = rest.postForEntity(
+                "/api/v1/calculations/does-not-exist/narrative", null,
+                io.destinyos.api.dto.NarrativeResponseDto.class);
+        assertThat(generate.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+        ResponseEntity<io.destinyos.api.dto.NarrativeResponseDto> readBeforeGenerating = rest.getForEntity(
+                "/api/v1/calculations/does-not-exist/narrative", io.destinyos.api.dto.NarrativeResponseDto.class);
+        assertThat(readBeforeGenerating.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test

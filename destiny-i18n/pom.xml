@@ -30,5 +30,10 @@
       <artifactId>destiny-engine-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-ai</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

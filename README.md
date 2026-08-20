@@ -52,6 +52,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-engine-numerology` | Thần số học Pythagoras — 5 chỉ số, chuẩn hóa tên tiếng Việt |
 | `destiny-fusion` | Tổng hợp kết luận theo luật (không phải trung bình có trọng số) |
 | `destiny-scenario` | Điều phối kịch bản — chọn engine áp dụng, không phụ thuộc engine cụ thể |
+| `destiny-ai` | Lớp diễn giải AI (Phase 12) — pruning, prompt, provider OpenRouter, fallback phi-AI. Không phụ thuộc engine/fusion/scenario |
 | `destiny-api` | REST controllers — không phụ thuộc engine cụ thể nào (qua `EngineTaskFactory`) |
 | `destiny-app` | Spring Boot assembly + bộ test kiến trúc |
 | `destiny-web` | Frontend Next.js (TypeScript, Tailwind) — dự án npm riêng, **không** thuộc Maven reactor |
@@ -60,6 +61,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 
 - **Fusion không phụ thuộc bất kỳ engine nào** — chỉ phụ thuộc contract `Signal`. Đây là tính chất cho phép xây Fusion trước khi có Bát Tự.
 - **Không kiểu miền nào chứa `double`/`float`/`BigDecimal`** làm điểm số hay độ tin cậy. Trung bình có trọng số trở thành *không biểu diễn được*, chứ không chỉ là "không khuyến khích".
+- **`destiny-ai` không phụ thuộc engine/fusion/scenario** (ADR D8) — cùng nguyên tắc cô lập với Fusion, để cả hệ thống vẫn dùng được đầy đủ khi module này vắng mặt, bị tắt, hoặc gặp lỗi.
 
 ---
 
@@ -80,7 +82,10 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | Xong — `CalculationRecorder`, `result_hash` tái lập được |
 | — | REST API (`destiny-api`) | Xong — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
 | — | Frontend (`destiny-web`) | **Xong** — Tổng quan, Trung tâm quyết định, Lịch sử; 10 mục nav còn lại ghi "Sắp ra mắt" |
+| 12 | AI Narrative (`destiny-ai`) | **Xong** — pruning, prompt, provider OpenRouter (tùy chọn, tắt mặc định), fallback phi-AI luôn render được; lưu trữ V7 |
 | 8–11 | Bát Tự, Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
+
+**Cập nhật AI Narrative (2026-08-20):** Module `destiny-ai` hiện thực hóa Phase 12 theo đúng `AI_NARRATIVE_SPEC.md` và ADR D8. Luồng: prune evidence theo đúng thứ tự ưu tiên đặc tả (CRITICAL → CONFLICT → STRONG → MEDIUM liên quan kịch bản → cảnh báo → giới hạn, ngân sách 8–20 signal) → dựng prompt hệ thống đúng nguyên văn đặc tả → gọi OpenRouter (nếu bật và có API key/model) qua `RestClient`, timeout + tối đa 1 lần thử lại cho lỗi tạm thời → validate schema JSON phản hồi → nếu bất kỳ bước nào thất bại (tắt, thiếu key, timeout, 429, 5xx, JSON hỏng, phản hồi rỗng), hệ thống **luôn** trả về báo cáo phi-AI dựng từ đúng dữ liệu tính toán thật, không bao giờ throw lỗi hay chặn request. Endpoint mới: `POST`/`GET /api/v1/calculations/{id}/narrative`. Không model OpenRouter mặc định nào được hardcode — danh mục model miễn phí thay đổi theo thời gian, người vận hành phải tự xác nhận và cấu hình qua `DESTINY_AI_OPENROUTER_MODEL`. 38 test riêng cho `destiny-ai` (310 tổng, tăng từ 257) cộng 1 luật ArchUnit mới xác nhận `destiny-ai` cô lập khỏi engine/fusion/scenario giống hệt Fusion (ADR D5).
 
 **Cập nhật nội dung diễn giải (2026-08-19):** Tarot (R11) và Numerology đã có đủ nội dung tiếng Việt (78 lá × 7 trường; 65 tổ hợp số), bám theo truyền thống Rider-Waite-Smith và Pythagorean hội tụ rộng rãi, viết một lần thành dữ liệu Java tĩnh — không sinh lúc runtime (CLAUDE.md Rule B). Hai engine giờ phát sinh signal thật, và Fusion lần đầu tiên cho ra kết quả thật (không còn `INSUFFICIENT_EVIDENCE`) — ví dụ một lượt Tarot với 3 lá mang polarity trái chiều cho ra `MAJOR_CONFLICT`, đúng tinh thần Rule E.
 
@@ -141,7 +146,24 @@ Cần `destiny-app` đang chạy (xem trên) — frontend gọi thẳng 3 nhóm 
 của `destiny-api` qua CORS (`WebCorsConfig`, chỉ mở cho
 `http://localhost:3000`). Mở `http://localhost:3000`.
 
-Bộ test hiện tại — 257 test:
+### Bật AI Narrative (tùy chọn, tắt mặc định)
+
+Hệ thống chạy đầy đủ mà **không cần** phần này — mọi kịch bản vẫn ra kết quả
+Fusion thật và một báo cáo phi-AI dựng từ đúng dữ liệu tính toán
+(`ADR D8`). Muốn bật diễn giải AI thật qua OpenRouter, thêm vào `.env`:
+
+```bash
+DESTINY_AI_ENABLED=true
+OPENROUTER_API_KEY=<api-key-cua-ban>
+DESTINY_AI_OPENROUTER_MODEL=<model-mien-phi-ban-da-xac-nhan-con-ton-tai>
+```
+
+Không có model mặc định nào được hardcode — danh mục model miễn phí của
+OpenRouter thay đổi theo thời gian, phải tự xác nhận model còn khả dụng.
+Gọi `POST /api/v1/calculations/{id}/narrative` sau khi đã có `calculationId`
+từ một lần chạy kịch bản.
+
+Bộ test hiện tại — 310 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
@@ -155,6 +177,7 @@ Bộ test hiện tại — 257 test:
 - **Lưu trữ tính toán** — round-trip đầy đủ Calculation/Evidence/Signal/Fusion/Conflict, `result_hash` giống hệt nhau khi cùng input/version/seed/outcome và khác nhau khi bất kỳ yếu tố nào đổi
 - **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
 - **REST API** — unit test cho từng service (dùng `StubEngine` cục bộ, không phụ thuộc engine thật), slice `@WebMvcTest` cho từng controller (status code, `ApiExceptionHandler`, methodology bị chặn nghiên cứu trả 200 chứ không phải 404), và một test tích hợp HTTP đầu-cuối chạy `TarotEngine`+`NumerologyEngine` thật qua cổng ngẫu nhiên, có ghi vào database rồi đọc lại đúng `resultHash`
+- **AI Narrative** — pruning đúng thứ tự ưu tiên và ngân sách 8–20 signal (không bao giờ loại critical để lấy chỗ), prompt hệ thống chứa nguyên văn từng điều cấm của đặc tả, parser từ chối JSON hỏng/rỗng/kèm văn bản thừa, mọi nhánh lỗi provider (timeout, 429, 5xx, unavailable) đều rơi về fallback phi-AI dựng từ đúng dữ liệu tính toán — không throw, không render trống; provider OpenRouter được test bằng `MockRestServiceServer` giả HTTP (không gọi mạng thật); test tích hợp đầu-cuối gọi `POST`/`GET /api/v1/calculations/{id}/narrative` thật qua Spring context thật, AI tắt theo mặc định nên xác nhận đúng nhánh fallback thật, không phải mock
 
 Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`).
 

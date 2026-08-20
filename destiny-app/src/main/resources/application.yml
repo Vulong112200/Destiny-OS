@@ -27,8 +27,21 @@ destiny:
     max-concurrency: 16
   # AI is optional by architecture (ADR D8). Disabled by default so the
   # hard-data path is what runs unless someone deliberately turns narration on.
+  # Setting enabled=true with no api-key/model configured still falls back
+  # safely (NarrativeService requires both, not just the flag) - see
+  # OpenRouterConfiguredCondition.
   ai:
-    enabled: false
+    enabled: ${DESTINY_AI_ENABLED:false}
+    openrouter:
+      api-key: ${OPENROUTER_API_KEY:}
+      # No default model (AI_NARRATIVE_SPEC.md section 7, OpenRouterProperties
+      # javadoc): the free-tier catalogue changes over time, so an operator
+      # who wants OpenRouter must name a model they have confirmed available.
+      model: ${DESTINY_AI_OPENROUTER_MODEL:}
+      base-url: ${DESTINY_AI_OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
+      timeout-ms: ${DESTINY_AI_OPENROUTER_TIMEOUT_MS:15000}
+      max-tokens: ${DESTINY_AI_OPENROUTER_MAX_TOKENS:800}
+      temperature: ${DESTINY_AI_OPENROUTER_TEMPERATURE:0.3}
 
 logging:
   level:

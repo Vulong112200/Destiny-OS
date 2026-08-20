@@ -1,5 +1,7 @@
 package io.destinyos.i18n;
 
+import io.destinyos.ai.FallbackReason;
+import io.destinyos.ai.NarrativeSource;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.evidence.DataConfidence;
 import io.destinyos.core.result.EngineStatus;
@@ -192,6 +194,34 @@ public final class VietnameseLabels {
         map.put(MethodologyStatus.OUT_OF_SCOPE, "Ngoài phạm vi hiện tại");
     });
 
+    /**
+     * Phase 12 (AI Narrative, ADR D8): whether the reader is looking at a
+     * real AI-generated narrative or the deterministic hard-data fallback.
+     * Neither label implies an error - {@link NarrativeSource#FALLBACK} is a
+     * normal, fully-supported state, not a broken one.
+     */
+    private static final Map<NarrativeSource, String> NARRATIVE_SOURCE = ordered(map -> {
+        map.put(NarrativeSource.AI_GENERATED, "Diễn giải bởi AI");
+        map.put(NarrativeSource.FALLBACK, "Tóm tắt từ dữ liệu tính toán gốc");
+    });
+
+    /**
+     * Why a narrative fell back (AI_NARRATIVE_SPEC.md section 6). Written so
+     * a curious reader understands the state without needing the technical
+     * name - none of these blame the reader or imply their data is at fault.
+     */
+    private static final Map<FallbackReason, String> FALLBACK_REASON = ordered(map -> {
+        map.put(FallbackReason.NONE, "Không áp dụng");
+        map.put(FallbackReason.AI_DISABLED, "Phần diễn giải AI đang tắt");
+        map.put(FallbackReason.NO_API_KEY, "Chưa cấu hình dịch vụ AI");
+        map.put(FallbackReason.TIMEOUT, "Dịch vụ AI phản hồi quá chậm");
+        map.put(FallbackReason.RATE_LIMITED, "Dịch vụ AI đang quá tải");
+        map.put(FallbackReason.SERVER_ERROR, "Dịch vụ AI gặp lỗi");
+        map.put(FallbackReason.PROVIDER_UNAVAILABLE, "Không kết nối được dịch vụ AI");
+        map.put(FallbackReason.MALFORMED_JSON, "Phản hồi AI không đúng định dạng");
+        map.put(FallbackReason.EMPTY_RESPONSE, "Dịch vụ AI không trả về nội dung");
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -236,6 +266,14 @@ public final class VietnameseLabels {
         return require(METHODOLOGY_STATUS, value);
     }
 
+    public static String of(NarrativeSource value) {
+        return require(NARRATIVE_SOURCE, value);
+    }
+
+    public static String of(FallbackReason value) {
+        return require(FALLBACK_REASON, value);
+    }
+
     /** Non-throwing lookup, for the coverage test. */
     public static Optional<String> lookup(Enum<?> value) {
         if (value == null) {
@@ -254,7 +292,7 @@ public final class VietnameseLabels {
     public static java.util.List<Map<? extends Enum<?>, String>> allRegistries() {
         return java.util.List.of(ENGINE_STATUS, POLARITY, STRENGTH, APPLICABILITY,
                 DIMENSION, DATA_CONFIDENCE, UNCERTAINTY, DIMENSION_STATE, FUSION_OUTCOME,
-                CONFLICT_TYPE, METHODOLOGY_STATUS);
+                CONFLICT_TYPE, METHODOLOGY_STATUS, NARRATIVE_SOURCE, FALLBACK_REASON);
     }
 
     @SuppressWarnings("unchecked")

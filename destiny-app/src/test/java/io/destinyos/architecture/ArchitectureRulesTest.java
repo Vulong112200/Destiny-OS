@@ -86,7 +86,8 @@ class ArchitectureRulesTest {
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.tarot"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"))
                 .anyMatch(p -> p.startsWith("io.destinyos.scenario"))
-                .anyMatch(p -> p.startsWith("io.destinyos.api"));
+                .anyMatch(p -> p.startsWith("io.destinyos.api"))
+                .anyMatch(p -> p.startsWith("io.destinyos.ai"));
     }
 
     @Test
@@ -179,6 +180,25 @@ class ArchitectureRulesTest {
                 .because("A scenario is wired to concrete engine instances by its "
                         + "caller, keeping destiny-scenario as engine-agnostic as "
                         + "destiny-fusion.");
+
+        rule.allowEmptyShould(true).check(production());
+    }
+
+    @Test
+    @DisplayName("The AI narrative layer must not depend on any engine, fusion, or scenario (ADR D8)")
+    void aiNarrativeStaysIsolated() {
+        // ADR D8: "nothing upstream depends on it" cuts both ways in
+        // practice - destiny-ai must not reach back into engine, fusion or
+        // scenario internals either, or a failure/change in one of those
+        // could propagate into the one stage that is supposed to keep the
+        // whole system usable when everything else is unavailable.
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("io.destinyos.ai..")
+                .should().dependOnClassesThat()
+                .resideInAnyPackage("io.destinyos.engines..", "io.destinyos.fusion..", "io.destinyos.scenario..")
+                .because("ADR D8: destiny-ai stays as isolated as destiny-fusion (ADR D5) - "
+                        + "callers adapt their own domain objects into NarrativeInput, "
+                        + "destiny-ai never reaches for a concrete engine, Fusion, or Scenario type.");
 
         rule.allowEmptyShould(true).check(production());
     }

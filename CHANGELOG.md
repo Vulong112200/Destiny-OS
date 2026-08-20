@@ -8,6 +8,60 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 12: AI Narrative layer (`destiny-ai`, ADR D8)
+
+- Module mới `destiny-ai` — chỉ phụ thuộc `destiny-core`; không bao giờ phụ
+  thuộc `destiny-fusion`, `destiny-scenario`, hay bất kỳ `destiny-engine-*`
+  nào (một luật ArchUnit mới, `aiNarrativeStaysIsolated`, thực thi cơ chế
+  này giống hệt ADR D5 bảo vệ Fusion). Đúng tinh thần D8: "không module nào
+  phụ thuộc AI" — nghĩa là hệ thống phải chạy đầy đủ khi module này vắng
+  mặt, bị tắt, hoặc gọi provider thất bại
+- **Pruning** (`NarrativePruner`) đúng thứ tự ưu tiên `AI_NARRATIVE_SPEC.md`
+  §3: critical luôn giữ, STRONG luôn giữ, MEDIUM chỉ giữ khi thuộc dimension
+  liên quan kịch bản, loại hẳn NEUTRAL/trùng lặp/không liên quan, ngân sách
+  8–20 signal (Master Spec §22) — cắt bớt ưu tiên thấp trước, không bao giờ
+  cắt một signal critical để lấy chỗ
+- **Prompt** (`NarrativePromptBuilder`) dùng nguyên văn system prompt của
+  §4 (từng điều cấm: không tính lại, không thêm sao/lá bài/hành
+  tinh/quẻ/evidence, không đổi kết quả Fusion, không trình bày huyền học
+  như khoa học đã chứng minh) — không diễn giải lại bằng lời khác
+- **Model independence** (§7): `AiNarrativeProvider` là interface,
+  `OpenRouterNarrativeProvider` là một cài đặt cụ thể (không phải cài đặt
+  duy nhất được phép). Không có model OpenRouter mặc định nào được hardcode
+  — danh mục model miễn phí đổi theo thời gian, người vận hành phải tự xác
+  nhận model còn khả dụng qua `DESTINY_AI_OPENROUTER_MODEL`
+- **Failure handling** (§6): timeout, 429, 5xx, provider không khả dụng,
+  JSON hỏng, phản hồi rỗng — tất cả rơi về `HardDataNarrativeFallback`, một
+  báo cáo tất định dựng thẳng từ dữ liệu tính toán thật (không LLM, không
+  bịa), không bao giờ throw exception hay chặn request. Provider OpenRouter
+  tự giới hạn tối đa 1 lần thử lại cho lỗi tạm thời (timeout/5xx) — không
+  bao giờ retry vô hạn (CLAUDE.md §5)
+- **API key** chỉ đọc phía server (`OpenRouterProperties`, biến môi
+  trường), không bao giờ trả về response hay lộ ra frontend (Master Spec
+  §28)
+- Lưu trữ mới (V7 migration, `ai_narratives`): một dòng mỗi calculation
+  (upsert khi tạo lại, không tích lũy lịch sử — khác với `fusion_results`
+  vì narrative là bản diễn giải của hard data, không phải một sự kiện mới)
+- Endpoint mới: `POST`/`GET /api/v1/calculations/{id}/narrative` —
+  `NarrativeOrchestrationService` là nơi duy nhất biết cả entity persistence
+  (`SignalEntity`/`ConflictEntity`/`FusionResultEntity`) lẫn contract
+  `destiny-ai`, dựng `NarrativeInput` trực tiếp từ enum thật (không round-trip
+  qua `LabeledValue.technical()`) để giữ đúng ngữ nghĩa cho pruning
+- **Khoảng trống ghi nhận trung thực, không che giấu**: `CalculationContext.uncertainties()`
+  chưa từng được `CalculationRecorder` (V4-V6) lưu trữ — nên `warnings`/
+  `limitations` gửi cho AI hiện để trống thay vì bịa ra nội dung, cho đến
+  khi khoảng trống lưu trữ này được đóng ở một phase riêng
+- Thêm 2 enum nhãn tiếng Việt mới vào `VietnameseLabels`
+  (`NarrativeSource`, `FallbackReason`) — `LabelCoverageTest` xác nhận đủ
+  nhãn, không enum kỹ thuật nào lọt ra ngoài
+- 53 test mới (310 tổng, tăng từ 257): 38 test riêng cho `destiny-ai`
+  (pruning, prompt, parser, service, provider OpenRouter qua
+  `MockRestServiceServer` giả HTTP — không gọi mạng thật), 4 test round-trip
+  persistence V7, 9 test API (unit service + `@WebMvcTest` controller), 1
+  test tích hợp HTTP đầu-cuối mới (`ScenarioApiIntegrationTest`) xác nhận
+  nhánh fallback thật (AI tắt theo mặc định) qua Spring context thật, và 1
+  luật ArchUnit mới
+
 ### Added — Frontend: Next.js Decision Center (ADR D4)
 
 - Module mới `destiny-web` (Next.js 16, App Router, TypeScript, Tailwind) —
