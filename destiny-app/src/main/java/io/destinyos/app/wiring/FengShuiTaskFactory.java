@@ -7,7 +7,7 @@ import io.destinyos.calendar.VietnameseRegion;
 import io.destinyos.engines.fengshui.CompassDirection;
 import io.destinyos.engines.fengshui.FengShuiKuaEngine;
 import io.destinyos.engines.fengshui.FengShuiKuaInput;
-import io.destinyos.engines.fengshui.Gender;
+import io.destinyos.core.context.Gender;
 import io.destinyos.execution.EngineTask;
 import java.time.LocalDateTime;
 import java.time.LocalTime;

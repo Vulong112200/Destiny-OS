@@ -152,12 +152,6 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                             + "đáp án nghe có lý.",
                     List.of("Phù ức Nhật Chủ", "Điều hậu (khí hậu theo mùa)",
                             "Thông quan (hòa giải xung khắc)", "Chuyên vượng / tòng cách")),
-            new BlockedSection("DAI_VAN", "Đại Vận (các vận 10 năm)", "R2",
-                    "Tuổi khởi vận phụ thuộc quy ước đổi ngày ra năm và cách làm tròn, mà các "
-                            + "trường phái quy định khác nhau — lệch một bậc là sai toàn bộ các "
-                            + "vận về sau. Chưa có nguồn xác minh nên chưa tính.",
-                    List.of("3 ngày = 1 năm với các quy tắc làm tròn khác nhau",
-                            "Chiều thuận/nghịch theo âm dương can năm và giới tính")),
             new BlockedSection("NHAT_CHU_CUONG_DO",
                     "Cường độ Nhật Chủ (thân cường / thân nhược)", "R3",
                     "Không tồn tại thang điểm nào được công nhận chung để đo cường độ Nhật Chủ. "
@@ -244,6 +238,9 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
         BaziPillar hourPillar = hourCanChi == null
                 ? null : pillar(PillarPosition.HOUR, hourCanChi, dayMaster);
 
+        LuckCycles luckCycles = resolveLuckCycles(input, yearCanChi, baziYear, solarMonthIndex,
+                julianDateUt, solarLocal, utcOffsetHours, uncertainties, warnings);
+
         BaziChart chart = new BaziChart(
                 yearPillar, monthPillar, dayPillar, hourPillar,
                 BaziYearBoundary.LAP_XUAN,
@@ -252,6 +249,7 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                 solarMonthIndex,
                 solarLocal,
                 tally(yearPillar, monthPillar, dayPillar, hourPillar),
+                luckCycles,
                 BLOCKED_SECTIONS,
                 uncertainties);
 
@@ -273,15 +271,58 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                 List.copyOf(warnings),
                 List.of(),
                 new ResearchReference("R1", "Bát Tự",
-                        "Lá số Tứ Trụ đã lập xong và là dữ liệu thật. Phần luận giải "
-                                + "(Dụng Thần R1, Đại Vận R2, cường độ Nhật Chủ R3) chưa có "
+                        "Lá số Tứ Trụ và chuỗi Đại Vận đã lập xong và là dữ liệu thật. Phần "
+                                + "luận giải (Dụng Thần R1, cường độ Nhật Chủ R3) chưa có "
                                 + "trường phái được chọn, nên engine không phát sinh tín hiệu "
-                                + "nào cho Fusion.",
-                        "docs/RESEARCH_BLOCKERS.md R1/R2/R3",
-                        List.of("R1 Dụng Thần", "R2 Đại Vận", "R3 cường độ Nhật Chủ")),
+                                + "nào cho Fusion — kể cả về Đại Vận, vì một vận chỉ tốt hay "
+                                + "xấu khi đã có Dụng Thần.",
+                        "docs/RESEARCH_BLOCKERS.md R1/R3",
+                        List.of("R1 Dụng Thần", "R3 cường độ Nhật Chủ")),
                 Map.of("methodologyId", METHODOLOGY_ID,
                         "yearBoundary", BaziYearBoundary.LAP_XUAN.name(),
                         "utcOffsetHours", String.valueOf(utcOffsetHours)));
+    }
+
+    /**
+     * The Đại Vận sequence, or {@code null} plus a stated reason.
+     *
+     * <p>Two degradations, and they differ in kind. <strong>No gender</strong>
+     * means no direction, and a guessed direction produces a sequence that is
+     * wrong from the first period onward while looking exactly like a right
+     * one — so nothing is produced. <strong>No exact hour</strong> only blurs
+     * the distance to the term boundary, by at most half a day, which the
+     * conversion turns into about two months of start age against periods
+     * lasting ten years — so the sequence is produced and the blur is stated.
+     */
+    private static LuckCycles resolveLuckCycles(BaziInput input, CanChiPillar yearCanChi,
+                                                int baziYear, int solarMonthIndex,
+                                                double julianDateUt, LocalDateTime solarLocal,
+                                                double utcOffsetHours,
+                                                List<Uncertainty> uncertainties,
+                                                List<EngineWarning> warnings) {
+        if (input.gender() == null) {
+            uncertainties.add(Uncertainty.of(UncertaintyKind.REQUIRED_INPUT_MISSING,
+                    "Chưa có giới tính nên không tính được Đại Vận: chiều thuận/nghịch của "
+                            + "chuỗi vận phụ thuộc giới tính kết hợp với âm dương can năm, và "
+                            + "đoán chiều sẽ cho ra một chuỗi sai ngay từ vận đầu nhưng trông "
+                            + "y hệt một chuỗi đúng. Lá số Tứ Trụ không bị ảnh hưởng.",
+                    "R2"));
+            warnings.add(EngineWarning.critical("BAZI_NO_LUCK_CYCLES",
+                    "Không có Đại Vận vì thiếu giới tính."));
+            return null;
+        }
+
+        if (!input.precision().supportsHourPrecision()) {
+            uncertainties.add(Uncertainty.of(UncertaintyKind.BIRTH_TIME_IMPRECISE,
+                    "Giờ sinh không chính xác nên tuổi khởi vận Đại Vận chỉ là ước lượng: "
+                            + "khoảng cách tới Tiết được đo từ một giờ danh nghĩa, sai lệch tối "
+                            + "đa nửa ngày, tương đương khoảng hai tháng tuổi khởi vận. Thứ tự "
+                            + "và can chi các vận không bị ảnh hưởng.",
+                    "R2"));
+        }
+
+        return LuckCycleResolver.resolve(yearCanChi, baziYear, solarMonthIndex,
+                input.gender(), julianDateUt, solarLocal, utcOffsetHours);
     }
 
     /**
@@ -422,6 +463,38 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
         evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
                 "BAZI_ELEMENT_TALLY", RULE_VERSION, Dimension.OTHER, tallyFact,
                 "element-count", groupId, null));
+
+        if (chart.luckCycles() != null) {
+            LuckCycles cycles = chart.luckCycles();
+            Map<String, Object> fact = new LinkedHashMap<>();
+            fact.put("direction", cycles.direction().name());
+            fact.put("boundaryTerm", cycles.boundaryTerm().name());
+            fact.put("boundaryInstant", cycles.boundaryInstant().toString());
+            // The day count is what every Bát Tự text states, so it is what a
+            // reader can check this against by hand. Publishing only the start
+            // age would make the result unverifiable against any source.
+            fact.put("distanceDays", cycles.distanceToBoundary().toDays());
+            fact.put("distanceHours", cycles.distanceToBoundary().toHours() % 24);
+            fact.put("startAgeYears", cycles.startAge().getYears());
+            fact.put("startAgeMonths", cycles.startAge().getMonths());
+            fact.put("startAgeDays", cycles.startAge().getDays());
+            fact.put("startDate", cycles.startDate().toString());
+            fact.put("pillars", cycles.pillars().stream().map(pillar -> {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("ordinal", pillar.ordinal());
+                entry.put("stem", pillar.stem().name());
+                entry.put("branch", pillar.branch().name());
+                entry.put("startAgeYears", pillar.startAgeYears());
+                entry.put("startDate", pillar.startDate().toString());
+                return entry;
+            }).toList());
+            fact.put("note", "Chuỗi vận và tuổi khởi vận là dữ liệu lập được. Việc một vận "
+                    + "tốt hay xấu cần Dụng Thần (R1) và cường độ Nhật Chủ (R3), đều chưa "
+                    + "có trường phái được chọn.");
+            evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
+                    "BAZI_LUCK_CYCLES", RULE_VERSION, Dimension.TIMING, fact,
+                    "dai-van-construction", groupId, null));
+        }
 
         for (BlockedSection blocked : chart.blockedSections()) {
             Map<String, Object> fact = new LinkedHashMap<>();

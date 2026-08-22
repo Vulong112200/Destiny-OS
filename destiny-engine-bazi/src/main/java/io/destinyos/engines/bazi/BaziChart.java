@@ -33,8 +33,11 @@ import java.util.Optional;
  * @param localSolarDateTime the local time actually used, after the R10 solar
  *                          correction when longitude was known
  * @param elementTally      integer element counts, in three ungrouped tallies
+ * @param luckCycles        the Đại Vận sequence (R2), or {@code null} when no
+ *                          gender was supplied — the direction depends on it
+ *                          and there is no defensible default
  * @param blockedSections   the reading sections this engine refuses to
- *                          approximate (R1, R2, R3)
+ *                          approximate (R1, R3)
  * @param uncertainties     conditions that must reach the user (ADR D3)
  */
 public record BaziChart(
@@ -48,6 +51,7 @@ public record BaziChart(
         int solarMonthIndex,
         LocalDateTime localSolarDateTime,
         ElementTally elementTally,
+        LuckCycles luckCycles,
         List<BlockedSection> blockedSections,
         List<Uncertainty> uncertainties
 ) {
@@ -88,5 +92,10 @@ public record BaziChart(
     /** The month pillar's branch, i.e. which solar-term month this is. */
     public EarthlyBranch solarMonthBranch() {
         return monthPillar.branch();
+    }
+
+    /** The Đại Vận sequence, absent when no gender was supplied (R2). */
+    public Optional<LuckCycles> luckCyclesIfPresent() {
+        return Optional.ofNullable(luckCycles);
     }
 }

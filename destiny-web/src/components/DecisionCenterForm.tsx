@@ -66,6 +66,10 @@ export function DecisionCenterForm() {
   const [baziBirthTime, setBaziBirthTime] = useState("");
   const [baziRegion, setBaziRegion] = useState("UNKNOWN");
   const [baziLongitude, setBaziLongitude] = useState("");
+  // Empty on purpose, and never defaulted to a value: gender decides the Đại
+  // Vận direction, and a guessed direction produces a full sequence that is
+  // wrong from its first period while looking exactly like a correct one.
+  const [baziGender, setBaziGender] = useState<"" | "MALE" | "FEMALE">("");
   const [useFengShui, setUseFengShui] = useState(false);
   const [fsBirthDate, setFsBirthDate] = useState("");
   const [fsGender, setFsGender] = useState<"MALE" | "FEMALE">("MALE");
@@ -116,6 +120,10 @@ export function DecisionCenterForm() {
               birthTime: baziBirthTime === "" ? null : baziBirthTime,
               region: baziRegion,
               longitude,
+              // Same rule as the hour: empty means "not supplied", and the
+              // backend omits Đại Vận with a stated reason rather than
+              // picking a direction.
+              gender: baziGender === "" ? null : baziGender,
             }
           : null,
         fengShui: hasFengShui
@@ -252,10 +260,11 @@ export function DecisionCenterForm() {
           <div className="space-y-3">
             <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
               Hiện chỉ <span className="font-medium">lập lá số</span>: Tứ Trụ, Ngũ Hành, Tàng Can,
-              Thập Thần và số đếm Ngũ Hành — tất cả là dữ liệu tính toán tất định. Phần luận giải
-              (Dụng Thần, Đại Vận, cường độ Nhật Chủ) chưa được cung cấp vì các trường phái chưa
-              thống nhất và hệ thống không tự chọn giúp bạn. Vì vậy Bát Tự chưa góp tín hiệu nào
-              vào kết luận tổng hợp.
+              Thập Thần, số đếm Ngũ Hành, và <span className="font-medium">Đại Vận</span> nếu bạn
+              nhập giới tính — tất cả là dữ liệu tính toán tất định. Phần luận giải (Dụng Thần,
+              cường độ Nhật Chủ) chưa được cung cấp vì các trường phái chưa thống nhất và hệ thống
+              không tự chọn giúp bạn. Vì vậy Bát Tự chưa góp tín hiệu nào vào kết luận tổng hợp —
+              kể cả Đại Vận, vì một vận chỉ tốt hay xấu khi đã có Dụng Thần.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
@@ -311,6 +320,24 @@ export function DecisionCenterForm() {
                 <span className="mt-1 block text-xs text-slate-500">
                   Có kinh độ thì giờ sinh được hiệu chỉnh về giờ mặt trời — chỉ quan trọng khi giờ
                   sinh sát ranh giới canh giờ.
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Giới tính (để có Đại Vận)</span>
+                <select
+                  value={baziGender}
+                  onChange={(e) => setBaziGender(e.target.value as "" | "MALE" | "FEMALE")}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                >
+                  {/* No preselected value: see the state declaration. */}
+                  <option value="">— chưa chọn —</option>
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                </select>
+                <span className="mt-1 block text-xs text-slate-500">
+                  Chiều Đại Vận (thuận hay nghịch) phụ thuộc giới tính kết hợp âm dương can năm.
+                  Để trống thì lá số Tứ Trụ vẫn đầy đủ, chỉ không có phần Đại Vận — hệ thống
+                  không đoán giúp bạn.
                 </span>
               </label>
             </div>

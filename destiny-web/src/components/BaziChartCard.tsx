@@ -39,6 +39,36 @@ function asCounts(value: unknown): Record<string, number> {
   return value as Record<string, number>;
 }
 
+type LuckPillarFact = {
+  ordinal: number;
+  stem: string;
+  branch: string;
+  startAgeYears: number;
+  startDate: string;
+};
+
+function asLuckPillars(value: unknown): LuckPillarFact[] {
+  return Array.isArray(value) ? (value as LuckPillarFact[]) : [];
+}
+
+/**
+ * "8 năm 4 tháng", dropping the parts that are zero.
+ *
+ * The engine reports years, months and days because the tradition's own
+ * conversion produces all three; showing "8 tuổi" alone would round away a
+ * distinction the calculation actually made.
+ */
+function startAgeText(fact: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const years = Number(fact.startAgeYears ?? 0);
+  const months = Number(fact.startAgeMonths ?? 0);
+  const days = Number(fact.startAgeDays ?? 0);
+  if (years > 0) parts.push(`${years} năm`);
+  if (months > 0) parts.push(`${months} tháng`);
+  if (days > 0) parts.push(`${days} ngày`);
+  return parts.length > 0 ? parts.join(" ") : "ngay từ khi sinh";
+}
+
 export function BaziChartCard({
   evidence,
   labels,
@@ -60,6 +90,7 @@ export function BaziChartCard({
 
   const blocked = baziEvidence.filter((e) => e.ruleId.startsWith("BAZI_BLOCKED_"));
   const hasHourPrecision = boundary?.hasHourPrecision === true;
+  const luck = factOf(baziEvidence, "BAZI_LUCK_CYCLES");
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -244,6 +275,83 @@ export function BaziChartCard({
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {luck && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Đại Vận (các vận 10 năm)</h3>
+          <p className="mb-2 text-xs text-slate-500">
+            Chuỗi vận và tuổi khởi vận là <span className="font-medium">dữ liệu lập được</span>.
+            Một vận <span className="font-medium">tốt hay xấu</span> thì chưa — điều đó cần Dụng
+            Thần (R1) và cường độ Nhật Chủ (R3), nên bảng dưới đây cố tình không có cột đánh giá.
+          </p>
+
+          <dl className="mb-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            <div className="flex gap-2">
+              <dt className="text-slate-500">Chiều vận</dt>
+              <dd className="font-medium text-slate-900">
+                {label(labels, "LuckCycleDirection", luck.direction)}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-slate-500">Khởi vận lúc</dt>
+              <dd className="font-medium text-slate-900">{startAgeText(luck)}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-slate-500">Đếm tới tiết</dt>
+              <dd className="text-slate-800">{label(labels, "SolarTerm", luck.boundaryTerm)}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-slate-500">Khoảng cách</dt>
+              {/* The day count is what every Bát Tự text states, so it is the
+                  one number a reader can check this against by hand. */}
+              <dd className="tabular-nums text-slate-800">
+                {String(luck.distanceDays ?? "—")} ngày {String(luck.distanceHours ?? 0)} giờ
+              </dd>
+            </div>
+          </dl>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[30rem] border-collapse text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th scope="col" className="w-16 py-1.5 font-medium">
+                    Vận
+                  </th>
+                  <th scope="col" className="py-1.5 font-medium">
+                    Thiên Can
+                  </th>
+                  <th scope="col" className="py-1.5 font-medium">
+                    Địa Chi
+                  </th>
+                  <th scope="col" className="py-1.5 font-medium">
+                    Từ tuổi
+                  </th>
+                  <th scope="col" className="py-1.5 font-medium">
+                    Từ ngày
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {asLuckPillars(luck.pillars).map((pillar) => (
+                  <tr key={pillar.ordinal}>
+                    <th scope="row" className="py-1.5 text-left text-xs font-medium text-slate-600">
+                      {pillar.ordinal}
+                    </th>
+                    <td className="py-1.5 text-slate-800">
+                      {label(labels, "HeavenlyStem", pillar.stem)}
+                    </td>
+                    <td className="py-1.5 text-slate-800">
+                      {label(labels, "EarthlyBranch", pillar.branch)}
+                    </td>
+                    <td className="py-1.5 tabular-nums text-slate-800">{pillar.startAgeYears}</td>
+                    <td className="py-1.5 tabular-nums text-slate-600">{pillar.startDate}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

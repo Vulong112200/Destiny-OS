@@ -48,21 +48,29 @@ class BaziEngineTest {
             assertThat(result.researchReferenceIfPresent()).isPresent();
             assertThat(result.researchReference().knownVariants())
                     .anyMatch(v -> v.contains("R1"))
-                    .anyMatch(v -> v.contains("R2"))
                     .anyMatch(v -> v.contains("R3"));
+            // R2 dropped off this list when Đại Vận was implemented
+            // (2026-08-22): the sequence is now real chart data. It still
+            // yields no signal, because whether a period is favourable needs
+            // R1 and R3 — so the reference names only those two.
+            assertThat(result.researchReference().knownVariants())
+                    .noneMatch(v -> v.contains("R2"));
         }
 
         @Test
-        @DisplayName("Dụng Thần, Đại Vận and Day Master strength are reported as blocked, not absent")
+        @DisplayName("Dụng Thần and Day Master strength are reported as blocked, not absent")
         void blockedSectionsAreNamedWithTheirResearchIds() {
             BaziChart chart = run(LocalDateTime.of(1990, 5, 20, 9, 30)).data();
 
+            // Đại Vận left this list on 2026-08-22 when R2 closed. The list is
+            // asserted exactly, not as a subset, so a section can neither
+            // appear nor disappear without a test being changed on purpose.
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::sectionId)
-                    .containsExactlyInAnyOrder("DUNG_THAN", "DAI_VAN", "NHAT_CHU_CUONG_DO");
+                    .containsExactlyInAnyOrder("DUNG_THAN", "NHAT_CHU_CUONG_DO");
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::researchId)
-                    .containsExactlyInAnyOrder("R1", "R2", "R3");
+                    .containsExactlyInAnyOrder("R1", "R3");
             // A blocked section with no named variants reads as an oversight
             // rather than as a real disagreement (Rule D).
             assertThat(chart.blockedSections())
@@ -80,7 +88,7 @@ class BaziEngineTest {
 
             assertThat(warnings)
                     .filteredOn(w -> w.code().startsWith("BAZI_SECTION_BLOCKED_"))
-                    .hasSize(3)
+                    .hasSize(2)
                     .allSatisfy(w -> assertThat(w.critical()).isTrue());
         }
 
@@ -114,7 +122,7 @@ class BaziEngineTest {
         void unknownPrecisionDropsTheDayAndHourPillars() {
             EngineResult<BaziChart> result = engine.calculate(
                     new BaziInput(instant(LocalDateTime.of(1990, 5, 20, 9, 30)),
-                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.UNKNOWN),
+                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.UNKNOWN, null),
                     context());
             BaziChart chart = result.data();
 
@@ -140,7 +148,7 @@ class BaziEngineTest {
         void approximateIsNotExact() {
             BaziChart chart = engine.calculate(
                     new BaziInput(instant(LocalDateTime.of(1990, 5, 20, 9, 30)),
-                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.APPROXIMATE),
+                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.APPROXIMATE, null),
                     context()).data();
 
             assertThat(chart.hasHourPrecision()).isFalse();
@@ -183,7 +191,7 @@ class BaziEngineTest {
             // an UNKNOWN region there is nothing to resolve.
             EngineResult<BaziChart> result = engine.calculate(
                     new BaziInput(instant(LocalDateTime.of(1960, 3, 10, 8, 0)),
-                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.EXACT),
+                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.EXACT, null),
                     context());
 
             assertThat(result.status()).isEqualTo(EngineStatus.RESEARCH_REQUIRED);
@@ -196,7 +204,7 @@ class BaziEngineTest {
         void sameDateWithAKnownRegionResolves() {
             EngineResult<BaziChart> result = engine.calculate(
                     new BaziInput(instant(LocalDateTime.of(1960, 3, 10, 8, 0)),
-                            VietnameseRegion.SOUTH, null, BirthTimePrecision.EXACT),
+                            VietnameseRegion.SOUTH, null, BirthTimePrecision.EXACT, null),
                     context());
 
             assertThat(result.status()).isEqualTo(EngineStatus.PARTIAL);
@@ -269,7 +277,7 @@ class BaziEngineTest {
             // standard meridian, so mean solar time runs about 7 minutes ahead.
             var result = engine.calculate(
                     new BaziInput(instant(LocalDateTime.of(1990, 8, 20, 12, 0)),
-                            VietnameseRegion.UNKNOWN, 106.7, BirthTimePrecision.EXACT),
+                            VietnameseRegion.UNKNOWN, 106.7, BirthTimePrecision.EXACT, null),
                     context());
             BaziChart chart = result.data();
 
@@ -305,8 +313,12 @@ class BaziEngineTest {
             assertThat(evidence).extracting(io.destinyos.core.evidence.Evidence::ruleId)
                     .contains("BAZI_PILLAR_YEAR", "BAZI_PILLAR_MONTH", "BAZI_PILLAR_DAY",
                             "BAZI_PILLAR_HOUR", "BAZI_BOUNDARY", "BAZI_ELEMENT_TALLY",
-                            "BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_DAI_VAN",
-                            "BAZI_BLOCKED_NHAT_CHU_CUONG_DO");
+                            "BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_NHAT_CHU_CUONG_DO")
+                    // Đại Vận moved from a blocked section to real evidence
+                    // (R2, 2026-08-22) — but only when a gender was supplied,
+                    // and this fixture supplies none, so neither rule id is
+                    // present here. LuckCycleTest covers the supplied case.
+                    .doesNotContain("BAZI_BLOCKED_DAI_VAN", "BAZI_LUCK_CYCLES");
             // One group id, so pruning and deduplication treat the chart as a
             // single finding rather than as nine unrelated ones.
             assertThat(evidence).extracting(io.destinyos.core.evidence.Evidence::evidenceGroupId)
@@ -347,7 +359,7 @@ class BaziEngineTest {
         void outOfRangeDateIsRejected() {
             var validation = engine.validateInput(
                     new BaziInput(instant(LocalDateTime.of(1850, 1, 1, 12, 0)),
-                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.EXACT));
+                            VietnameseRegion.UNKNOWN, null, BirthTimePrecision.EXACT, null));
 
             assertThat(validation.valid()).isFalse();
             assertThat(validation.errors()).first()
@@ -360,7 +372,7 @@ class BaziEngineTest {
         void invalidLongitudeIsRejected() {
             var validation = engine.validateInput(
                     new BaziInput(instant(LocalDateTime.of(1990, 1, 1, 12, 0)),
-                            VietnameseRegion.UNKNOWN, 500.0, BirthTimePrecision.EXACT));
+                            VietnameseRegion.UNKNOWN, 500.0, BirthTimePrecision.EXACT, null));
 
             assertThat(validation.valid()).isFalse();
         }
@@ -370,7 +382,7 @@ class BaziEngineTest {
         void validInputPasses() {
             assertThat(engine.validateInput(
                     new BaziInput(instant(LocalDateTime.of(1990, 1, 1, 12, 0)),
-                            VietnameseRegion.UNKNOWN, 105.85, BirthTimePrecision.EXACT))
+                            VietnameseRegion.UNKNOWN, 105.85, BirthTimePrecision.EXACT, null))
                     .valid()).isTrue();
         }
 
@@ -392,7 +404,7 @@ class BaziEngineTest {
     private EngineResult<BaziChart> run(LocalDateTime vietnamLocal) {
         return engine.calculate(
                 new BaziInput(instant(vietnamLocal), VietnameseRegion.UNKNOWN, null,
-                        BirthTimePrecision.EXACT),
+                        BirthTimePrecision.EXACT, null),
                 context());
     }
 

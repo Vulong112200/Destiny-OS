@@ -5,6 +5,7 @@ import io.destinyos.api.dto.ScenarioRunRequest;
 import io.destinyos.api.service.EngineTaskFactory;
 import io.destinyos.calendar.VietnameseRegion;
 import io.destinyos.core.context.BirthTimePrecision;
+import io.destinyos.core.context.Gender;
 import io.destinyos.engines.bazi.BaziEngine;
 import io.destinyos.engines.bazi.BaziInput;
 import io.destinyos.execution.EngineTask;
@@ -73,9 +74,32 @@ public class BaziTaskFactory implements EngineTaskFactory {
                 local.atZone(REQUEST_ZONE).toInstant(),
                 parseRegion(bazi.region()),
                 bazi.longitude(),
-                timeKnown ? BirthTimePrecision.EXACT : BirthTimePrecision.UNKNOWN);
+                timeKnown ? BirthTimePrecision.EXACT : BirthTimePrecision.UNKNOWN,
+                parseGender(bazi.gender()));
 
         return Optional.of(EngineTask.of(engine, input));
+    }
+
+    /**
+     * Null for absent or unrecognised, and the task is still created.
+     *
+     * <p>Deliberately not the same call as {@link FengShuiTaskFactory}'s: there
+     * a missing gender means no task at all, because the Kua number <em>is</em>
+     * the result. Here it costs only the Đại Vận section, and suppressing the
+     * whole Tứ Trụ over it would withhold a chart the engine can build
+     * perfectly well.
+     */
+    private static Gender parseGender(String gender) {
+        if (gender == null || gender.isBlank()) {
+            return null;
+        }
+        try {
+            return Gender.valueOf(gender.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            // Same reasoning as parseRegion: "unrecognised" and "not supplied"
+            // lead to the same honest place, and the engine states that place.
+            return null;
+        }
     }
 
     private static VietnameseRegion parseRegion(String region) {

@@ -18,11 +18,12 @@ import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engines.bazi.BaziYearBoundary;
+import io.destinyos.engines.bazi.LuckCycleDirection;
 import io.destinyos.engines.bazi.PillarPosition;
 import io.destinyos.engines.bazi.TenGod;
 import io.destinyos.engines.fengshui.BatTrachRelation;
 import io.destinyos.engines.fengshui.CompassDirection;
-import io.destinyos.engines.fengshui.Gender;
+import io.destinyos.core.context.Gender;
 import io.destinyos.engines.fengshui.KuaYearBoundary;
 import io.destinyos.engines.fengshui.Trigram;
 import io.destinyos.engines.fengshui.TrigramGroup;
@@ -74,6 +75,9 @@ class LabelCoverageTest {
             TenGod.class,
             PillarPosition.class,
             BaziYearBoundary.class,
+            // Phase 8b, Đại Vận (R2). "THUAN" on a results page is
+            // exactly the bare technical enum section 1 forbids.
+            LuckCycleDirection.class,
             // CLAUDE.md section 7 retention. Reaches the user directly - the
             // result page tells them whether their reading will be deleted.
             RetentionClass.class,

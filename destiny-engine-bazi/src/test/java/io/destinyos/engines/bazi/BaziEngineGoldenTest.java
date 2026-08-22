@@ -147,7 +147,7 @@ class BaziEngineGoldenTest {
         // time the engine will reconstruct for every date in this suite.
         Instant instant = vietnamLocal.toInstant(ZoneOffset.ofHours(7));
         var result = engine.calculate(
-                new BaziInput(instant, VietnameseRegion.UNKNOWN, null, BirthTimePrecision.EXACT),
+                new BaziInput(instant, VietnameseRegion.UNKNOWN, null, BirthTimePrecision.EXACT, null),
                 context());
 
         assertThat(result.status())

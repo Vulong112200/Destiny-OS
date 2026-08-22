@@ -146,6 +146,17 @@ export interface BaziRequestInput {
   region: string | null;
   /** Degrees east; enables the mean-solar-time correction (R10). */
   longitude: number | null;
+  /**
+   * "MALE" | "FEMALE", or null if not supplied.
+   *
+   * Only the Đại Vận direction depends on it (R2). Null costs the luck cycles
+   * and nothing else — the Tứ Trụ comes back in full, with a stated reason for
+   * the missing section. Unlike Phong Thủy, where gender gates the whole
+   * result, so never copy the default from there: there is no defensible
+   * default here, and a guessed direction runs the entire sequence backwards
+   * while looking correct.
+   */
+  gender: string | null;
 }
 
 export type CompassDirectionName =

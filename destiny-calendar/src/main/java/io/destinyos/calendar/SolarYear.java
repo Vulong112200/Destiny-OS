@@ -28,6 +28,21 @@ public final class SolarYear {
     /** Each solar-term month spans two of the 24 terms, so 30 degrees. */
     private static final double DEGREES_PER_SOLAR_MONTH = 30.0;
 
+    /**
+     * Days to search either side of an instant for its month boundary. One
+     * solar month is about 30.4 days, so 32 brackets it with margin while
+     * staying far short of the ±180° at which the signed gap wraps.
+     */
+    private static final double SEARCH_WINDOW_DAYS = 32.0;
+
+    /**
+     * Bisection steps. 32 days halved 60 times is far below any precision the
+     * underlying solar series claims (R19), so this converges to the limit of
+     * {@code double} rather than to a chosen tolerance — and a fixed step
+     * count keeps the result reproducible (Master Spec §25).
+     */
+    private static final int BISECTION_STEPS = 60;
+
     private SolarYear() {
     }
 
@@ -43,6 +58,86 @@ public final class SolarYear {
         double longitude = SolarTerm.solarLongitudeDegreesAtJulianDate(julianDateUt);
         double fromLapXuan = ((longitude - LAP_XUAN_DEGREES) % 360.0 + 360.0) % 360.0;
         return (int) Math.floor(fromLapXuan / DEGREES_PER_SOLAR_MONTH) + 1;
+    }
+
+    /**
+     * Julian date of the Tiết that <em>opens</em> the solar month containing
+     * this instant — i.e. the moment the current month pillar began.
+     *
+     * <p><strong>Why this is the twelve "Tiết" and not all twenty-four terms.</strong>
+     * The boundaries returned here are exactly {@code 315° + 30k}: Lập Xuân,
+     * Kinh Trập, Thanh Minh, Lập Hạ, Mang Chủng, Tiểu Thử, Lập Thu, Bạch Lộ,
+     * Hàn Lộ, Lập Đông, Đại Tuyết, Tiểu Hàn. Those are the twelve sectional
+     * terms (節); the twelve intervening principal terms (中氣, flagged on
+     * {@link SolarTerm}) fall mid-month and never move a month pillar. This is
+     * not a convention chosen here — it follows from {@link #solarMonthIndex}
+     * stepping every 30°, and Bát Tự sources state the same restriction
+     * explicitly ("推算大運要以節來推算，不能用氣來推算").
+     *
+     * <p><strong>Precision.</strong> Root-found from {@link SolarPosition},
+     * so this inherits that series' limit exactly — research item R19 measures
+     * it at roughly 7 to 16 minutes against published tables. Callers whose
+     * answer flips on which side of the boundary an instant falls must guard
+     * that window rather than trust this to the minute.
+     *
+     * @param julianDateUt 0h-UT-referenced Julian date, from
+     *                     {@link JulianDay#fromLocalDateTime}
+     */
+    public static double solarMonthStartJulianDate(double julianDateUt) {
+        return boundaryInstant(currentBoundaryDegrees(julianDateUt),
+                julianDateUt - SEARCH_WINDOW_DAYS, julianDateUt);
+    }
+
+    /**
+     * Julian date of the Tiết that opens the <em>next</em> solar month — the
+     * moment the current month pillar ends.
+     *
+     * <p>See {@link #solarMonthStartJulianDate} for which twelve instants
+     * these are and for the precision caveat.
+     */
+    public static double nextSolarMonthStartJulianDate(double julianDateUt) {
+        double next = (currentBoundaryDegrees(julianDateUt) + DEGREES_PER_SOLAR_MONTH) % 360.0;
+        return boundaryInstant(next, julianDateUt, julianDateUt + SEARCH_WINDOW_DAYS);
+    }
+
+    /**
+     * Solar longitude, in degrees, of the boundary that opened the solar month
+     * containing this instant.
+     */
+    private static double currentBoundaryDegrees(double julianDateUt) {
+        double longitude = SolarTerm.solarLongitudeDegreesAtJulianDate(julianDateUt);
+        double fromLapXuan = ((longitude - LAP_XUAN_DEGREES) % 360.0 + 360.0) % 360.0;
+        double stepsPast = Math.floor(fromLapXuan / DEGREES_PER_SOLAR_MONTH);
+        return (LAP_XUAN_DEGREES + stepsPast * DEGREES_PER_SOLAR_MONTH) % 360.0;
+    }
+
+    /**
+     * Bisects for the instant the sun's longitude reaches {@code targetDegrees}.
+     *
+     * <p>Bisection rather than a closed form because the longitude series is
+     * not analytically invertible; it is also how the deviation in R19 was
+     * measured, so the two agree by construction. {@code signedGapDegrees} is
+     * monotonically increasing across a window this short (the sun never
+     * retrogrades, and 32 days spans only about 31.5°, far from the ±180° at
+     * which the normalisation wraps), so the bracket is guaranteed valid.
+     */
+    private static double boundaryInstant(double targetDegrees, double low, double high) {
+        for (int i = 0; i < BISECTION_STEPS; i++) {
+            double mid = (low + high) / 2.0;
+            if (signedGapDegrees(targetDegrees, mid) < 0) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+        return (low + high) / 2.0;
+    }
+
+    /** How far past {@code targetDegrees} the sun is, normalised to (-180, 180]. */
+    private static double signedGapDegrees(double targetDegrees, double julianDateUt) {
+        double longitude = SolarTerm.solarLongitudeDegreesAtJulianDate(julianDateUt);
+        double gap = ((longitude - targetDegrees) % 360.0 + 360.0) % 360.0;
+        return gap > 180.0 ? gap - 360.0 : gap;
     }
 
     /**

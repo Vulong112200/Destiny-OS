@@ -46,6 +46,23 @@ public final class CanChi {
     }
 
     /**
+     * The month pillar {@code steps} positions away from {@code (lunarYear,
+     * lunarMonth)} through the sexagenary cycle — forward for positive,
+     * backward for negative.
+     *
+     * <p>Exists because Bát Tự's Đại Vận (R2) is exactly this: a walk along
+     * the month-pillar sequence starting at the birth month, in whichever
+     * direction the year stem's polarity and gender select. Expressed here
+     * rather than by passing an out-of-range month to {@link #monthPillar} —
+     * that happens to work, since the formula is pure arithmetic, but relying
+     * on it would depend on an undocumented property of a method whose
+     * contract says 1-12.
+     */
+    public static CanChiPillar monthPillarOffset(int lunarYear, int lunarMonth, int steps) {
+        return pillarOf((long) lunarYear * 12 + lunarMonth + 14 + steps);
+    }
+
+    /**
      * @param noonReferencedJulianDay the calendar date's Julian day number
      *                                in the noon-referenced convention
      *                                {@link JulianDay#fromDate} and

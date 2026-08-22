@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.destinyos.calendar.VietnameseRegion;
 import io.destinyos.core.context.BirthTimePrecision;
 import io.destinyos.core.context.CalculationContext;
+import io.destinyos.core.context.Gender;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.result.EngineResult;
 import io.destinyos.core.result.EngineStatus;

@@ -121,7 +121,12 @@ class MethodologyRegistryTest {
             assertStatus("TAROT_RWS", MethodologyStatus.PRODUCTION_READY, "R11");
             // Phase 8 is two entries with genuinely different statuses.
             assertStatus("BAZI_TUBINH_CHART", MethodologyStatus.CONTENT_REQUIRED, "R18", "R19");
-            assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED, "R1", "R2", "R3");
+            // R2 (Đại Vận) left this entry on 2026-08-22 when its direction
+            // rule and day-to-year conversion were verified against published
+            // worked examples; the sequence moved to BAZI_TUBINH_CHART. R1 and
+            // R3 are untouched by that — they are what the interpretation
+            // still needs.
+            assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED, "R1", "R3");
             assertStatus("ZIWEI", MethodologyStatus.RESEARCH_REQUIRED, "R4");
             assertStatus("WESTERN_ASTROLOGY", MethodologyStatus.DECISION_REQUIRED, "R5", "R6");
             // Phase 10: four of R7's five items are closed, and the fifth (the

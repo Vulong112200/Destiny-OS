@@ -182,7 +182,7 @@ class ScenarioApiIntegrationTest {
         // engine, evidence mapping, and the database round-trip - agrees with
         // the published table, not just the engine in isolation.
         var request = new ScenarioRunRequest(null, null,
-                new BaziRequest(LocalDate.of(1984, 2, 5), LocalTime.of(12, 0), "UNKNOWN", null),
+                new BaziRequest(LocalDate.of(1984, 2, 5), LocalTime.of(12, 0), "UNKNOWN", null, null),
                 null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
@@ -215,9 +215,12 @@ class ScenarioApiIntegrationTest {
 
         // The three blocked sections travel to the client as evidence too, so a
         // UI cannot render a chart that silently lacks a Dụng Thần.
+        // Đại Vận left this list on 2026-08-22 when R2 closed - no gender was
+        // supplied in this request, so the chart still has no luck cycles, but
+        // for a different reason (missing input, not unresolved research).
         assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
-                .contains("BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_DAI_VAN",
-                        "BAZI_BLOCKED_NHAT_CHU_CUONG_DO");
+                .contains("BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_NHAT_CHU_CUONG_DO")
+                .doesNotContain("BAZI_BLOCKED_DAI_VAN");
 
         // And Bát Tự casts no vote: every signal in this run came from
         // somewhere else (here, nowhere - no other engine was supplied).
@@ -231,7 +234,7 @@ class ScenarioApiIntegrationTest {
         // omitted the time, so there is no Day Master and therefore no Thập
         // Thần anywhere - not a Thập Thần computed against something else.
         var request = new ScenarioRunRequest(null, null,
-                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null), null);
+                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null, null), null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -247,6 +250,75 @@ class ScenarioApiIntegrationTest {
                 .doesNotContainKey("stemTenGod");
         assertThat(pillar(body.evidence(), "BAZI_BOUNDARY"))
                 .containsEntry("hasHourPrecision", false);
+    }
+
+    @Test
+    @DisplayName("Bát Tự with a gender returns the Đại Vận sequence through real HTTP (R2)")
+    void baziLuckCyclesReachTheClient() {
+        // The published backward vector from LuckCycleTest, driven through the
+        // whole stack this time: btime.com gives 1990-01-01 11:10 male as
+        // 己巳 丙子 丙寅, counting back 25 days to Đại Tuyết for a start age of
+        // 8 years 4 months. The source states Beijing time; Vietnam is UTC+7,
+        // so the same wall-clock reading here is one hour earlier in absolute
+        // terms - which moves the distance by an hour, not by a day, and the
+        // start age by five days out of eight years.
+        var request = new ScenarioRunRequest(null, null,
+                new BaziRequest(LocalDate.of(1990, 1, 1), LocalTime.of(10, 10), "UNKNOWN",
+                        null, "MALE"),
+                null);
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        // The published pillars, as a check that this is the same chart the
+        // source was describing.
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_YEAR"))
+                .containsEntry("stem", "KY").containsEntry("branch", "SNAKE");
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_MONTH"))
+                .containsEntry("stem", "BINH").containsEntry("branch", "RAT");
+
+        var luck = pillar(body.evidence(), "BAZI_LUCK_CYCLES");
+        assertThat(luck)
+                .as("Kỷ is a yin stem and the subject is male, so the cycle runs backward")
+                .containsEntry("direction", "NGHICH")
+                .containsEntry("boundaryTerm", "DAI_TUYET")
+                .containsEntry("startAgeYears", 8);
+
+        @SuppressWarnings("unchecked")
+        var periods = (java.util.List<java.util.Map<String, Object>>) luck.get("pillars");
+        assertThat(periods).hasSize(8);
+        assertThat(periods.get(0)).containsEntry("ordinal", 1);
+
+        // Still no vote. A luck cycle is chart data; calling any period
+        // fortunate needs R1 and R3, which are still open.
+        assertThat(body.signals()).noneMatch(signal -> signal.engine().equals("BAZI"));
+    }
+
+    @Test
+    @DisplayName("Bát Tự without a gender keeps the whole chart and omits only Đại Vận")
+    void baziWithoutGenderOmitsOnlyLuckCycles() {
+        var request = new ScenarioRunRequest(null, null,
+                new BaziRequest(LocalDate.of(1990, 1, 1), LocalTime.of(10, 10), "UNKNOWN",
+                        null, null),
+                null);
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        // The distinction that matters: the chart is complete, and exactly one
+        // section is missing. Declining the whole calculation over a field only
+        // one section needs would withhold a chart the engine built correctly.
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .contains("BAZI_PILLAR_YEAR", "BAZI_PILLAR_MONTH", "BAZI_PILLAR_DAY",
+                        "BAZI_PILLAR_HOUR")
+                .doesNotContain("BAZI_LUCK_CYCLES");
     }
 
     @Test
@@ -286,7 +358,11 @@ class ScenarioApiIntegrationTest {
         assertThat(response.getBody()).anySatisfy(m -> {
             assertThat(m.methodologyId()).isEqualTo("BAZI");
             assertThat(m.calculable()).isFalse();
-            assertThat(m.researchIds()).containsExactlyInAnyOrder("R1", "R2", "R3");
+            // R2 moved to the chart half on 2026-08-22 when Đại Vận was
+            // verified and implemented. What remains here is what genuinely
+            // still needs a school chosen: the Dụng Thần and Day Master
+            // strength.
+            assertThat(m.researchIds()).containsExactlyInAnyOrder("R1", "R3");
         });
     }
 

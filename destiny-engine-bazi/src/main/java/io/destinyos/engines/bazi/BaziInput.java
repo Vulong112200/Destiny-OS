@@ -2,16 +2,12 @@ package io.destinyos.engines.bazi;
 
 import io.destinyos.calendar.VietnameseRegion;
 import io.destinyos.core.context.BirthTimePrecision;
+import io.destinyos.core.context.Gender;
 import java.time.Instant;
 import java.util.Objects;
 
 /**
  * Everything the Bát Tự chart needs, and nothing it does not.
- *
- * <p>Gender is deliberately absent. It is required for Đại Vận direction
- * (research item R2) and for nothing else in a chart, and R2 is open — so a
- * gender field here would sit unused while implying the engine does something
- * with it.
  *
  * @param utcInstant              birth instant in UTC
  * @param region                  jurisdiction for historical timezone
@@ -28,12 +24,22 @@ import java.util.Objects;
  *                                day and hour pillars are omitted, and with
  *                                them the Day Master and therefore every Thập
  *                                Thần
+ * @param gender                  optional, and optional for a specific reason:
+ *                                it decides the Đại Vận direction (R2) and
+ *                                nothing else. The Tứ Trụ itself does not use
+ *                                it, so a missing gender costs the luck cycles
+ *                                and leaves the chart intact — unlike Phong
+ *                                Thủy, where the Kua number <em>is</em> the
+ *                                output and the engine must decline. Never
+ *                                defaulted: a guessed direction runs the whole
+ *                                sequence the wrong way while looking correct
  */
 public record BaziInput(
         Instant utcInstant,
         VietnameseRegion region,
         Double longitudeDegreesIfKnown,
-        BirthTimePrecision precision
+        BirthTimePrecision precision,
+        Gender gender
 ) {
     public BaziInput {
         Objects.requireNonNull(utcInstant, "utcInstant");

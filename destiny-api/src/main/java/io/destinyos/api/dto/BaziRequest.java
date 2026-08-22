@@ -29,11 +29,17 @@ import java.time.LocalTime;
  * @param longitude  birth longitude in degrees east, or {@code null}. Supplying
  *                   it enables the R10 mean-solar-time correction; omitting it
  *                   uses civil clock time and records that it did
+ * @param gender     {@code MALE} or {@code FEMALE} (case-insensitive), or
+ *                   {@code null}. Used only for the Đại Vận direction (R2):
+ *                   omit it and the Tứ Trụ still comes back in full, without
+ *                   the luck cycles and saying why. Unlike Phong Thủy, where
+ *                   gender gates the whole result, here it gates one section
  */
 public record BaziRequest(
         LocalDate birthDate,
         LocalTime birthTime,
         String region,
-        Double longitude
+        Double longitude,
+        String gender
 ) {
 }

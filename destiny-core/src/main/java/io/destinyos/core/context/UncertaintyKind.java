@@ -31,5 +31,19 @@ public enum UncertaintyKind {
      * sensitive to which side of an hour-branch boundary the birth time
      * falls on.
      */
-    LONGITUDE_UNKNOWN
+    LONGITUDE_UNKNOWN,
+    /**
+     * An input a specific section of the result depends on was not supplied,
+     * so that section is absent while the rest stands.
+     *
+     * <p>Distinct from {@link #METHODOLOGY_UNRESOLVED}: there the method is in
+     * doubt, here the method is settled and the caller simply did not provide
+     * what it consumes. Distinct from an {@code INVALID_INPUT} result too,
+     * which rejects the whole calculation — this one keeps everything that did
+     * not need the missing field. Bát Tự's Đại Vận without a gender is the
+     * first case: the direction rule is closed, but running it on a guessed
+     * gender would produce a full sequence that is wrong from its first period
+     * and indistinguishable from a correct one.
+     */
+    REQUIRED_INPUT_MISSING
 }

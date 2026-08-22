@@ -50,7 +50,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-persistence` | JPA + Flyway migrations + methodology registry |
 | `destiny-engine-tarot` | Tarot — bộ bài RWS, rút bài có seed, tái lập được |
 | `destiny-engine-numerology` | Thần số học Pythagoras — 5 chỉ số, chuẩn hóa tên tiếng Việt |
-| `destiny-engine-bazi` | Bát Tự — **lập lá số Tứ Trụ** (Phase 8a): Tứ Trụ, Ngũ Hành, Tàng Can, Thập Thần, đếm Ngũ Hành. Không phát sinh tín hiệu nào (phần luận giải còn chờ R1/R2/R3) |
+| `destiny-engine-bazi` | Bát Tự — **lập lá số Tứ Trụ và Đại Vận**: Tứ Trụ, Ngũ Hành, Tàng Can, Thập Thần, đếm Ngũ Hành, chuỗi vận 10 năm. Không phát sinh tín hiệu nào (phần luận giải còn chờ R1/R3) |
 | `destiny-engine-fengshui` | Phong Thủy **Bát Trạch** (Phase 10): cung phi + tám hướng Bát Biến Du Niên. Bảng hướng **dẫn xuất từ quy tắc biến hào**, không chép. Phát sinh tín hiệu thật khi có hướng để đối chiếu |
 | `destiny-fusion` | Tổng hợp kết luận theo luật (không phải trung bình có trọng số) |
 | `destiny-scenario` | Điều phối kịch bản — chọn engine áp dụng, không phụ thuộc engine cụ thể |
@@ -87,9 +87,40 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | — | Frontend (`destiny-web`) | **Xong** — Tổng quan, Trung tâm quyết định (có ô nhập Bát Tự), Bảng Tứ Trụ, Lịch sử; 10 mục nav còn lại ghi "Sắp ra mắt" |
 | 12 | AI Narrative (`destiny-ai`) | **Xong** — pruning, prompt, provider OpenRouter (tùy chọn, tắt mặc định), fallback phi-AI luôn render được; lưu trữ V7 |
 | **8a** | **Bát Tự — lập lá số Tứ Trụ** | **Xong** — Tứ Trụ theo Tử Bình (Lập Xuân + Tiết Khí), Tàng Can, Thập Thần, đếm Ngũ Hành; golden test đối chiếu bảng đã công bố |
-| 8b | Bát Tự — luận giải (Dụng Thần, Đại Vận, cường độ Nhật Chủ) | Chờ nghiên cứu (R1, R2, R3) |
+| **8b-i** | **Bát Tự — Đại Vận (chuỗi vận 10 năm)** | **Xong** — R2 đóng bằng xác minh, không phải chọn trường phái; golden vector cả hai chiều |
+| 8b-ii | Bát Tự — luận giải (Dụng Thần, cường độ Nhật Chủ) | Chờ nghiên cứu (R1, R3) |
 | **10** | **Phong Thủy — Bát Trạch (cung phi & hướng)** | **Xong** — 4/5 mục R7 đã đóng; ranh giới năm được *biểu diễn* (tính cả hai quy ước) chứ không chọn |
 | 9, 11 | Tử Vi, Chiêm tinh | Chờ nghiên cứu |
+
+**Cập nhật Đại Vận (2026-08-22):** R2 là mục nghiên cứu **đầu tiên đóng lại bằng
+xác minh thuần túy** — không có trường phái nào được chọn, vì không nguồn nào bất
+đồng về quy tắc chiều hay tỉ lệ quy đổi. Ba điều đáng nói:
+
+1. **Câu hỏi "đếm tới mốc nào" không cần nguồn để trả lời.** Mười hai mốc mà
+   `SolarYear` đang dùng làm ranh giới tháng *chính là* 12 Tiết — nên mọi đáp án
+   khác sẽ mâu thuẫn với Trụ Tháng đang được golden-test. Nguồn chỉ là xác nhận.
+2. **"Mâu thuẫn làm tròn" đã không đứng vững.** Sáu ví dụ có đáp án đã công bố
+   đều dùng phép quy đổi chính xác; **không ví dụ nào** dùng một quy tắc làm
+   tròn. Các mô tả làm tròn chỉ có trong văn xuôi, nên được coi là *cách nói
+   tuổi thành số nguyên* và cố ý không cài vào engine.
+3. **Đại Vận là lá số, không phải lời luận.** Engine vẫn **không phát sinh tín
+   hiệu nào** — một vận chỉ tốt hay xấu khi đã có Dụng Thần (R1) và cường độ
+   Nhật Chủ (R3). `LuckPillar` không có trường nào chứa được phán định, và có
+   test khóa danh sách trường lại.
+
+Golden vector đầu-cuối cả hai chiều, từ nguồn ngoài dự án: 1990-01-01 (nghịch,
+25 ngày → 8 tuổi 4 tháng) và âm 17/1/1994 (thuận, 8 ngày → 2 năm 8 tháng). Một ví
+dụ **không** tái lập được đã được ghi lại thay vì lặng lẽ bỏ.
+
+Giới tính là **tùy chọn** ở Bát Tự (khác Phong Thủy, nơi nó bắt buộc): thiếu nó
+thì mất Đại Vận và lá số vẫn nguyên vẹn — và không bao giờ có giá trị mặc định,
+vì một chiều đoán sẽ chạy ngược toàn bộ chuỗi mà trông vẫn đúng.
+
+**Quy trình hai model:** phần thu thập do một model nhỏ chạy, phần xác minh do
+model lớn, dừng lại giữa hai bước theo yêu cầu của chủ dự án. Vòng xác minh **bắt
+được ba lỗi** trong tài liệu thu thập — trong đó một kết luận *ngược hẳn* về một ô
+của bảng Tứ Hóa — đúng loại lỗi sống sót qua tiêu chí "nhiều nguồn cùng nói".
+Chi tiết ở `docs/research_drafts/VERIFICATION_OPUS.md`.
 
 **Cập nhật Retention (2026-08-22):** Trước đây **mọi calculation được lưu vĩnh
 viễn**, kể cả một lượt xem "hôm nay nên làm gì" dùng một lần — trái trực tiếp
@@ -203,7 +234,7 @@ bảng nhãn sang TypeScript) đều tệ hơn.
 
 **Cập nhật Calendar Engine (2026-08-19):** R10 (ranh giới giờ Tý 23:00 + chính sách giờ mặt trời) đã được chủ dự án chốt. R9, R14a, R15, R16 (tiết khí, múi giờ lịch sử, điểm sóc, tháng nhuận) đã **`RESOLVED`** — cài đặt độc lập bằng Java, trích dẫn Jean Meeus *Astronomical Algorithms* (1998), đối chiếu byte-chính-xác với 2 bản port cộng đồng lâu năm và golden-test trực tiếp với bảng ví dụ gốc của Hồ Ngọc Đức. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 (R14b) vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này; một lần tính rơi vào vùng chưa xác định sẽ trả về "chưa xác định được", không suy đoán. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` và `docs/DECISION_LOG.md` (không push lên git).
 
-12 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 4 `PRODUCTION_READY` (Tarot, Numerology Pythagoras, Lịch Việt Nam truyền thống, Phong Thủy Bát Trạch), 1 `CONTENT_REQUIRED` tính được (`BAZI_TUBINH_CHART` — lập lá số Tứ Trụ), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`. Phase 8 chiếm **hai** entry chứ không phải một: gộp lại thì buộc phải nói sai theo hướng này (che một lá số đang chạy được sau `RESEARCH_REQUIRED`) hoặc hướng kia (hàm ý đã có Dụng Thần).
+12 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 4 `PRODUCTION_READY` (Tarot, Numerology Pythagoras, Lịch Việt Nam truyền thống, Phong Thủy Bát Trạch), 1 `CONTENT_REQUIRED` tính được (`BAZI_TUBINH_CHART` — lập lá số Tứ Trụ **và Đại Vận**), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`. Phase 8 chiếm **hai** entry chứ không phải một: gộp lại thì buộc phải nói sai theo hướng này (che một lá số đang chạy được sau `RESEARCH_REQUIRED`) hoặc hướng kia (hàm ý đã có Dụng Thần).
 
 Các engine chưa triển khai **vẫn được đăng ký và hiển thị**, kèm lý do — thay vì bị ẩn đi. Người dùng nhìn thấy `Chưa triển khai` hoặc `Cần xác minh thuật toán`, không phải một câu trả lời tự tin nhưng sai.
 

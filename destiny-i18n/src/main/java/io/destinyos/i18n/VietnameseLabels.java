@@ -7,6 +7,7 @@ import io.destinyos.calendar.FiveElement;
 import io.destinyos.calendar.HeavenlyStem;
 import io.destinyos.calendar.SolarTerm;
 import io.destinyos.calendar.YinYang;
+import io.destinyos.core.context.Gender;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.evidence.DataConfidence;
 import io.destinyos.core.result.EngineStatus;
@@ -17,11 +18,11 @@ import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engines.bazi.BaziYearBoundary;
+import io.destinyos.engines.bazi.LuckCycleDirection;
 import io.destinyos.engines.bazi.PillarPosition;
 import io.destinyos.engines.bazi.TenGod;
 import io.destinyos.engines.fengshui.BatTrachRelation;
 import io.destinyos.engines.fengshui.CompassDirection;
-import io.destinyos.engines.fengshui.Gender;
 import io.destinyos.engines.fengshui.KuaYearBoundary;
 import io.destinyos.engines.fengshui.Trigram;
 import io.destinyos.engines.fengshui.TrigramGroup;
@@ -141,6 +142,9 @@ public final class VietnameseLabels {
         map.put(UncertaintyKind.LONGITUDE_UNKNOWN,
                 "Chưa có kinh độ nơi sinh nên hệ thống dùng giờ đồng hồ dân sự "
                         + "thay vì giờ mặt trời thực. Kết quả có thể thay đổi nếu bổ sung kinh độ.");
+        map.put(UncertaintyKind.REQUIRED_INPUT_MISSING,
+                "Thiếu một thông tin đầu vào nên phần kết quả phụ thuộc nó bị bỏ trống. "
+                        + "Các phần còn lại không bị ảnh hưởng.");
     });
 
     /**
@@ -433,12 +437,24 @@ public final class VietnameseLabels {
     });
 
     /**
-     * Needed only because the Kua formulas differ by gender. Two values,
-     * because that is the extent of what the sourced formulas cover.
+     * Needed by the Kua formulas (R7) and by the Đại Vận direction (R2). Two
+     * values, because that is the extent of what the sourced formulas cover.
      */
     private static final Map<Gender, String> GENDER = ordered(map -> {
         map.put(Gender.MALE, "Nam");
         map.put(Gender.FEMALE, "Nữ");
+    });
+
+    /**
+     * Đại Vận direction (R2).
+     *
+     * <p>The labels name the direction of travel, not a quality: a backward
+     * cycle is not a worse one. Whether any period is favourable needs R1 and
+     * R3, and nothing in this project claims to know that yet.
+     */
+    private static final Map<LuckCycleDirection, String> LUCK_CYCLE_DIRECTION = ordered(map -> {
+        map.put(LuckCycleDirection.THUAN, "Vận thuận (đi xuôi)");
+        map.put(LuckCycleDirection.NGHICH, "Vận nghịch (đi ngược)");
     });
 
     public static String of(EngineStatus value) {
@@ -525,6 +541,10 @@ public final class VietnameseLabels {
         return require(BAZI_YEAR_BOUNDARY, value);
     }
 
+    public static String of(LuckCycleDirection value) {
+        return require(LUCK_CYCLE_DIRECTION, value);
+    }
+
     public static String of(RetentionClass value) {
         return require(RETENTION_CLASS, value);
     }
@@ -578,7 +598,8 @@ public final class VietnameseLabels {
                 DIMENSION, DATA_CONFIDENCE, UNCERTAINTY, DIMENSION_STATE, FUSION_OUTCOME,
                 CONFLICT_TYPE, METHODOLOGY_STATUS, NARRATIVE_SOURCE, FALLBACK_REASON,
                 HEAVENLY_STEM, EARTHLY_BRANCH, FIVE_ELEMENT, YIN_YANG, SOLAR_TERM,
-                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, RETENTION_CLASS,
+                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, LUCK_CYCLE_DIRECTION,
+                RETENTION_CLASS,
                 TRIGRAM, COMPASS_DIRECTION, TRIGRAM_GROUP, BAT_TRACH_RELATION,
                 KUA_YEAR_BOUNDARY, GENDER);
     }

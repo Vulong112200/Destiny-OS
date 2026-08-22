@@ -8,6 +8,124 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Đại Vận (R2 đóng): chuỗi vận 10 năm trong `destiny-engine-bazi`
+
+R2 là mục nghiên cứu **đầu tiên đóng lại bằng xác minh thuần túy** — không chọn
+trường phái nào, vì không nguồn nào bất đồng. Đây cũng là lần đầu quy trình
+"model nhỏ thu thập, model lớn xác minh" được chạy theo yêu cầu của chủ dự án, và
+nó lập tức chứng minh giá trị: **ba lỗi trong tài liệu thu thập bị bắt**, trong đó
+một lỗi kết luận *ngược hẳn* (xem `DECISION_LOG.md`).
+
+**Bốn mục con của R2 và cách từng mục đóng:**
+
+- **Chiều thuận/nghịch** — nhất trí tuyệt đối giữa mọi nguồn. Khóa theo can năm
+  **Bát Tự** chứ không phải năm dương lịch: dưới quy ước Lập Xuân (R18), một ca
+  sinh tháng Giêng mang can của năm trước, và lấy sai sẽ lật chiều đúng ở những
+  ca R18 vốn đã đánh dấu
+- **Đếm tới mốc nào** — **không cần chọn**. Mười hai mốc mà `SolarYear` đang dùng
+  làm ranh giới tháng (315° + 30k) *chính là* 12 Tiết, rời hẳn 12 Trung Khí mà
+  `SolarTerm` đã chú thích sẵn. Mọi lựa chọn khác sẽ mâu thuẫn với Trụ Tháng đang
+  được golden-test. Nguồn nói cùng điều đó, nhưng ở đây nguồn chỉ là xác nhận
+- **Tỉ lệ quy đổi** — 3 ngày = 1 năm là một **tỉ lệ liên tục chính xác**, không
+  phải một quy ước cạnh tranh: 1 ngày = 4 tháng, 1 canh giờ = 10 ngày, 1 giờ = 5
+  ngày, 12 phút = 1 ngày đều là *cùng một hằng số* phát biểu lại (720 giây khoảng
+  cách cho một ngày tuổi). `LuckCycleResolver` tính bằng **số nguyên giây**, nên
+  không có số thực nào lọt vào domain (ADR D6)
+- **Làm tròn — mâu thuẫn được báo cáo đã không đứng vững.** Sáu ví dụ có đáp án
+  đã công bố **đều** dùng phép quy đổi chính xác; **không ví dụ nào** dùng một
+  quy tắc làm tròn. Các mô tả làm tròn chỉ xuất hiện trong *văn xuôi*. Vì vậy
+  chúng được coi là cách **nói tuổi khởi vận thành số nguyên** — tức trình bày —
+  và cố ý không cài vào engine, nơi nó sẽ không thể lấy lại được
+
+**Golden vector đầu-cuối, cả hai chiều, từ nguồn ngoài dự án:**
+
+- **Nghịch** — `btime`, 1990-01-01 11:10, nam, 己巳 丙子 丙寅: dự án tính ra đúng
+  ba trụ đó, khoảng cách **24,9959 ngày** (nguồn: 25) và tuổi khởi vận **8 năm 4
+  tháng** (đúng nguồn). Ca này còn kích hoạt quy tắc năm Lập Xuân
+- **Thuận** — `k366`, âm 17/1/1994 giờ Dần, nam Giáp Tuất: **7,9788 ngày**
+  (nguồn: 8) → **2 năm 7,92 tháng** (nguồn: 2 năm 8 tháng)
+
+**Một ví dụ KHÔNG tái lập được, ghi lại chứ không lặng lẽ bỏ:** ca 1934 mà vòng
+thu thập lấy đầu tiên — ca sinh rơi *sau* Đại Tuyết khoảng một giờ, thuận ra 29,4
+ngày, nghịch ra 0,045 ngày. Số học nội tại của nó vẫn dùng làm test quy đổi;
+phần thiên văn thì không.
+
+**Không có cơ chế bảo vệ mới nào được thêm.** Xa ranh giới Tiết, sai số R19 chỉ
+đáng ~1,3 ngày tuổi khởi vận. Sát ranh giới thì thảm khốc *theo đúng cơ chế* của
+Trụ Tháng — lật phía là khoảng cách nhảy từ ~0 sang ~30 ngày. Đó là cùng một hiện
+tượng mà cửa sổ 40 phút `SOLAR_TERM_BOUNDARY` đã canh, nên Đại Vận **dùng lại** cờ
+đó thay vì định nghĩa ngưỡng thứ hai.
+
+### Changed
+
+- **`Gender` chuyển từ `destiny-engine-fengshui` sang `destiny-core`** — Bát Tự
+  cần đúng khái niệm đó, mà một engine không được phụ thuộc engine khác
+  (`enginesStayIndependent`). Cùng nước đi `SolarYear` đã làm, cùng lý do
+- **Giới tính là *tùy chọn* với Bát Tự và *bắt buộc* với Phong Thủy** — có chủ
+  đích. Ở Phong Thủy, cung phi **là** kết quả; ở Bát Tự nó chỉ chi phối một mục,
+  nên thiếu giới tính thì mất Đại Vận và **giữ nguyên** lá số. Không bao giờ có
+  giá trị mặc định: một chiều đoán sẽ chạy ngược toàn bộ chuỗi mà trông vẫn đúng
+- `UncertaintyKind.REQUIRED_INPUT_MISSING` (mới) — khác `METHODOLOGY_UNRESOLVED`
+  (ở đó phương pháp mới là thứ đáng ngờ) và khác `INVALID_INPUT` (ở đó cả phép
+  tính bị từ chối). Ở đây phương pháp đã chốt, chỉ là người gọi chưa cung cấp thứ
+  nó cần, và mọi phần không cần trường đó vẫn được giữ
+- `CanChi.monthPillarOffset` (mới) — Đại Vận là một bước đi dọc chuỗi trụ tháng.
+  Viết thành method thay vì truyền tháng ngoài khoảng 1-12 vào `monthPillar`:
+  cách đó *tình cờ* chạy đúng, nhưng dựa vào một tính chất không được ghi trong
+  hợp đồng của method
+- `SolarYear.solarMonthStartJulianDate` / `nextSolarMonthStartJulianDate` (mới) —
+  root-finding bằng bisection trên chính chuỗi Meeus của dự án, nên thừa hưởng
+  đúng giới hạn R19 và tái lập được (số bước cố định, không phải ngưỡng hội tụ)
+- `MethodologyRegistrySeeder`: `BAZI_TUBINH_CHART` lên `1.1` và đổi tên thành
+  "Lập lá số Tứ Trụ và Đại Vận"; `BAZI` lên `1.2`, bỏ R2, đổi tên thành "Luận
+  giải (Dụng Thần, cường độ Nhật Chủ)"
+- `BaziRequest` thêm trường thứ năm `gender` (đổi arity của record)
+
+### Added — UI
+
+- **`BaziChartCard`** thêm bảng Đại Vận dựng *từ evidence*: chiều vận, tuổi khởi
+  vận dạng năm–tháng–ngày, tiết được đếm tới, khoảng cách bằng ngày (con số duy
+  nhất người đọc kiểm tay được với sách), và 8 vận kèm tuổi + ngày bắt đầu.
+  **Cố ý không có cột đánh giá** — nêu rõ trên giao diện rằng một vận tốt hay xấu
+  cần R1/R3
+- Ô chọn giới tính trong Trung tâm quyết định, **không có giá trị chọn sẵn**, kèm
+  giải thích rằng để trống thì lá số vẫn đầy đủ, chỉ không có Đại Vận
+
+### Nghiên cứu — R1, R3 xác nhận đang bị chặn ĐÚNG; R5 thu hẹp
+
+- **R3 giờ có bằng chứng dương tính, không chỉ là "chưa tìm ra"**: Trích Thiên Tủy
+  *minh thị bác bỏ* việc coi vượng/nhược là nhị phân cứng, trong khi mọi thang
+  điểm tìm được đều hiện đại, không dẫn nguồn và mâu thuẫn nhau. Hệ quả then chốt:
+  lối thoát "tính cả hai, báo cả hai" của R7/R18 **không dùng được** ở đây, vì
+  không có đáp án thứ hai nào đủ xác định để tính. R1 phụ thuộc R3 nên không đi
+  trước được
+- **R5 thu hẹp, chưa đóng**: điều khoản Swiss Ephemeris nói thẳng nghĩa vụ kích
+  hoạt "before any public service … is activated", nên câu hỏi pháp lý bỏ ngỏ
+  không cần diễn giải AGPLv3 §13 nữa. Và có một lựa chọn thứ tư mà báo cáo gốc
+  không thấy vì không được đọc codebase: `SolarPosition` đã là một cài đặt Meeus
+  có trích dẫn, đối chiếu chéo và golden-test, còn cùng cuốn sách có cả hành tinh
+  lẫn Mặt Trăng. **Độ chính xác không phải tiêu chí phân biệt** — giới hạn ~0,01°
+  mà R19 đúng khi gọi là không đủ cho Bát Tự thì bằng ~1/100 orb hẹp nhất của
+  chiêm tinh. Chi tiết ở `docs/research_drafts/R5_meeus_path_survey.md`
+
+### Tests
+
+493 test (tăng từ 469):
+
+- **`LuckCycleTest` (22)** — tách đôi có chủ đích, vì hai nửa hỏng vì lý do khác
+  nhau: phần **quy đổi** là số học thuần và được assert **chính xác, không dung
+  sai**, với đúng số ngày chẵn mà các nguồn công bố (25 → 8 năm 4 tháng; 8 → 2
+  năm 8 tháng; 2 → 8 tháng; 7 → 2 năm 4 tháng; 6 ngày 7 canh giờ → 2 năm 2 tháng
+  10 ngày); phần **thiên văn** thừa hưởng giới hạn R19 nên mang dung sai. Gộp lại
+  sẽ áp dung sai lên thứ vốn không có, và che mất nửa nào hỏng. Cộng: cả 20 tổ
+  hợp can × giới tính, và bất biến rằng hai giới **luôn** ngược chiều nhau với
+  cùng một can; ca sinh đúng mốc khởi vận từ 0 chứ không phải 1 (không nguồn nào
+  chứng thực mức tối thiểu 1 tuổi); `LuckPillar` **không có** trường nào chứa
+  được phán định, assert theo tên component
+- **Tích hợp HTTP đầu-cuối (+2)** — vector 1990 chạy qua toàn bộ đường dẫn thật;
+  và ca không có giới tính giữ **nguyên vẹn** lá số, chỉ thiếu đúng một mục
+
+
 ### Added — CI cho frontend (`web-verify`)
 
 Trước đây `destiny-web` **hoàn toàn không được CI kiểm** — README gọi hệ thống

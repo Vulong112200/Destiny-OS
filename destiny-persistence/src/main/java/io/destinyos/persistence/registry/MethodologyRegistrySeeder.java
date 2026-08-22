@@ -180,8 +180,9 @@ public class MethodologyRegistrySeeder {
             // layer is not, and collapsing them into a single status would have
             // to lie in one direction or the other - either hiding a working
             // Tứ Trụ behind RESEARCH_REQUIRED, or implying a Dụng Thần exists.
-            new Entry("BAZI_TUBINH_CHART", "Bát Tự - Lập lá số Tứ Trụ (Tử Bình)", "EASTERN",
-                    "1.0",
+            new Entry("BAZI_TUBINH_CHART",
+                    "Bát Tự - Lập lá số Tứ Trụ và Đại Vận (Tử Bình)", "EASTERN",
+                    "1.1",
                     MethodologyStatus.CONTENT_REQUIRED,
                     "Tử Bình / Tứ Trụ - ranh giới năm tại Lập Xuân, tháng theo Tiết Khí",
                     "Pillar arithmetic from destiny-calendar (Ngu Ho Don month stem, Ngu "
@@ -193,15 +194,28 @@ public class MethodologyRegistrySeeder {
                             + "and k366.com. Tang Can table cross-checked between "
                             + "4thuman.com (VN) and imperialharvest.com (EN); Thap Than "
                             + "derivation rule from phongthuykhaitoan.com (VN) and "
-                            + "oracleeast.com/bazi-web.com (EN). All retrieved 2026-08-22.",
+                            + "oracleeast.com/bazi-web.com (EN). Dai Van (R2, closed "
+                            + "2026-08-22): direction rule unanimous across sources; "
+                            + "distance measured to the adjacent sectional term (Tiet), "
+                            + "which is already this project's golden-tested month "
+                            + "boundary; three-days-to-one-year conversion confirmed by "
+                            + "six published worked examples with no counterexample, and "
+                            + "verified end-to-end in both directions against btime.com "
+                            + "(1990-01-01, backward, 25 days, 8y4m) and k366.com (lunar "
+                            + "17/1/1994, forward, 8 days, 2y8m). All retrieved 2026-08-22.",
                     Set.of("R18", "R19"),
                     "Phase 8a: four pillars, Ngu Hanh and Am Duong of every stem and "
                             + "branch, Tang Can hidden stems, Thap Than relative to the "
                             + "Day Master, and integer element counts. Emits evidence "
                             + "only and NO signals - a Bat Tu signal needs a polarity, "
                             + "and a polarity needs R1/R3, so the engine returns PARTIAL "
-                            + "with Dung Than, Dai Van and Day Master strength reported "
-                            + "as explicitly blocked sections. Two open items are its "
+                            + "with Dung Than and Day Master strength reported "
+                            + "as explicitly blocked sections. Dai Van left that blocked "
+                            + "list when R2 closed: the sequence, its direction and its "
+                            + "start age are chart data, computed whenever a gender is "
+                            + "supplied and omitted with a stated reason when it is not. "
+                            + "It still carries no polarity - whether a period is "
+                            + "favourable needs R1 and R3. Two open items are its "
                             + "own rather than inherited: R18 (Lap Xuan vs Tet year "
                             + "boundary - the engine implements Lap Xuan, declares it, "
                             + "and flags every birth where the two conventions disagree) "
@@ -214,17 +228,27 @@ public class MethodologyRegistrySeeder {
                             + "the set and the principal stem are recorded, the disputed "
                             + "ordering is flagged and never used."),
 
-            new Entry("BAZI", "Bát Tự - Luận giải (Dụng Thần, Đại Vận)", "EASTERN",
-                    "1.1",
+            new Entry("BAZI", "Bát Tự - Luận giải (Dụng Thần, cường độ Nhật Chủ)",
+                    "EASTERN",
+                    "1.2",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
-                    Set.of("R1", "R2", "R3"),
+                    Set.of("R1", "R3"),
                     "The interpretive half of Bát Tự, Phase 8b. Dụng Thần/Hỷ Thần/Kỵ "
-                            + "Thần school selection (R1), Đại Vận start age and "
-                            + "direction (R2), and Day Master strength assessment (R3) "
-                            + "are all unresolved and are the reason BAZI_TUBINH_CHART "
-                            + "emits no signals. The calendar dependency that used to "
-                            + "block this entry is resolved: chart construction now ships "
-                            + "separately as BAZI_TUBINH_CHART."),
+                            + "Thần school selection (R1) and Day Master strength "
+                            + "assessment (R3) are unresolved and are the reason "
+                            + "BAZI_TUBINH_CHART emits no signals. R2 (Đại Vận) left "
+                            + "this entry on 2026-08-22: its direction rule and "
+                            + "day-to-year conversion were verified against published "
+                            + "worked examples, so the sequence moved to the chart half. "
+                            + "That does not narrow R1 or R3 - it separates what can be "
+                            + "constructed from what must be judged. R3 is the harder of "
+                            + "the two: the classical sources do not merely omit a "
+                            + "scoring scheme, Trich Thien Tuy explicitly rejects "
+                            + "treating strength as a hard binary, while every numeric "
+                            + "scheme found on the modern web is uncited and mutually "
+                            + "contradictory. The compute-both-and-report-both escape "
+                            + "used for R7 and R18 does not apply, because there is no "
+                            + "second well-defined answer to compute."),
 
             new Entry("ZIWEI", "Tử Vi Đẩu Số", "EASTERN",
                     "1.0",
