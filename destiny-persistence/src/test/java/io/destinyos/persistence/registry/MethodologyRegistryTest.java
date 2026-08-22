@@ -124,7 +124,10 @@ class MethodologyRegistryTest {
             assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED, "R1", "R2", "R3");
             assertStatus("ZIWEI", MethodologyStatus.RESEARCH_REQUIRED, "R4");
             assertStatus("WESTERN_ASTROLOGY", MethodologyStatus.DECISION_REQUIRED, "R5", "R6");
-            assertStatus("FENGSHUI_KUA", MethodologyStatus.RESEARCH_REQUIRED, "R7");
+            // Phase 10: four of R7's five items are closed, and the fifth (the
+            // year boundary) is represented per calculation rather than guessed -
+            // the same model CALENDAR_VN_TRADITIONAL uses for R14b.
+            assertStatus("FENGSHUI_KUA", MethodologyStatus.PRODUCTION_READY, "R7");
             assertStatus("ICHING", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("MAIHOA", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("QIMEN", MethodologyStatus.OUT_OF_SCOPE, "R13");
@@ -154,7 +157,7 @@ class MethodologyRegistryTest {
             // its meaning corpus was authored. BAZI itself (the interpretive
             // half) stays non-calculable, which is the point of the split.
             Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
-                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART");
+                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART", "FENGSHUI_KUA");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();

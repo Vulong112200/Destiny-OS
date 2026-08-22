@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-engine-fengshui</artifactId>
+  <name>Destiny OS :: Engine :: Phong Thuy (Bat Trach Kua)</name>
+  <description>
+    Bat Trach (Eight Mansions) Kua number and the eight Bat Bien Du Nien
+    directions - research item R7, Phase 10.
+
+    The 8x8 direction table is DERIVED from the cited line-change rule (Bat
+    Bien Du Nien / 游年 变爻), not transcribed cell by cell. A transcribed
+    table can carry a typo no reader notices; a derived one is checkable
+    against published tables, and that check is what caught four wrong cells
+    in the only complete English-language table found.
+
+    The Kua year boundary (Lap Xuan vs Tet) is genuinely disputed between
+    Vietnamese and classical practice and is NOT resolved here: the engine
+    computes both and, when they disagree, reports both and emits no signal
+    rather than choosing for the user.
+
+    Framework-free, like the other engines. Depends on destiny-calendar,
+    which is infrastructure rather than an engine.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-calendar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>

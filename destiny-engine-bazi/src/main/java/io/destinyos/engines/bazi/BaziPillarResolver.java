@@ -5,7 +5,7 @@ import io.destinyos.calendar.CanChiPillar;
 import io.destinyos.calendar.EarthlyBranch;
 import io.destinyos.calendar.HourBranchResolver;
 import io.destinyos.calendar.JulianDay;
-import io.destinyos.calendar.SolarTerm;
+import io.destinyos.calendar.SolarYear;
 import io.destinyos.calendar.ZiHourBoundaryPolicy;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,51 +33,41 @@ import java.time.LocalDateTime;
  * {@link CanChi#monthPillar} applied to a solar-term month index gives the
  * correct Bát Tự month pillar. Verified against published tables — see
  * {@code BaziEngineGoldenTest}.
+ *
+ * <p>The Lập Xuân year/month arithmetic itself moved to
+ * {@link SolarYear} once Bát Trạch needed the same answer: two engines may not
+ * depend on each other, so shared derivations belong in shared infrastructure.
  */
 final class BaziPillarResolver {
-
-    /** Solar longitude, in degrees, of Lập Xuân — the start of solar month 1 (Dần). */
-    private static final double LAP_XUAN_DEGREES = 315.0;
-
-    /** Each solar-term month spans two of the 24 terms, so 30 degrees. */
-    private static final double DEGREES_PER_SOLAR_MONTH = 30.0;
 
     private BaziPillarResolver() {
     }
 
     /**
-     * 1-12 with Dần = 1, from the sun's ecliptic longitude at the birth
-     * instant. Month 1 (Dần) starts at Lập Xuân (315°), month 2 (Mão) at
-     * Kinh Trập (345°), and so on every 30°.
+     * 1-12 with Dần = 1 — the solar-term month the month pillar is built from.
+     *
+     * <p>Delegates to {@link SolarYear}, which is where this arithmetic lives
+     * now that a second methodology (Bát Trạch's Kua number, R7) needs the same
+     * answer. Kept as a named method here rather than inlined at the call site
+     * so the Bát Tự-specific meaning stays visible: what {@code destiny-calendar}
+     * computes is "which 30-degree solar sector", and what Bát Tự decides is
+     * that this sector is its month.
      */
     static int solarMonthIndex(double julianDateUt) {
-        double longitude = SolarTerm.solarLongitudeDegreesAtJulianDate(julianDateUt);
-        double fromLapXuan = ((longitude - LAP_XUAN_DEGREES) % 360.0 + 360.0) % 360.0;
-        return (int) Math.floor(fromLapXuan / DEGREES_PER_SOLAR_MONTH) + 1;
+        return SolarYear.solarMonthIndex(julianDateUt);
     }
 
     /**
      * The year number whose Can Chi is the Bát Tự year pillar, under
      * {@link BaziYearBoundary#LAP_XUAN}.
      *
-     * <p>Derivation, rather than a magic condition. The Bát Tự year runs from
-     * one Lập Xuân to the next, so it coincides with the Gregorian year
-     * except for instants that fall before Lập Xuân — which is to say, in
-     * solar months 11 (Tý) or 12 (Sửu) <em>and</em> in a January or February
-     * of the calendar. Those two solar months are the only ones that can
-     * straddle 1 January (Tý runs ~7 Dec to ~5 Jan, Sửu ~5 Jan to ~4 Feb),
-     * and solar months 1-10 never occur in January or February at all, so the
-     * pair of conditions is exact rather than approximate.
-     *
-     * <p>Worked check against published tables: 1 January 2000 is in solar
-     * month 11 and in January, so the year pillar is 1999's Kỷ Mão, not
-     * 2000's Canh Thìn — which is what published Four Pillars tables give.
-     * 20 December 2024 is also in solar month 11 but in December, so it keeps
-     * 2024's Giáp Thìn.
+     * <p>The Lập Xuân boundary arithmetic — and the derivation of why the
+     * condition is exact rather than approximate — is documented on
+     * {@link SolarYear#lapXuanBasedYear}. Choosing that boundary over Tết is
+     * this engine's own declared decision (R18); computing it is not.
      */
     static int baziYear(LocalDate localDate, int solarMonthIndex) {
-        boolean beforeLapXuan = solarMonthIndex >= 11 && localDate.getMonthValue() <= 2;
-        return beforeLapXuan ? localDate.getYear() - 1 : localDate.getYear();
+        return SolarYear.lapXuanBasedYear(localDate, solarMonthIndex);
     }
 
     static CanChiPillar yearPillar(int baziYear) {

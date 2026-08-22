@@ -19,6 +19,12 @@ import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engines.bazi.BaziYearBoundary;
 import io.destinyos.engines.bazi.PillarPosition;
 import io.destinyos.engines.bazi.TenGod;
+import io.destinyos.engines.fengshui.BatTrachRelation;
+import io.destinyos.engines.fengshui.CompassDirection;
+import io.destinyos.engines.fengshui.Gender;
+import io.destinyos.engines.fengshui.KuaYearBoundary;
+import io.destinyos.engines.fengshui.Trigram;
+import io.destinyos.engines.fengshui.TrigramGroup;
 import io.destinyos.fusion.ConflictType;
 import io.destinyos.fusion.DimensionState;
 import io.destinyos.fusion.FusionOutcome;
@@ -369,6 +375,72 @@ public final class VietnameseLabels {
         map.put(RetentionClass.AUDIT, "Bản ghi kiểm toán — không tự động xóa");
     });
 
+    /** Bát Quái, with the alternate name for Kiền since many readers know Càn. */
+    private static final Map<Trigram, String> TRIGRAM = ordered(map -> {
+        map.put(Trigram.KHAM, "Khảm");
+        map.put(Trigram.KHON, "Khôn");
+        map.put(Trigram.CHAN, "Chấn");
+        map.put(Trigram.TON, "Tốn");
+        map.put(Trigram.KIEN, "Kiền (Càn)");
+        map.put(Trigram.DOAI, "Đoài");
+        map.put(Trigram.CAN, "Cấn");
+        map.put(Trigram.LY, "Ly");
+    });
+
+    /** The eight compass sectors Bát Trạch works in. */
+    private static final Map<CompassDirection, String> COMPASS_DIRECTION = ordered(map -> {
+        map.put(CompassDirection.NORTH, "Bắc");
+        map.put(CompassDirection.NORTHEAST, "Đông Bắc");
+        map.put(CompassDirection.EAST, "Đông");
+        map.put(CompassDirection.SOUTHEAST, "Đông Nam");
+        map.put(CompassDirection.SOUTH, "Nam");
+        map.put(CompassDirection.SOUTHWEST, "Tây Nam");
+        map.put(CompassDirection.WEST, "Tây");
+        map.put(CompassDirection.NORTHWEST, "Tây Bắc");
+    });
+
+    private static final Map<TrigramGroup, String> TRIGRAM_GROUP = ordered(map -> {
+        map.put(TrigramGroup.EAST, "Đông tứ trạch");
+        map.put(TrigramGroup.WEST, "Tây tứ trạch");
+    });
+
+    /**
+     * Bát Biến Du Niên. Each label carries the tradition's own ranking word
+     * (thượng/trung/tiểu cát, đại/thứ/tiểu hung) because that ranking is what
+     * the signal strength is read from - a reader seeing "Hoạ Hại" alongside
+     * "Tuyệt Mệnh" with no qualifier would reasonably assume they are equally
+     * severe, and the sources are clear that they are not.
+     */
+    private static final Map<BatTrachRelation, String> BAT_TRACH_RELATION = ordered(map -> {
+        map.put(BatTrachRelation.SINH_KHI, "Sinh Khí (thượng cát)");
+        map.put(BatTrachRelation.DIEN_NIEN, "Diên Niên (thượng cát)");
+        map.put(BatTrachRelation.THIEN_Y, "Thiên Y (trung cát)");
+        map.put(BatTrachRelation.PHUC_VI, "Phục Vị (tiểu cát)");
+        map.put(BatTrachRelation.HOA_HAI, "Hoạ Hại (tiểu hung)");
+        map.put(BatTrachRelation.LUC_SAT, "Lục Sát (thứ hung)");
+        map.put(BatTrachRelation.NGU_QUY, "Ngũ Quỷ (đại hung)");
+        map.put(BatTrachRelation.TUYET_MENH, "Tuyệt Mệnh (đại hung)");
+    });
+
+    /**
+     * Which convention set the Kua year (research item R7). Both labels name the
+     * convention rather than endorsing it - unlike Bát Tự's R18, neither is this
+     * engine's default, because no source arbitrates between them.
+     */
+    private static final Map<KuaYearBoundary, String> KUA_YEAR_BOUNDARY = ordered(map -> {
+        map.put(KuaYearBoundary.LAP_XUAN, "Đổi năm tại Lập Xuân (cách cổ điển)");
+        map.put(KuaYearBoundary.LUNAR_NEW_YEAR, "Đổi năm tại Tết (phổ biến ở Việt Nam)");
+    });
+
+    /**
+     * Needed only because the Kua formulas differ by gender. Two values,
+     * because that is the extent of what the sourced formulas cover.
+     */
+    private static final Map<Gender, String> GENDER = ordered(map -> {
+        map.put(Gender.MALE, "Nam");
+        map.put(Gender.FEMALE, "Nữ");
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -457,6 +529,30 @@ public final class VietnameseLabels {
         return require(RETENTION_CLASS, value);
     }
 
+    public static String of(Trigram value) {
+        return require(TRIGRAM, value);
+    }
+
+    public static String of(CompassDirection value) {
+        return require(COMPASS_DIRECTION, value);
+    }
+
+    public static String of(TrigramGroup value) {
+        return require(TRIGRAM_GROUP, value);
+    }
+
+    public static String of(BatTrachRelation value) {
+        return require(BAT_TRACH_RELATION, value);
+    }
+
+    public static String of(KuaYearBoundary value) {
+        return require(KUA_YEAR_BOUNDARY, value);
+    }
+
+    public static String of(Gender value) {
+        return require(GENDER, value);
+    }
+
     /** One pillar rendered the way a reader expects it, e.g. "Giap Ty". */
     public static String pillar(HeavenlyStem stem, EarthlyBranch branch) {
         return of(stem) + " " + of(branch);
@@ -482,7 +578,9 @@ public final class VietnameseLabels {
                 DIMENSION, DATA_CONFIDENCE, UNCERTAINTY, DIMENSION_STATE, FUSION_OUTCOME,
                 CONFLICT_TYPE, METHODOLOGY_STATUS, NARRATIVE_SOURCE, FALLBACK_REASON,
                 HEAVENLY_STEM, EARTHLY_BRANCH, FIVE_ELEMENT, YIN_YANG, SOLAR_TERM,
-                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, RETENTION_CLASS);
+                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, RETENTION_CLASS,
+                TRIGRAM, COMPASS_DIRECTION, TRIGRAM_GROUP, BAT_TRACH_RELATION,
+                KUA_YEAR_BOUNDARY, GENDER);
     }
 
     /**

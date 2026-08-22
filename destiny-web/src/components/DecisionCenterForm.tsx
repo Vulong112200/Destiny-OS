@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiError, runScenario } from "@/lib/api";
-import type { SupportedScenarioType, TarotSpreadName } from "@/lib/types";
+import type {
+  CompassDirectionName,
+  SupportedScenarioType,
+  TarotSpreadName,
+} from "@/lib/types";
 
 const SPREAD_OPTIONS: { value: TarotSpreadName; label: string; cardCount: number }[] = [
   { value: "PAST_PRESENT_FUTURE", label: "Quá khứ – Hiện tại – Tương lai", cardCount: 3 },
@@ -18,6 +22,22 @@ const SPREAD_OPTIONS: { value: TarotSpreadName; label: string; cardCount: number
  * that window with an unknown region comes back unresolvable — which is the
  * honest result, and better than making the user pick a side to get a number.
  */
+/**
+ * Compass order, not best-to-worst: which direction is favourable depends on the
+ * person's Kua, so any fixed ordering by desirability would be wrong for most
+ * users.
+ */
+const DIRECTION_OPTIONS: { value: CompassDirectionName; label: string }[] = [
+  { value: "NORTH", label: "Bắc" },
+  { value: "NORTHEAST", label: "Đông Bắc" },
+  { value: "EAST", label: "Đông" },
+  { value: "SOUTHEAST", label: "Đông Nam" },
+  { value: "SOUTH", label: "Nam" },
+  { value: "SOUTHWEST", label: "Tây Nam" },
+  { value: "WEST", label: "Tây" },
+  { value: "NORTHWEST", label: "Tây Bắc" },
+];
+
 const REGION_OPTIONS: { value: string; label: string }[] = [
   { value: "UNKNOWN", label: "Chưa rõ / không áp dụng" },
   { value: "NORTH", label: "Miền Bắc" },
@@ -46,6 +66,11 @@ export function DecisionCenterForm() {
   const [baziBirthTime, setBaziBirthTime] = useState("");
   const [baziRegion, setBaziRegion] = useState("UNKNOWN");
   const [baziLongitude, setBaziLongitude] = useState("");
+  const [useFengShui, setUseFengShui] = useState(false);
+  const [fsBirthDate, setFsBirthDate] = useState("");
+  const [fsGender, setFsGender] = useState<"MALE" | "FEMALE">("MALE");
+  const [fsRegion, setFsRegion] = useState("UNKNOWN");
+  const [fsFacing, setFsFacing] = useState<CompassDirectionName | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,13 +80,18 @@ export function DecisionCenterForm() {
 
     const hasNumerology = fullName.trim() !== "" && birthDate !== "";
     const hasBazi = useBazi && baziBirthDate !== "";
+    const hasFengShui = useFengShui && fsBirthDate !== "";
     if (useBazi && baziBirthDate === "") {
       setError("Bát Tự cần ngày sinh. Giờ sinh có thể để trống — khi đó chỉ lập được Trụ Năm và Trụ Tháng.");
       return;
     }
-    if (!hasNumerology && !useTarot && !hasBazi) {
+    if (useFengShui && fsBirthDate === "") {
+      setError("Bát Trạch cần ngày sinh và giới tính để tính cung phi.");
+      return;
+    }
+    if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui) {
       setError(
-        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, hoặc bật Bát Tự.",
+        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, bật Bát Tự, hoặc bật Bát Trạch.",
       );
       return;
     }
@@ -86,6 +116,19 @@ export function DecisionCenterForm() {
               birthTime: baziBirthTime === "" ? null : baziBirthTime,
               region: baziRegion,
               longitude,
+            }
+          : null,
+        fengShui: hasFengShui
+          ? {
+              birthDate: fsBirthDate,
+              birthTime: null,
+              gender: fsGender,
+              region: fsRegion,
+              longitude: null,
+              // Empty means "no direction to assess" - the backend then returns
+              // the eight-direction profile and no signal, rather than judging
+              // a direction the user never gave.
+              facingDirection: fsFacing === "" ? null : fsFacing,
             }
           : null,
       });
@@ -269,6 +312,85 @@ export function DecisionCenterForm() {
                   Có kinh độ thì giờ sinh được hiệu chỉnh về giờ mặt trời — chỉ quan trọng khi giờ
                   sinh sát ranh giới canh giờ.
                 </span>
+              </label>
+            </div>
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-900">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useFengShui}
+              onChange={(e) => setUseFengShui(e.target.checked)}
+            />
+            Phong Thủy — Bát Trạch (cung phi &amp; hướng)
+          </label>
+        </legend>
+        {useFengShui && (
+          <div className="space-y-3">
+            <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Tính cung phi và tám hướng theo Bát Biến Du Niên. Nhập thêm{" "}
+              <span className="font-medium">hướng nhà/phòng</span> thì hệ thống mới đánh giá được
+              hướng đó và góp tín hiệu vào kết luận tổng hợp — Bát Trạch xét{" "}
+              <span className="font-medium">quan hệ giữa người và một hướng</span>, nên không có
+              hướng thì không có gì để đánh giá.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Ngày sinh (dương lịch)</span>
+                <input
+                  type="date"
+                  value={fsBirthDate}
+                  onChange={(e) => setFsBirthDate(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Giới tính</span>
+                <select
+                  value={fsGender}
+                  onChange={(e) => setFsGender(e.target.value as "MALE" | "FEMALE")}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                >
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                </select>
+                <span className="mt-1 block text-xs text-slate-500">
+                  Bắt buộc: công thức cung phi cho nam và nữ khác nhau và không đối xứng, nên
+                  không có giá trị mặc định nào trung lập.
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Hướng nhà / phòng (tùy chọn)</span>
+                <select
+                  value={fsFacing}
+                  onChange={(e) => setFsFacing(e.target.value as CompassDirectionName | "")}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                >
+                  <option value="">Chưa xác định</option>
+                  {DIRECTION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Vùng sinh</span>
+                <select
+                  value={fsRegion}
+                  onChange={(e) => setFsRegion(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                >
+                  {REGION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
           </div>

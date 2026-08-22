@@ -242,13 +242,43 @@ public class MethodologyRegistrySeeder {
                             + "policy (R6) both need a recorded decision before "
                             + "Phase 11."),
 
-            new Entry("FENGSHUI_KUA", "Phong Thủy - Số Cung Phi (Kua)", "EASTERN",
-                    "1.0",
-                    MethodologyStatus.RESEARCH_REQUIRED, null, null,
+            new Entry("FENGSHUI_KUA", "Phong Thủy - Bát Trạch (Cung Phi)", "EASTERN",
+                    "1.1",
+                    MethodologyStatus.PRODUCTION_READY,
+                    "Bat Trach (Bat Bien Du Nien) - both year-boundary conventions "
+                            + "computed, neither silently selected",
+                    "Kua formula and the gendered 5-substitution cross-checked between "
+                            + "hoc.kabala.vn and nguyenthehoa.com (VN, the latter with two "
+                            + "fully worked 1978 examples) and wofs.com + fengshuimall.com "
+                            + "(EN); all three agree exactly, including the discontinuity at "
+                            + "year 2000. The 8x8 direction table is DERIVED from the Bat Bien "
+                            + "Du Nien line-change rule (Chinese 8-mansions mnemonic; "
+                            + "Vietnamese 'Bat Bien Du Nien', which names the Tuyet Menh pairs "
+                            + "Can-Ly, Khon-Kham, Can-Ton, Doai-Chan) and verified against "
+                            + "three published tables - masterseanchan.com's 8x8 matrix "
+                            + "(60/64), nguyenthehoa.com's Can page (8/8) and "
+                            + "phongthuykhaitoan.com's Chan page. Life-area mapping authored "
+                            + "from the descriptions at kasai.com.vn, xaydung365.com.vn and "
+                            + "nguyenthehoa.com. All retrieved 2026-08-22.",
                     Set.of("R7"),
-                    "Female Kua formula, year-boundary policy (Lập Xuân vs Tết vs "
-                            + "1 January), and the gendered '5' special case all vary "
-                            + "by school and are unresolved."),
+                    "Phase 10. Four of R7's five open items are closed: the school (Bat "
+                            + "Trach only - Master Spec section 20 forbids blending Phi Tinh "
+                            + "or Huyen Khong), the asymmetric male/female formulas, the "
+                            + "gendered '5' substitution (male -> Khon, female -> Can), and "
+                            + "the direction mapping. The table is derived from a cited rule "
+                            + "rather than transcribed, which is what let a verification pass "
+                            + "identify four wrong cells in the only complete "
+                            + "English-language table found - by symmetry, by a 6:2 majority "
+                            + "inside that table, and by direct contradiction from a "
+                            + "Vietnamese source. R7's fifth item, the year boundary, stays "
+                            + "OPEN and is represented rather than resolved: Vietnamese "
+                            + "practice uses the lunar year and classical practice uses Lap "
+                            + "Xuan, no source arbitrates, and Bat Tu's R18 decision does not "
+                            + "transfer because its evidence was about Four Pillars tables. "
+                            + "The engine computes both and, when they disagree, reports both "
+                            + "and emits no signal. Signals require a facing direction: a Kua "
+                            + "number alone is a profile, not a judgement, so without a "
+                            + "direction the engine returns the profile as evidence only."),
 
             new Entry("ICHING", "Kinh Dịch", "EASTERN",
                     "1.0",

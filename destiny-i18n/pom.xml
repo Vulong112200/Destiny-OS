@@ -57,5 +57,11 @@
       <artifactId>destiny-engine-bazi</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Bat Trach trigram, direction and du nien labels. Same precedent. -->
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-fengshui</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

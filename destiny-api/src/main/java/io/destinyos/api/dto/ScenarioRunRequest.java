@@ -13,6 +13,7 @@ package io.destinyos.api.dto;
 public record ScenarioRunRequest(
         NumerologyRequest numerology,
         TarotRequest tarot,
-        BaziRequest bazi
+        BaziRequest bazi,
+        FengShuiRequest fengShui
 ) {
 }

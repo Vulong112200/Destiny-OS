@@ -20,6 +20,12 @@ import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engines.bazi.BaziYearBoundary;
 import io.destinyos.engines.bazi.PillarPosition;
 import io.destinyos.engines.bazi.TenGod;
+import io.destinyos.engines.fengshui.BatTrachRelation;
+import io.destinyos.engines.fengshui.CompassDirection;
+import io.destinyos.engines.fengshui.Gender;
+import io.destinyos.engines.fengshui.KuaYearBoundary;
+import io.destinyos.engines.fengshui.Trigram;
+import io.destinyos.engines.fengshui.TrigramGroup;
 import io.destinyos.fusion.ConflictType;
 import io.destinyos.fusion.DimensionState;
 import io.destinyos.fusion.FusionOutcome;
@@ -70,7 +76,15 @@ class LabelCoverageTest {
             BaziYearBoundary.class,
             // CLAUDE.md section 7 retention. Reaches the user directly - the
             // result page tells them whether their reading will be deleted.
-            RetentionClass.class);
+            RetentionClass.class,
+            // Phase 10, Bát Trạch. A direction shown as "SOUTHEAST" to a
+            // Vietnamese reader is exactly what section 1 forbids.
+            Trigram.class,
+            CompassDirection.class,
+            TrigramGroup.class,
+            BatTrachRelation.class,
+            KuaYearBoundary.class,
+            Gender.class);
 
     @Test
     @DisplayName("Every constant of every user-facing enum has a Vietnamese label")
@@ -216,6 +230,34 @@ class LabelCoverageTest {
                 .contains("không tự động xóa");
         assertThat(VietnameseLabels.of(RetentionClass.AUDIT))
                 .contains("không tự động xóa");
+    }
+
+    @Test
+    @DisplayName("Every Bát Trạch relation label carries the tradition's own severity word")
+    void batTrachLabelsCarryTheirRanking() {
+        // The signal strength is read off thượng/trung/tiểu cát and
+        // đại/thứ/tiểu hung, so a label that drops the qualifier hides why two
+        // "bad" directions produce different polarities.
+        assertThat(VietnameseLabels.of(BatTrachRelation.SINH_KHI)).contains("thượng cát");
+        assertThat(VietnameseLabels.of(BatTrachRelation.THIEN_Y)).contains("trung cát");
+        assertThat(VietnameseLabels.of(BatTrachRelation.PHUC_VI)).contains("tiểu cát");
+        assertThat(VietnameseLabels.of(BatTrachRelation.HOA_HAI)).contains("tiểu hung");
+        assertThat(VietnameseLabels.of(BatTrachRelation.LUC_SAT)).contains("thứ hung");
+        assertThat(VietnameseLabels.of(BatTrachRelation.TUYET_MENH)).contains("đại hung");
+    }
+
+    @Test
+    @DisplayName("Compass labels are Vietnamese, and the eight are all distinct")
+    void compassLabelsAreDistinct() {
+        assertThat(VietnameseLabels.of(CompassDirection.SOUTHEAST)).isEqualTo("Đông Nam");
+        assertThat(VietnameseLabels.of(CompassDirection.NORTHWEST)).isEqualTo("Tây Bắc");
+
+        var labels = new java.util.HashSet<String>();
+        for (CompassDirection direction : CompassDirection.values()) {
+            assertThat(labels.add(VietnameseLabels.of(direction)))
+                    .as("duplicate label at %s", direction)
+                    .isTrue();
+        }
     }
 
     @Test

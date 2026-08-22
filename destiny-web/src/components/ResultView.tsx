@@ -1,5 +1,6 @@
 import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
 import { BaziChartCard } from "./BaziChartCard";
+import { BatTrachCard } from "./BatTrachCard";
 import { LabeledBadge } from "./LabeledBadge";
 import { RetentionNotice } from "./RetentionNotice";
 
@@ -57,6 +58,9 @@ export function ResultView({
         empty one.
       */}
       <BaziChartCard evidence={result.evidence} labels={labels} />
+
+      {/* Same contract: renders nothing when Bát Trạch did not take part. */}
+      <BatTrachCard evidence={result.evidence} labels={labels} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Nguồn đóng góp</h2>
@@ -154,7 +158,8 @@ export function ResultView({
         <p className="rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
           Lần chạy này không có tín hiệu nào để tổng hợp. Bát Tự hiện chỉ lập lá số (dữ liệu thật)
           mà chưa phát sinh tín hiệu, vì mọi tín hiệu Bát Tự đều cần phần luận giải còn đang chờ
-          xác minh. Muốn có kết luận tổng hợp, hãy thêm Thần số học hoặc Tarot.
+          xác minh; Bát Trạch chỉ phát sinh tín hiệu khi bạn nhập hướng nhà/phòng để đối chiếu.
+          Muốn có kết luận tổng hợp, hãy nhập hướng, hoặc thêm Thần số học hoặc Tarot.
         </p>
       )}
 

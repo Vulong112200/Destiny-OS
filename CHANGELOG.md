@@ -8,6 +8,140 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 10: Phong Thủy Bát Trạch (`destiny-engine-fengshui`)
+
+Đây là engine **đầu tiên của Phong Thủy** phát sinh tín hiệu thật cho Fusion, và
+là lần đầu R7 chuyển khỏi `RESEARCH_REQUIRED` — nhưng chỉ chuyển sang
+`PARTIALLY_RESOLVED`, không phải `RESOLVED`.
+
+Cùng ngày, vòng nghiên cứu R7 **thứ nhất** đã quyết định **không** triển khai vì
+bảng 8×8 hướng chỉ tìm được ở một nguồn, mà bảng đó sai cấu trúc ở 4 ô. Vòng
+**thứ hai** tìm được **quy tắc sinh ra bảng đó** — và điều này đổi hẳn bản chất
+vấn đề: từ "64 ô phải tin" thành "8 trường hợp phải dẫn nguồn", cộng một bảng
+**dẫn xuất** có thể *kiểm chứng* được với dữ liệu đã công bố thay vì chỉ chép lại.
+
+**Đã đóng 4/5 mục của R7:**
+
+- **Trường phái** — chỉ Bát Trạch. Master Spec §20 cấm trộn Phi Tinh / Huyền
+  Không, và test xác nhận chuỗi `school` không nhắc tới hai phái kia
+- **Công thức nam/nữ** — ba nguồn độc lập khớp nhau hoàn toàn, kể cả mốc chia
+  tại năm 2000: nam `10 − a` / `9 − a`, nữ `5 + a` / `6 + a`. Golden-test theo
+  hai ví dụ có sẵn đáp án trên `nguyenthehoa.com` (nam 1978 → Tốn, nữ 1978 →
+  Khôn) và dữ kiện độc lập "nam sinh 1990 là cung Khảm"
+- **Trường hợp số 5** — nam về Khôn (2), nữ về Cấn (8), cả hai thuộc Tây tứ
+- **Bảng tám hướng** — **dẫn xuất từ quy tắc biến hào** (Bát Biến Du Niên), không
+  chép ô nào
+
+**Bảng dẫn xuất và cách nó tự kiểm chứng.** Quan hệ chỉ phụ thuộc *hào nào khác
+nhau* giữa hai quái: không hào nào → Phục Vị; chỉ hào thượng → Sinh Khí; chỉ hào
+trung → Tuyệt Mệnh; chỉ hào hạ → Hoạ Hại; thượng+trung → Ngũ Quỷ; thượng+hạ →
+Lục Sát; trung+hạ → Thiên Y; cả ba hào → Diên Niên.
+
+Quy tắc được coi là **giả thuyết** và mang đi kiểm với các bảng người khác công bố:
+
+- Bảng 8×8 của `masterseanchan.com`: **khớp 60/64 ô**
+- Trang từng cung của `nguyenthehoa.com` cho cung Cấn: **khớp 8/8** — kể cả hai ô
+  đang tranh chấp, ở đó nguồn Việt đứng cùng quy tắc và **bác** bảng tiếng Anh
+- Trang cung Chấn của `phongthuykhaitoan.com`: khớp mọi hướng nêu rõ ràng
+
+Bốn ô lệch được xác định là lỗi của **một** nguồn, bằng ba luận cứ độc lập: nguồn
+Việt bác trực tiếp; chúng phá tính đối xứng mà một quy tắc dựa trên *hiệu hào*
+bảo đảm theo cấu trúc (hiệu thì không quan tâm tính từ bên nào); và ngay trong
+bảng tiếng Anh, hai pattern bị ảnh hưởng chia **6 ô so với 2** nghiêng về quy tắc.
+Cả ba đều được assert trong `BatTrachTableTest`, cùng 5 bất biến cấu trúc mà vòng
+1 để lại — chính bộ tiêu chí nghiệm thu đó là lý do vòng 2 làm nhanh.
+
+**Mục thứ 5 của R7 — ranh giới năm — vẫn mở, và được *biểu diễn* chứ không được
+chọn.** Thực hành Việt dùng năm âm lịch (`nguyenthehoa.com` nói thẳng, kèm ví dụ
+đổi "20/02/1983 dương → 08/01/1983 âm, dùng năm 1983"), thực hành cổ điển dùng
+năm mặt trời đổi tại Lập Xuân. Không nguồn nào phân định.
+
+**Kết luận R18 của Bát Tự không chuyển sang được** — R18 chọn Lập Xuân dựa trên
+bảng Tứ Trụ đã công bố, và bằng chứng đó nói về Tứ Trụ, không nói về thực hành
+cung phi. Dùng lại kết luận vì nó ở ngay bên cạnh chính là kiểu âm thầm chọn
+trường phái mà Rule D cấm — và nó rất dễ làm, nên được ghi lại như một quyết định
+*đã không* làm.
+
+Vì vậy engine **tính cả hai**. Hai quy ước trùng nhau với mọi ca sinh ngoài
+khoảng Tết→Lập Xuân, tức đại đa số, và những người đó có đáp án dứt khoát. Trong
+khoảng đó — và chỉ khi hai quy ước cho ra **cung khác nhau**, không phải chỉ khác
+năm — engine báo cả hai, nêu `METHODOLOGY_UNRESOLVED` (ảnh hưởng kết quả),
+**không** công bố bảng tám hướng (công bố một bảng là ngầm coi đáp án Lập Xuân là
+đáp án) và **không** phát sinh tín hiệu nào.
+
+### Added — tín hiệu Phong Thủy đầu tiên tới Fusion
+
+- **Tín hiệu cần một hướng để đối chiếu.** Bát Trạch xét *quan hệ giữa người và
+  một hướng*; cung phi đứng một mình là thông tin, không phải phán định. Không có
+  hướng → trả về bảng tám hướng làm evidence và **không** tín hiệu; gán polarity
+  cho bản thân cung phi sẽ là bịa
+- **Polarity và strength đọc từ chính truyền thống**, không do dự án gán: cát/hung
+  và thượng/trung/tiểu. Ba mức hung được giữ nguyên chứ không làm phẳng — Hoạ Hại
+  (tiểu hung) và Lục Sát (thứ hung) ra `CAUTION`, Ngũ Quỷ và Tuyệt Mệnh (đại hung)
+  ra `NEGATIVE`; Javadoc của `Polarity` đã nói rõ CAUTION không đồng nghĩa NEGATIVE
+- Các tín hiệu của một lần đánh giá **dùng chung một evidence group**, nên Fusion
+  không đếm một phát hiện thành nhiều (FUSION_ENGINE_SPEC §5)
+- **Giới tính không có giá trị mặc định ở bất kỳ lớp nào.** Engine trả
+  `INVALID_INPUT`, và `FengShuiTaskFactory` **không tạo task** thay vì mặc định —
+  khác với thiếu giờ sinh (làm kết quả kém đi), một giới tính mặc định cho ra
+  **đáp án sai một cách tự tin**, trông y như một đáp án đúng
+
+### Changed
+
+- **`SolarYear` (destiny-calendar, mới)** — phép tính năm theo Lập Xuân trước đây
+  nằm package-private trong `destiny-engine-bazi`. Bát Trạch cần đúng câu trả lời
+  đó, mà một engine không được phụ thuộc engine khác
+  (`enginesStayIndependent`) — nên nó chuyển sang hạ tầng chung. Luật kiến trúc đó
+  vừa chứng minh giá trị: hai engine dùng chung một dẫn xuất thì không còn là hai
+  nguồn độc lập, và chính test kiến trúc đã buộc code dùng chung đi vào chỗ dùng
+  chung thay vì để một phụ thuộc mọc lên giữa hai engine
+- `FENGSHUI_KUA` giờ **thật sự chạy** trong BUSINESS và DAILY_ACTION — hai kịch
+  bản đã nêu tên engine id này từ đầu (Master Spec §7)
+- `MethodologyRegistrySeeder`: `FENGSHUI_KUA` lên version `1.1` và
+  `PRODUCTION_READY`, ghi rõ 4/5 mục R7 đã đóng và mục nào chưa — cùng mô hình
+  `CALENDAR_VN_TRADITIONAL` đang dùng cho R14b
+- `ScenarioRunRequest` thêm trường thứ tư `fengShui` (đổi arity của record)
+- **R7 chuyển sang `PARTIALLY_RESOLVED`** — một trạng thái chưa từng có trong
+  legend. Làm tròn lên `RESOLVED` thì gọn hơn, và sẽ làm một câu hỏi còn mở trở
+  nên vô hình
+
+### Added — UI
+
+- **`BatTrachCard`** dựng bảng tám hướng *từ evidence*, kèm ba trạng thái: hai
+  quy ước trùng nhau (cung phi + nhóm Đông/Tây tứ + bảng tám hướng), khác nhau
+  (cả hai cung phi, không có bảng, kèm lý do), và có hướng đang xét (nêu trước).
+  Thứ tự bảng là **theo la bàn, không theo mức tốt** — hướng nào tốt phụ thuộc
+  cung phi của từng người, nên một thứ tự cố định theo mức tốt sẽ sai với phần lớn
+  người đọc
+- Ô nhập Bát Trạch trong Trung tâm quyết định, nói rõ rằng phải nhập hướng mới có
+  phần đánh giá và mới có tín hiệu
+
+### Tests
+
+454 test (tăng từ 406):
+
+- **`BatTrachTable` (11)** — 4 hàng golden từ nguồn đã công bố (Cấn từ nguồn Việt
+  là hàng quyết định: chứa cả hai ô tranh chấp), 4 cặp Tuyệt Mệnh đúng như nguồn
+  Việt nêu tên, và 6 bất biến cấu trúc: mỗi hàng là phép thế của 8 du niên; Phục Vị
+  chỉ ở đúng hướng của chính quái; **đối xứng** (bất biến đã bắt được 4 ô sai); 4
+  hướng cát luôn trong nhóm của mình; 4 quan hệ hung tạo hình vuông Latin trên
+  Đông×Tây; mỗi du niên xuất hiện đúng 8 lần
+- **`KuaNumber` (11)** — ví dụ có sẵn đáp án, mốc gián đoạn 2000, ghi chú rằng
+  cộng-rồi-rút và rút-rồi-cộng luôn cho cùng kết quả (căn số cộng bảo toàn), và
+  một lượt quét **1900–2100 × 2 giới tính** xác nhận **không bao giờ** lọt ra
+  cung 5 — cũng là cách kiểm rằng nhánh thay thế được đi qua trên mọi đường
+- **`FengShuiKuaEngine` (20)** — không hướng → không tín hiệu; Sinh Khí →
+  SUPPORT/STRONG; Tuyệt Mệnh → NEGATIVE/STRONG; Hoạ Hại → **CAUTION/WEAK** (không
+  làm phẳng thành NEGATIVE); tín hiệu dùng chung evidence group và không đánh dấu
+  critical; mâu thuẫn ranh giới năm nêu cả hai cung và **không** tín hiệu, không
+  bảng hướng; thiếu giới tính là `INVALID_INPUT`; khoảng trống R14b trả
+  `RESEARCH_REQUIRED`
+- **Tích hợp HTTP đầu-cuối (+4)** — cung phi 1990 nam qua toàn bộ đường dẫn, và
+  xác nhận tín hiệu **thật sự tới được Fusion** (`supportingSources` chứa
+  `FENGSHUI_KUA`); không hướng → không tín hiệu; thiếu giới tính → engine không
+  chạy và nằm trong `unavailableEngines`; ca 03/02/1984 nêu cả hai cung phi
+
+
 ### Added — Retention: dữ liệu không còn được giữ mãi mãi (CLAUDE.md §7)
 
 Trước thay đổi này **mọi calculation được lưu vĩnh viễn**, kể cả một lượt xem

@@ -148,10 +148,45 @@ export interface BaziRequestInput {
   longitude: number | null;
 }
 
+export type CompassDirectionName =
+  | "NORTH"
+  | "NORTHEAST"
+  | "EAST"
+  | "SOUTHEAST"
+  | "SOUTH"
+  | "SOUTHWEST"
+  | "WEST"
+  | "NORTHWEST";
+
+export interface FengShuiRequestInput {
+  /** ISO date, e.g. "1990-08-20". */
+  birthDate: string;
+  /** ISO local time, or null. Only decisive within minutes of the Lập Xuân instant. */
+  birthTime: string | null;
+  /**
+   * "MALE" or "FEMALE". Required, with no default: the male and female Kua
+   * formulas differ and are not symmetric, so any default would hand half of
+   * users someone else's Kua number.
+   */
+  gender: "MALE" | "FEMALE";
+  /** "NORTH" | "SOUTH" | "UNKNOWN". */
+  region: string | null;
+  longitude: number | null;
+  /**
+   * The direction of the house or room being assessed, or null.
+   *
+   * Null is meaningful: Bát Trạch judges a person against a direction, so with
+   * none supplied the backend returns the eight-direction profile and no signal
+   * rather than inventing something to be favourable about.
+   */
+  facingDirection: CompassDirectionName | null;
+}
+
 export interface ScenarioRunRequestInput {
   numerology: NumerologyRequestInput | null;
   tarot: TarotRequestInput | null;
   bazi: BaziRequestInput | null;
+  fengShui: FengShuiRequestInput | null;
 }
 
 /**

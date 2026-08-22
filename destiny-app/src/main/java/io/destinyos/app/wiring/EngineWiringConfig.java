@@ -3,6 +3,7 @@ package io.destinyos.app.wiring;
 import io.destinyos.api.service.EngineTaskFactory;
 import io.destinyos.api.service.EngineTaskFactoryRegistry;
 import io.destinyos.engines.bazi.BaziEngine;
+import io.destinyos.engines.fengshui.FengShuiKuaEngine;
 import io.destinyos.engines.numerology.NumerologyEngine;
 import io.destinyos.engines.tarot.TarotEngine;
 import io.destinyos.execution.EngineExecutor;
@@ -45,6 +46,18 @@ public class EngineWiringConfig {
         return new BaziEngine();
     }
 
+    /**
+     * Phong Thủy Bát Trạch, Phase 10. Registered under the engine id
+     * {@code FENGSHUI_KUA}, which both of Master Spec section 7's worked
+     * scenarios already name - so wiring it here is what stops BUSINESS and
+     * DAILY_ACTION reporting it as unavailable. Unlike Bát Tự it does emit
+     * signals, but only when the caller supplies a facing direction to judge.
+     */
+    @Bean
+    public FengShuiKuaEngine fengShuiKuaEngine() {
+        return new FengShuiKuaEngine();
+    }
+
     @Bean
     public EngineExecutor engineExecutor() {
         return EngineExecutor.withDefaults();
@@ -70,13 +83,16 @@ public class EngineWiringConfig {
     public EngineTaskFactoryRegistry engineTaskFactoryRegistry(TarotEngine tarotEngine,
                                                                NumerologyEngine numerologyEngine,
                                                                BaziEngine baziEngine,
+                                                               FengShuiKuaEngine fengShuiKuaEngine,
                                                                TarotTaskFactory tarotTaskFactory,
                                                                NumerologyTaskFactory numerologyTaskFactory,
-                                                               BaziTaskFactory baziTaskFactory) {
+                                                               BaziTaskFactory baziTaskFactory,
+                                                               FengShuiTaskFactory fengShuiTaskFactory) {
         Map<String, EngineTaskFactory> factories = new LinkedHashMap<>();
         factories.put(tarotEngine.engineId(), tarotTaskFactory);
         factories.put(numerologyEngine.engineId(), numerologyTaskFactory);
         factories.put(baziEngine.engineId(), baziTaskFactory);
+        factories.put(fengShuiKuaEngine.engineId(), fengShuiTaskFactory);
         return new EngineTaskFactoryRegistry(factories);
     }
 }

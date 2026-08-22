@@ -51,6 +51,7 @@ Input → Validation → Calendar/Astronomy
 | `destiny-engine-tarot` | Tarot — bộ bài RWS, rút bài có seed, tái lập được |
 | `destiny-engine-numerology` | Thần số học Pythagoras — 5 chỉ số, chuẩn hóa tên tiếng Việt |
 | `destiny-engine-bazi` | Bát Tự — **lập lá số Tứ Trụ** (Phase 8a): Tứ Trụ, Ngũ Hành, Tàng Can, Thập Thần, đếm Ngũ Hành. Không phát sinh tín hiệu nào (phần luận giải còn chờ R1/R2/R3) |
+| `destiny-engine-fengshui` | Phong Thủy **Bát Trạch** (Phase 10): cung phi + tám hướng Bát Biến Du Niên. Bảng hướng **dẫn xuất từ quy tắc biến hào**, không chép. Phát sinh tín hiệu thật khi có hướng để đối chiếu |
 | `destiny-fusion` | Tổng hợp kết luận theo luật (không phải trung bình có trọng số) |
 | `destiny-scenario` | Điều phối kịch bản — chọn engine áp dụng, không phụ thuộc engine cụ thể |
 | `destiny-ai` | Lớp diễn giải AI (Phase 12) — pruning, prompt, provider OpenRouter, fallback phi-AI. Không phụ thuộc engine/fusion/scenario |
@@ -87,7 +88,8 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 12 | AI Narrative (`destiny-ai`) | **Xong** — pruning, prompt, provider OpenRouter (tùy chọn, tắt mặc định), fallback phi-AI luôn render được; lưu trữ V7 |
 | **8a** | **Bát Tự — lập lá số Tứ Trụ** | **Xong** — Tứ Trụ theo Tử Bình (Lập Xuân + Tiết Khí), Tàng Can, Thập Thần, đếm Ngũ Hành; golden test đối chiếu bảng đã công bố |
 | 8b | Bát Tự — luận giải (Dụng Thần, Đại Vận, cường độ Nhật Chủ) | Chờ nghiên cứu (R1, R2, R3) |
-| 9–11 | Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
+| **10** | **Phong Thủy — Bát Trạch (cung phi & hướng)** | **Xong** — 4/5 mục R7 đã đóng; ranh giới năm được *biểu diễn* (tính cả hai quy ước) chứ không chọn |
+| 9, 11 | Tử Vi, Chiêm tinh | Chờ nghiên cứu |
 
 **Cập nhật Retention (2026-08-22):** Trước đây **mọi calculation được lưu vĩnh
 viễn**, kể cả một lượt xem "hôm nay nên làm gì" dùng một lần — trái trực tiếp
@@ -110,15 +112,29 @@ Ba điểm thiết kế đáng nói:
    Nếu không có cách chạm tới `USER_SAVED`, quy tắc "không xóa USER_SAVED" chỉ
    là một nhánh chưa từng được kiểm.
 
-**Phong Thủy Kua (Phase 10) đã dừng lại có chủ đích.** Đây là phần dự định làm
-tiếp, và dừng vì **bằng chứng chưa đủ**, không phải vì hết sức. Công thức Kua và
-trường hợp số 5 giờ đã có hai nguồn độc lập khớp nhau; nhưng **ranh giới năm**
-thực sự khác nhau giữa thực hành Việt (mốc Tết) và cổ điển (mốc Lập Xuân), và
-**bảng 8×8 hướng** chỉ tìm được ở một nguồn duy nhất mà bảng đó lại bất đối
-xứng ở 4/28 cặp — điều cách dạy Bát Trạch tiêu chuẩn không cho phép. Triển khai
-trên nền đó đúng là kiểu kết quả tự tin nhưng sai mà dự án này từ chối tạo ra.
-Thay vào đó, vòng nghiên cứu để lại **5 bất biến cấu trúc** làm tiêu chí nghiệm
-thu cho bảng ứng viên tiếp theo (xem `docs/RESEARCH_BLOCKERS.md` R7).
+**Cập nhật Phong Thủy Bát Trạch (2026-08-22):** Vòng nghiên cứu R7 thứ nhất đã
+**dừng lại có chủ đích** vì bảng 8×8 hướng chỉ tìm được ở một nguồn, mà bảng đó
+sai cấu trúc ở 4 ô. Vòng thứ hai tìm được **quy tắc sinh ra bảng đó** — và điều
+này đổi hẳn bản chất vấn đề: từ "64 ô phải tin" thành "8 trường hợp phải dẫn
+nguồn", cộng một bảng dẫn xuất *kiểm chứng được* với dữ liệu đã công bố.
+
+Quy tắc được coi là giả thuyết và mang đi kiểm: khớp **60/64** ô bảng tiếng Anh,
+khớp **8/8** trang cung Cấn của một nguồn Việt (kể cả hai ô tranh chấp, ở đó
+nguồn Việt bác bảng tiếng Anh). Bốn ô lệch được xác định là lỗi của một nguồn bằng
+ba luận cứ độc lập: nguồn Việt bác trực tiếp, tính đối xứng mà quy tắc dựa trên
+hiệu hào bảo đảm theo cấu trúc, và tỉ lệ 6:2 ngay trong chính bảng đó.
+
+**Ranh giới năm vẫn mở, và được *biểu diễn* chứ không chọn.** Thực hành Việt dùng
+năm âm lịch, cổ điển dùng Lập Xuân, không nguồn nào phân định — và **kết luận R18
+của Bát Tự không chuyển sang được**, vì bằng chứng của R18 nói về bảng Tứ Trụ, chứ
+không nói về thực hành cung phi. Engine tính **cả hai**: trùng nhau (đại đa số) thì
+cho đáp án dứt khoát; khác nhau thì nêu cả hai, không công bố bảng tám hướng, và
+không phát tín hiệu. R7 vì thế là `PARTIALLY_RESOLVED` — làm tròn lên `RESOLVED`
+sẽ làm một câu hỏi còn mở trở nên vô hình.
+
+Đây cũng là **tín hiệu Phong Thủy đầu tiên tới Fusion** — nhưng chỉ khi người dùng
+nhập hướng nhà/phòng: Bát Trạch xét quan hệ giữa người và một hướng, nên cung phi
+đứng một mình là thông tin, không phải phán định.
 
 **Cập nhật Bát Tự (2026-08-22):** Phase 8 được **tách làm hai** — 8a lập lá số,
 8b luận giải (`docs/DECISION_LOG.md`). Cả ba mục chặn Phase 8 (R1 Dụng Thần,
@@ -160,7 +176,7 @@ bảng nhãn sang TypeScript) đều tệ hơn.
 
 **Cập nhật Calendar Engine (2026-08-19):** R10 (ranh giới giờ Tý 23:00 + chính sách giờ mặt trời) đã được chủ dự án chốt. R9, R14a, R15, R16 (tiết khí, múi giờ lịch sử, điểm sóc, tháng nhuận) đã **`RESOLVED`** — cài đặt độc lập bằng Java, trích dẫn Jean Meeus *Astronomical Algorithms* (1998), đối chiếu byte-chính-xác với 2 bản port cộng đồng lâu năm và golden-test trực tiếp với bảng ví dụ gốc của Hồ Ngọc Đức. Riêng **ranh giới địa lý Bắc/Nam** giai đoạn 1955–1975 (R14b) vẫn `RESEARCH_REQUIRED` — không có nguồn nào cho phần này; một lần tính rơi vào vùng chưa xác định sẽ trả về "chưa xác định được", không suy đoán. Chi tiết ở `docs/RESEARCH_BLOCKERS.md` và `docs/DECISION_LOG.md` (không push lên git).
 
-12 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 3 `PRODUCTION_READY` (Tarot, Numerology Pythagoras, Lịch Việt Nam truyền thống), 1 `CONTENT_REQUIRED` tính được (`BAZI_TUBINH_CHART` — lập lá số Tứ Trụ), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`. Phase 8 chiếm **hai** entry chứ không phải một: gộp lại thì buộc phải nói sai theo hướng này (che một lá số đang chạy được sau `RESEARCH_REQUIRED`) hoặc hướng kia (hàm ý đã có Dụng Thần).
+12 methodology đã được đăng ký vào registry với trạng thái thật (đối chiếu `docs/RESEARCH_BLOCKERS.md`): 4 `PRODUCTION_READY` (Tarot, Numerology Pythagoras, Lịch Việt Nam truyền thống, Phong Thủy Bát Trạch), 1 `CONTENT_REQUIRED` tính được (`BAZI_TUBINH_CHART` — lập lá số Tứ Trụ), còn lại `RESEARCH_REQUIRED`/`DECISION_REQUIRED`/`OUT_OF_SCOPE`. Phase 8 chiếm **hai** entry chứ không phải một: gộp lại thì buộc phải nói sai theo hướng này (che một lá số đang chạy được sau `RESEARCH_REQUIRED`) hoặc hướng kia (hàm ý đã có Dụng Thần).
 
 Các engine chưa triển khai **vẫn được đăng ký và hiển thị**, kèm lý do — thay vì bị ẩn đi. Người dùng nhìn thấy `Chưa triển khai` hoặc `Cần xác minh thuật toán`, không phải một câu trả lời tự tin nhưng sai.
 
@@ -232,7 +248,7 @@ OpenRouter thay đổi theo thời gian, phải tự xác nhận model còn kh�
 Gọi `POST /api/v1/calculations/{id}/narrative` sau khi đã có `calculationId`
 từ một lần chạy kịch bản.
 
-Bộ test hiện tại — 406 test:
+Bộ test hiện tại — 454 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
@@ -246,6 +262,7 @@ Bộ test hiện tại — 406 test:
 - **Lưu trữ tính toán** — round-trip đầy đủ Calculation/Evidence/Signal/Fusion/Conflict, `result_hash` giống hệt nhau khi cùng input/version/seed/outcome và khác nhau khi bất kỳ yếu tố nào đổi
 - **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
 - **REST API** — unit test cho từng service (dùng `StubEngine` cục bộ, không phụ thuộc engine thật), slice `@WebMvcTest` cho từng controller (status code, `ApiExceptionHandler`, methodology bị chặn nghiên cứu trả 200 chứ không phải 404), và một test tích hợp HTTP đầu-cuối chạy `TarotEngine`+`NumerologyEngine` thật qua cổng ngẫu nhiên, có ghi vào database rồi đọc lại đúng `resultHash`
+- **Bát Trạch** — 4 hàng golden từ nguồn đã công bố và 6 bất biến cấu trúc (đối xứng, hình vuông Latin Đông×Tây, Phục Vị chỉ ở chính hướng…); quét 1900–2100 × 2 giới tính xác nhận không bao giờ lọt ra cung 5; ba mức hung không bị làm phẳng (Hoạ Hại ra `CAUTION`, Tuyệt Mệnh ra `NEGATIVE`); thiếu giới tính là lỗi đầu vào chứ không phải giá trị mặc định; mâu thuẫn ranh giới năm nêu cả hai cung phi và không phát tín hiệu
 - **Retention** — kết quả đã lưu sống sót dù đã quá hạn (assertion quan trọng nhất: đây là ca mà job sẽ hủy thứ người dùng chủ động yêu cầu giữ), dry-run không xóa gì nhưng vẫn ghi audit, xóa đúng thứ tự khóa ngoại trên fixture *đầy đủ* (evidence + signal trích evidence + fusion + conflict), chạy hai lần thì lần sau không còn gì, thời hạn ≤ 0 bị từ chối lúc khởi động, và `EPHEMERAL` không có expiry là **không biểu diễn được**
 - **Bát Tự** — golden test đối chiếu bảng Tứ Trụ đã công bố cho 6 mốc, trong đó cặp 4/5-02-1984 nằm hai bên Lập Xuân (23:18:44 giờ Bắc Kinh) trong khi Tết 1984 đã qua từ 2/2 — đúng cặp phân biệt quy ước Lập Xuân với quy ước Tết; quy tắc Thập Thần kiểm cả 100 cặp can và xác nhận mỗi Nhật Chủ ánh xạ song ánh lên 10 vai; không có signal nào; ba phần bị chặn có mã nghiên cứu và biến thể trường phái; không có giờ sinh thì không có Nhật Chủ và không có Thập Thần ở bất kỳ đâu; khoảng trống R14b trả `RESEARCH_REQUIRED` chứ không đoán múi giờ; mâu thuẫn R18 nêu cả hai đáp án; cờ ranh giới Tiết Khí có và không báo động giả
 - **Can Chi mở rộng** — bảng Ngũ Hành/Âm Dương, Thổ xuất hiện đúng 4 lần trong 12 chi, hai vòng Tương Sinh/Tương Khắc là song ánh và nghịch đảo của nhau, `relationTo` phân hoạch đúng 5 quan hệ; Tàng Can khớp cả hai nguồn và chính khí luôn trùng Ngũ Hành của chi; đúng Sửu và Tỵ được đánh cờ "thứ tự vai chưa thống nhất"; độ lệch thời điểm Tiết Khí được assert trực tiếp với hai mốc Lập Xuân đã công bố

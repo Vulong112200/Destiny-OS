@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.destinyos.api.dto.BaziRequest;
 import io.destinyos.api.dto.EvidenceDto;
+import io.destinyos.api.dto.FengShuiRequest;
 import io.destinyos.api.dto.RetentionDto;
 import io.destinyos.api.dto.NumerologyRequest;
 import io.destinyos.api.dto.ScenarioRunRequest;
@@ -55,7 +56,7 @@ class ScenarioApiIntegrationTest {
         var request = new ScenarioRunRequest(
                 new NumerologyRequest("Nguyễn Văn A", LocalDate.of(1990, 5, 15)),
                 new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 42L, "Tôi có nên mở rộng kinh doanh không?"),
-                null);
+                null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -144,7 +145,7 @@ class ScenarioApiIntegrationTest {
     @Test
     @DisplayName("A scenario with no defined applicability policy runs zero engines rather than guessing one")
     void undefinedPolicyScenarioRunsNothing() {
-        var request = new ScenarioRunRequest(null, null, null);
+        var request = new ScenarioRunRequest(null, null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/career", request, ScenarioRunResponse.class);
@@ -181,7 +182,8 @@ class ScenarioApiIntegrationTest {
         // engine, evidence mapping, and the database round-trip - agrees with
         // the published table, not just the engine in isolation.
         var request = new ScenarioRunRequest(null, null,
-                new BaziRequest(LocalDate.of(1984, 2, 5), LocalTime.of(12, 0), "UNKNOWN", null));
+                new BaziRequest(LocalDate.of(1984, 2, 5), LocalTime.of(12, 0), "UNKNOWN", null),
+                null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -229,7 +231,7 @@ class ScenarioApiIntegrationTest {
         // omitted the time, so there is no Day Master and therefore no Thập
         // Thần anywhere - not a Thập Thần computed against something else.
         var request = new ScenarioRunRequest(null, null,
-                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null));
+                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null), null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -305,7 +307,7 @@ class ScenarioApiIntegrationTest {
         // about it, which is why this exercises all four steps rather than just
         // asserting the field is present.
         var request = new ScenarioRunRequest(
-                new NumerologyRequest("Nguyễn Văn B", LocalDate.of(1988, 7, 7)), null, null);
+                new NumerologyRequest("Nguyễn Văn B", LocalDate.of(1988, 7, 7)), null, null, null);
 
         ResponseEntity<ScenarioRunResponse> run = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -352,12 +354,135 @@ class ScenarioApiIntegrationTest {
         var tarot = new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 7L, null);
 
         var daily = rest.postForEntity("/api/v1/scenarios/daily_action",
-                new ScenarioRunRequest(null, tarot, null), ScenarioRunResponse.class);
+                new ScenarioRunRequest(null, tarot, null, null), ScenarioRunResponse.class);
         var business = rest.postForEntity("/api/v1/scenarios/business",
-                new ScenarioRunRequest(null, tarot, null), ScenarioRunResponse.class);
+                new ScenarioRunRequest(null, tarot, null, null), ScenarioRunResponse.class);
 
         assertThat(daily.getBody().retention().expiresAt())
                 .isBefore(business.getBody().retention().expiresAt());
+    }
+
+    @Test
+    @DisplayName("Bát Trạch with a facing direction produces a real signal through the full stack")
+    void fengShuiFacingDirectionYieldsRealSignal() {
+        // Phase 10's payoff: the first Phong Thủy signal to reach Fusion. A male
+        // born 1990 is cung Khảm (published fact), and Khảm's Sinh Khí is Đông
+        // Nam, so a house facing Đông Nam is thượng cát - SUPPORT at STRONG,
+        // read off the tradition rather than assigned by this project.
+        var request = new ScenarioRunRequest(null, null, null,
+                new FengShuiRequest(LocalDate.of(1990, 8, 20), null, "MALE", "UNKNOWN",
+                        null, "SOUTHEAST"));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        assertThat(body.engines()).anySatisfy(engine -> {
+            assertThat(engine.engine()).isEqualTo("FENGSHUI_KUA");
+            assertThat(engine.status().technical()).isEqualTo("SUCCESS");
+        });
+        assertThat(body.unavailableEngines()).doesNotContain("FENGSHUI_KUA");
+
+        assertThat(pillar(body.evidence(), "FENGSHUI_KUA_NUMBER"))
+                .containsEntry("trigram", "KHAM")
+                .containsEntry("kuaNumber", 1)
+                .containsEntry("group", "EAST")
+                .containsEntry("boundaryConventionsAgree", true);
+        assertThat(pillar(body.evidence(), "FENGSHUI_FACING_ASSESSMENT"))
+                .containsEntry("facingDirection", "SOUTHEAST")
+                .containsEntry("relation", "SINH_KHI")
+                .containsEntry("auspicious", true);
+
+        assertThat(body.signals())
+                .filteredOn(signal -> signal.engine().equals("FENGSHUI_KUA"))
+                .isNotEmpty()
+                .allSatisfy(signal -> {
+                    assertThat(signal.polarity().technical()).isEqualTo("SUPPORT");
+                    assertThat(signal.polarity().labelVi()).isEqualTo("Thuận lợi");
+                    assertThat(signal.strength().technical()).isEqualTo("STRONG");
+                });
+
+        // And it actually reached Fusion, which is the whole point of a signal.
+        assertThat(body.fusion()).isNotNull();
+        assertThat(body.fusion().supportingSources()).contains("FENGSHUI_KUA");
+    }
+
+    @Test
+    @DisplayName("Bát Trạch without a facing direction returns the eight directions and no signal")
+    void fengShuiWithoutDirectionEmitsNoSignal() {
+        // Bát Trạch judges a person against a direction. With no direction there
+        // is a profile but nothing to judge, and inventing a polarity for the
+        // profile alone would be fabrication.
+        var request = new ScenarioRunRequest(null, null, null,
+                new FengShuiRequest(LocalDate.of(1990, 8, 20), null, "MALE", null, null, null));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.signals()).noneMatch(s -> s.engine().equals("FENGSHUI_KUA"));
+
+        var directions = pillar(body.evidence(), "FENGSHUI_BAT_TRACH_DIRECTIONS");
+        assertThat(directions).hasSize(8);
+        // Khảm is Đông tứ, so its four cát directions are the East group's.
+        assertThat(directions)
+                .containsEntry("SOUTHEAST", "SINH_KHI")
+                .containsEntry("EAST", "THIEN_Y")
+                .containsEntry("SOUTH", "DIEN_NIEN")
+                .containsEntry("NORTH", "PHUC_VI")
+                .containsEntry("SOUTHWEST", "TUYET_MENH");
+    }
+
+    @Test
+    @DisplayName("A missing gender means Bát Trạch does not run at all, rather than guessing one")
+    void fengShuiWithoutGenderDoesNotRun() {
+        // The male and female Kua formulas differ and are not symmetric, so a
+        // default would hand half of users someone else's Kua number - a
+        // confident wrong answer rather than a degraded one.
+        var request = new ScenarioRunRequest(null, null, null,
+                new FengShuiRequest(LocalDate.of(1990, 8, 20), null, null, null, null,
+                        "SOUTHEAST"));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.engines()).noneMatch(e -> e.engine().equals("FENGSHUI_KUA"));
+        assertThat(body.unavailableEngines()).contains("FENGSHUI_KUA");
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .doesNotContain("FENGSHUI_KUA_NUMBER");
+    }
+
+    @Test
+    @DisplayName("A birth between Tết and Lập Xuân reports both Kua numbers and emits no signal")
+    void fengShuiYearBoundaryDisagreementIsSurfaced() {
+        // R7's one remaining open item, end to end. Tết 1984 fell on 2 February
+        // and Lập Xuân on the 4th: for a male born on the 3rd the Lập Xuân
+        // convention gives Cấn and the Tết convention Đoài. Neither is presented
+        // as the answer.
+        var request = new ScenarioRunRequest(null, null, null,
+                new FengShuiRequest(LocalDate.of(1984, 2, 3), null, "MALE", "UNKNOWN",
+                        null, "SOUTHEAST"));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        assertThat(pillar(body.evidence(), "FENGSHUI_KUA_NUMBER"))
+                .containsEntry("boundaryConventionsAgree", false)
+                .containsEntry("trigram", "CAN")
+                .containsEntry("trigramByTet", "DOAI");
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .as("one trigram's directions would present the Lập Xuân answer as the answer")
+                .doesNotContain("FENGSHUI_BAT_TRACH_DIRECTIONS");
+        assertThat(body.signals()).noneMatch(s -> s.engine().equals("FENGSHUI_KUA"));
     }
 
     @Test

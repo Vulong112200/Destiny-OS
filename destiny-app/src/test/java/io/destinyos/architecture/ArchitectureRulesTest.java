@@ -86,6 +86,7 @@ class ArchitectureRulesTest {
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.tarot"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.bazi"))
+                .anyMatch(p -> p.startsWith("io.destinyos.engines.fengshui"))
                 .anyMatch(p -> p.startsWith("io.destinyos.calendar"))
                 .anyMatch(p -> p.startsWith("io.destinyos.scenario"))
                 .anyMatch(p -> p.startsWith("io.destinyos.api"))
