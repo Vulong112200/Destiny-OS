@@ -100,7 +100,8 @@ public class ScenarioOrchestrationService {
                 evidenceDtos,
                 signalDtos,
                 fusionDto,
-                calculation.resultHash());
+                calculation.resultHash(),
+                RetentionDtoMapper.toDto(calculation));
     }
 
     private EngineOutcomeDto toEngineOutcomeDto(EngineExecution exec) {

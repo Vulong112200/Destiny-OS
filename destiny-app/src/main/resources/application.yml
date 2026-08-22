@@ -25,6 +25,19 @@ destiny:
   execution:
     default-timeout: 5s
     max-concurrency: 16
+  # Retention (CLAUDE.md section 7, DATA_MODEL_AND_RETENTION.md sections 8 and 11).
+  # Disabled by default: a scheduled job that deletes rows must be switched on
+  # deliberately by whoever runs the system, not arrive switched on. Durations
+  # default to the conservative end of the spec's ranges (30 days for daily
+  # readings out of 7-30, 90 for other transient runs out of 30-90) - keeping
+  # too long is the recoverable mistake.
+  retention:
+    enabled: ${DESTINY_RETENTION_ENABLED:false}
+    daily-duration: ${DESTINY_RETENTION_DAILY:30d}
+    transient-duration: ${DESTINY_RETENTION_TRANSIENT:90d}
+    batch-size: ${DESTINY_RETENTION_BATCH_SIZE:500}
+    cron: ${DESTINY_RETENTION_CRON:0 30 3 * * *}
+
   # AI is optional by architecture (ADR D8). Disabled by default so the
   # hard-data path is what runs unless someone deliberately turns narration on.
   # Setting enabled=true with no api-key/model configured still falls back

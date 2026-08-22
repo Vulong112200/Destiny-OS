@@ -1,6 +1,7 @@
 package io.destinyos.persistence.calculation;
 
 import io.destinyos.core.result.EngineStatus;
+import io.destinyos.core.retention.RetentionClass;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -72,6 +73,25 @@ public class CalculationEntity {
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    /**
+     * Why this row is kept (CLAUDE.md §7, V8 migration). Never null: a row
+     * whose retention class is unknown is a row nobody can safely delete
+     * <em>or</em> safely keep, so the field defaults to the honest reading of
+     * an unclassified scenario run rather than to null.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "retention_class", nullable = false, length = 20)
+    private RetentionClass retentionClass = RetentionClass.EPHEMERAL;
+
+    /**
+     * When the cleanup job becomes allowed to delete this row, or {@code null}
+     * for "never". Null is not "unset" — it is the positive statement that this
+     * row does not expire, which is why {@link #promoteToUserSaved()} clears it
+     * rather than pushing it far into the future.
+     */
+    @Column(name = "expires_at")
+    private Instant expiresAt;
 
     protected CalculationEntity() {
         // JPA
@@ -174,5 +194,49 @@ public class CalculationEntity {
 
     public Instant completedAt() {
         return completedAt;
+    }
+
+    public RetentionClass retentionClass() {
+        return retentionClass;
+    }
+
+    public Instant expiresAt() {
+        return expiresAt;
+    }
+
+    /**
+     * Applies a retention decision. Package-private on purpose: the decision
+     * belongs to {@code RetentionClassifier}, and letting arbitrary callers set
+     * a class and an expiry independently is how a PERSISTENT row ends up with
+     * an expiry date.
+     */
+    void applyRetention(RetentionClass retentionClass, Instant expiresAt) {
+        this.retentionClass = Objects.requireNonNull(retentionClass, "retentionClass");
+        if (!retentionClass.isAutoDeletable() && expiresAt != null) {
+            throw new IllegalArgumentException(
+                    "Retention class " + retentionClass + " is never auto-deleted, so an "
+                            + "expiry date would be misleading. Pass null.");
+        }
+        this.expiresAt = expiresAt;
+    }
+
+    /**
+     * The user asked to keep this result. Clears the expiry, because
+     * DATA_MODEL_AND_RETENTION.md §11 requires cleanup to never delete
+     * USER_SAVED and a leftover expiry date would tell the UI otherwise.
+     *
+     * <p>Idempotent, and deliberately one-way here: un-saving is a separate
+     * user action with its own consequences (it would re-arm deletion), and
+     * nothing in the product asks for it yet.
+     */
+    public void promoteToUserSaved() {
+        this.retentionClass = RetentionClass.USER_SAVED;
+        this.expiresAt = null;
+    }
+
+    /** Whether the cleanup job may delete this row as of {@code now}. */
+    public boolean isExpiredAt(Instant now) {
+        Objects.requireNonNull(now, "now");
+        return retentionClass.isAutoDeletable() && expiresAt != null && !expiresAt.isAfter(now);
     }
 }

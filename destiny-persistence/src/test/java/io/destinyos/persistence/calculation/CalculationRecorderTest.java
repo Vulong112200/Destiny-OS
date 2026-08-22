@@ -46,7 +46,10 @@ import org.springframework.context.annotation.Import;
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({TestApplication.class, CalculationRecorder.class})
+// RetentionConfiguration comes along because CalculationRecorder now needs a
+// RetentionClassifier to stamp each row's retention class (CLAUDE.md section 7).
+@Import({TestApplication.class, CalculationRecorder.class,
+        io.destinyos.persistence.retention.RetentionConfiguration.class})
 class CalculationRecorderTest {
 
     @Autowired

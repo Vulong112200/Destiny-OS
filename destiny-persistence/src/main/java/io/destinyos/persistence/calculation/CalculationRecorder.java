@@ -7,6 +7,7 @@ import io.destinyos.core.signal.Signal;
 import io.destinyos.execution.EngineExecution;
 import io.destinyos.execution.ExecutionOutcome;
 import io.destinyos.fusion.FusionResult;
+import io.destinyos.persistence.retention.RetentionClassifier;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
  * and {@code FusionResult} were all designed to be reproducible, but nothing
  * durably recorded them until now. A calculation run before this class
  * existed produced a correct answer that vanished the moment the JVM did.
+ *
+ * <p>Also assigns the row's retention class and expiry
+ * ({@link RetentionClassifier}, CLAUDE.md §7). Before that existed the
+ * opposite problem applied: every run, including a throwaway daily reading,
+ * was kept forever.
  */
 @Service
 public class CalculationRecorder {
@@ -37,19 +43,22 @@ public class CalculationRecorder {
     private final SignalRepository signalRepo;
     private final FusionResultRepository fusionResultRepo;
     private final ConflictRepository conflictRepo;
+    private final RetentionClassifier retentionClassifier;
 
     public CalculationRecorder(CalculationRepository calculations,
                                CalculationEngineResultRepository engineResults,
                                EvidenceRepository evidenceRepo,
                                SignalRepository signalRepo,
                                FusionResultRepository fusionResultRepo,
-                               ConflictRepository conflictRepo) {
+                               ConflictRepository conflictRepo,
+                               RetentionClassifier retentionClassifier) {
         this.calculations = calculations;
         this.engineResults = engineResults;
         this.evidenceRepo = evidenceRepo;
         this.signalRepo = signalRepo;
         this.fusionResultRepo = fusionResultRepo;
         this.conflictRepo = conflictRepo;
+        this.retentionClassifier = retentionClassifier;
     }
 
     /**
@@ -122,7 +131,18 @@ public class CalculationRecorder {
                     conflictRepo.save(new ConflictEntity(context.calculationId(), conflict)));
         }
 
-        calculation.markCompleted(execution.overallStatus(), resultHash, Instant.now());
+        Instant completedAt = Instant.now();
+        calculation.markCompleted(execution.overallStatus(), resultHash, completedAt);
+
+        // Retention is decided here, once, and stored (CLAUDE.md §7). Deciding
+        // it at cleanup time instead would mean an operator shortening
+        // destiny.retention.daily-duration retroactively condemns readings that
+        // were written under the old rule - a config edit quietly becoming a
+        // deletion. Measured from completedAt rather than a fresh
+        // Instant.now() so re-recording the same run is reproducible.
+        var decision = retentionClassifier.classify(scenarioId, completedAt);
+        calculation.applyRetention(decision.retentionClass(), decision.expiresAt());
+
         return calculations.save(calculation);
     }
 

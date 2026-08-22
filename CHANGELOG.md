@@ -8,6 +8,150 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Retention: dữ liệu không còn được giữ mãi mãi (CLAUDE.md §7)
+
+Trước thay đổi này **mọi calculation được lưu vĩnh viễn**, kể cả một lượt xem
+"hôm nay nên làm gì" dùng một lần. CLAUDE.md §7 cấm đúng điều đó
+(*"Không lưu mọi JSON khổng lồ mãi mãi trong hot relational tables"*), và
+`DATA_MODEL_AND_RETENTION.md` §7–§8, §11 đã đặc tả chi tiết từ đầu. Khoảng
+trống này vô hình vì không có gì hỏng — database chỉ đơn giản là phình lên.
+
+- **`RetentionClass`** (destiny-core): `PERSISTENT`, `USER_SAVED`, `EPHEMERAL`,
+  `AUDIT`. Enum nói **vì sao** một bản ghi được giữ, không nói giữ *bao lâu* —
+  thời hạn thuộc policy cấu hình được (§8), còn class là bản chất của bản ghi
+  và không đổi khi người vận hành sửa một con số. `isAutoDeletable()` chỉ đúng
+  với `EPHEMERAL`, viết thành method để một class mới trong tương lai **buộc**
+  phải ra quyết định ở một chỗ, thay vì âm thầm mặc định là xóa được
+- **`V8__add_retention.sql`**: hai cột `retention_class` + `expires_at` trên
+  `calculations` (hai cột, không phải một — class nói *vì sao*, expiry là kết
+  quả policy; gộp lại thì "đã lưu" và "hết hạn ngày 21" thành cùng một
+  trường), index `(retention_class, expires_at)` cho đúng một truy vấn mà job
+  dọn dẹp cần, và bảng **`retention_runs`** làm audit trail
+- **`RetentionClassifier`**: quyết định class + expiry **một lần, lúc ghi**, và
+  lưu lại. Suy lại policy lúc dọn dẹp sẽ khiến người vận hành rút ngắn
+  `daily-duration` là *hồi tố* tuyên án những bản ghi viết theo luật cũ — một
+  lần sửa config âm thầm biến thành một lần xóa. Đo từ `completedAt` chứ không
+  phải `Instant.now()` nên ghi lại cùng một lần chạy cho cùng kết quả
+  (Master Spec §25)
+- **`CalculationPurger`**: xóa một calculation và toàn bộ bản ghi con trong
+  **transaction riêng** (`REQUIRES_NEW`). Dùng chung một transaction thì một
+  dòng lỗi sẽ đánh dấu rollback-only và kéo theo 499 dòng còn lại — im lặng.
+  Đặt ở bean riêng vì Spring bỏ qua `@Transactional` khi gọi nội bộ cùng
+  class, nên một helper cùng class sẽ chỉ *trông như* được cô lập
+- **`CalculationRetentionService`**: đủ những gì §11 nêu — chọn theo retention
+  class, **dry-run**, **audit**, **batch delete**, **retry có giới hạn** (2 lần,
+  CLAUDE.md §5 cấm retry vô hạn), và **không bao giờ chạm vào `USER_SAVED`**.
+  Cố ý **không** `@Transactional` để không phá cơ chế cô lập ở trên
+- **`RetentionScheduler`** (destiny-app): `@ConditionalOnProperty` — **tắt mặc
+  định, và khi tắt thì bean không tồn tại**. Một `if` bên trong method sẽ để
+  lại một scheduled task đang sống, chỉ cách một lần refactor là bắt đầu xóa
+  thật. Mỗi lần chạy đúng một batch, không lặp cho tới cạn: một backlog rút
+  dần qua nhiều đêm giúp bán kính thiệt hại của một cấu hình sai chỉ bằng
+  `batchSize`, và người vận hành còn một đêm để nhận ra
+- **Thời hạn mặc định 30 ngày (đọc hằng ngày) và 90 ngày (kịch bản khác)** —
+  §8 cho khoảng 7–30 và 30–90, cả hai mặc định lấy **đầu dài**. Giữ quá lâu là
+  sai lầm còn cứu được; xóa quá sớm thì không
+
+### Added — API và UI cho retention
+
+- `ScenarioRunResponse` có thêm khối `retention` — **luôn có**, không phải khi
+  hỏi mới trả. Một hệ thống âm thầm xóa kết quả của người dùng sau 30 ngày mà
+  không nói gì là đang giữ lại đúng thứ người dùng cần để hành động, cùng lý
+  do khiến `Uncertainty` phải đi tới được giao diện thay vì bị giải quyết nội bộ
+- **`POST /api/v1/calculations/{id}/save`** (mới) — chuyển kết quả sang
+  `USER_SAVED` và **xóa hẳn expiry** (null, không phải năm 9999: giao diện phải
+  nói được "sẽ không bị xóa" mà không cần diễn giải một ngày tháng).
+  Idempotent: bấm hai lần không phải lỗi của người dùng
+- `RetentionDtoMapper` dùng chung cho đường ghi và đường đọc, nên một kết quả
+  không thể báo một hạn lúc tạo ra và một hạn khác lúc đọc lại
+- **`RetentionNotice`** (frontend): hiện **đầu trang kết quả** — nó nói về việc
+  kết quả này ngày mai còn tồn tại hay không, điều đó xếp trên mọi nội dung mà
+  kết quả nói. Hiện *luôn*, không chỉ khi gần hết hạn: một thông báo chỉ xuất
+  hiện sát hạn sẽ dạy người đọc rằng kết quả là vĩnh viễn — đúng cái giả định
+  làm cho việc tự động xóa trở thành mất dữ liệu. Nêu ngày cụ thể, không phải
+  "còn 12 ngày" (sẽ sai ngay khi trang được cache)
+
+### Fixed
+
+- `expires_at` không round-trip chính xác qua database: PostgreSQL và H2 lưu
+  `timestamp with time zone` ở độ chính xác micro giây, nên một `Instant` mang
+  nano giây quay ra khác lúc ghi vào — API báo **hai** thời điểm hết hạn khác
+  nhau cho cùng một dòng, một lúc chạy và một lúc đọc lại. Phát hiện bởi test
+  đầu-cuối thật. Sửa bằng cách truncate về mili giây ngay trong
+  `RetentionClassifier`: với policy tính theo ngày thì các chữ số bị bỏ là
+  nhiễu, còn tái lập được chính xác thì đáng giá hơn (Master Spec §25)
+
+### Changed
+
+- `RetentionClass` được thêm vào registry nhãn tiếng Việt và vào
+  `LabelCoverageTest`, kèm một test riêng chặn **nhãn nói giảm nói tránh**:
+  "Tạm thời" đúng về mặt kỹ thuật với một kết quả `EPHEMERAL` nhưng không nói
+  gì về việc sẽ bị xóa, nên nhãn buộc phải nêu ra
+- `ScenarioRunResponse` thêm trường thứ mười `retention` (đổi arity của record)
+
+### Nghiên cứu — R7 (Phong Thủy Kua): đóng 2/5, **vẫn chưa triển khai**
+
+Phase 10 là phần dự định làm trong phiên này và **đã dừng lại vì bằng chứng,
+không phải vì hết sức**. Ghi lại đầy đủ ở `docs/RESEARCH_BLOCKERS.md` R7:
+
+- **Đã đóng — công thức Kua và trường hợp số 5.** Hai nguồn độc lập khớp nhau
+  hoàn toàn, kể cả mốc chia tại năm 2000: nam `10 − a` (trước 2000) / `9 − a`
+  (từ 2000), nữ `5 + a` / `6 + a`; ra 5 thì nam về Khôn (2), nữ về Cấn (8).
+  Đối chiếu được với một dữ kiện độc lập (nam sinh 1990 là cung Khảm)
+- **Vẫn chặn — ranh giới năm.** Nguồn Việt tính theo **năm âm lịch** (mốc Tết);
+  nguồn cổ điển/Anh ngữ tính theo **năm mặt trời** (mốc Lập Xuân). Cả hai đều
+  nói rõ ràng. Kết luận R18 của Bát Tự **không** chuyển sang được: R18 chọn Lập
+  Xuân *cho Bát Tự* dựa trên bảng Tứ Trụ đã công bố, và bằng chứng đó không nói
+  gì về thực hành Kua. Chọn Lập Xuân ở đây chỉ vì engine bên cạnh đã chọn chính
+  là kiểu âm thầm chọn trường phái mà Rule D cấm
+- **Vẫn chặn — bảng 8×8 hướng.** Chỉ tìm được **một** nguồn có bảng đầy đủ, và
+  bảng đó **bất đối xứng** ở đúng 4/28 cặp — điều mà cách dạy Bát Trạch tiêu
+  chuẩn (các cặp quái tương hỗ) không cho phép. Các trang riêng từng cung của
+  chính nguồn đó tái hiện y nguyên sự bất đối xứng, nên đó là điều nguồn ấy
+  dạy, không phải một lỗi chép ở một trang
+- **Sản phẩm hữu ích nhất của vòng này:** **5 bất biến cấu trúc** mà bất kỳ bảng
+  ứng viên nào cũng phải thỏa (mỗi hàng là một phép thế của 8 sao; Phục Vị nằm
+  ở chính hướng của cung; 4 hướng tốt luôn nằm trong nhóm Đông/Tây của mình;
+  đối xứng `rel(A, hướng-B) == rel(B, hướng-A)`; 4 quan hệ xấu tạo thành một
+  hình vuông Latin trên Đông×Tây). Vòng nghiên cứu sau có **tiêu chí nghiệm
+  thu**, không chỉ có hy vọng — và chính bất biến (4) đã bắt được một bảng
+  dựng lại từ quy tắc nhớ được, ở bản nháp đầu của vòng này
+
+### Tests
+
+406 test (tăng từ 372):
+
+- **`RetentionClassifier` (11)** — không cần container, vì một câu trả lời sai
+  ở đây là mất dữ liệu và việc kiểm chứng nó không nên phụ thuộc vào việc
+  Spring context có khởi động đúng hay không. Đọc hằng ngày hết hạn sớm hơn
+  kịch bản khác; khớp scenario không phân biệt hoa thường (API nhận
+  `/scenarios/daily_action` chữ thường — một classifier chỉ khớp chữ hoa sẽ âm
+  thầm cho đọc hằng ngày 90 ngày); expiry đo từ lúc hoàn thành nên tái lập
+  được; expiry truncate về mili giây; thời hạn ≤ 0 bị từ chối **lúc khởi động**
+  chứ không phải lúc xóa; và hai nửa của một bất biến đều **không biểu diễn
+  được**: `EPHEMERAL` không có expiry (giữ mãi mãi mà mang nhãn tạm thời), và
+  class không-tự-xóa mà lại có expiry
+- **`CalculationRetentionService` (14)** — trên schema thật. Viết theo hướng
+  *những gì không bao giờ được xảy ra*: kết quả đã lưu **sống sót dù đã quá
+  hạn** (§11 "không xóa USER_SAVED" — assertion quan trọng nhất trong file),
+  dry-run không xóa gì nhưng **vẫn ghi audit** (một lần diễn tập đã xảy ra khác
+  với chưa từng chạy), xóa không được vướng khóa ngoại của chính nó. Mọi fixture
+  là một calculation **đầy đủ** — evidence, signal trích evidence đó, fusion
+  result kèm conflict — vì một test purge dựng trên một dòng `calculations`
+  trơ sẽ xanh trong khi thứ tự xóa thật đang sai
+- **Tích hợp HTTP đầu-cuối (+2)** — vòng tròn đầy đủ: chạy → đọc lại → lưu →
+  đọc lại, xác nhận cả bốn bước đồng ý về retention; và đọc hằng ngày có hạn
+  ngắn hơn kịch bản BUSINESS qua HTTP thật (ánh xạ scenario → thời hạn đi qua
+  ba lớp)
+- **Wiring của scheduler (4)** — hai Spring context riêng, vì property này
+  quyết định **bean có tồn tại hay không**, không phải bean hành xử thế nào. Ca
+  quan trọng nhất là mặc định-tắt: một môi trường chưa từng yêu cầu tự động xóa
+  thì không được có một scheduled task đang sống, và cách duy nhất chắc chắn là
+  assert bean **vắng mặt** — test nội dung method vẫn sẽ xanh dù task đang sống
+  trong container. Ca bật thì xác nhận thời hạn do người vận hành đặt thắng mặc
+  định (7 ngày — đúng giới hạn dưới của §8)
+
+
 ### Added — Phase 8a: Bát Tự lập lá số Tứ Trụ (`destiny-engine-bazi`)
 
 Phase 8 được **tách làm hai** (xem `docs/DECISION_LOG.md`, 2026-08-22): 8a lập

@@ -2,6 +2,7 @@ import type {
   ErrorResponse,
   LabelRegistries,
   MethodologyDto,
+  RetentionDto,
   ScenarioRunRequestInput,
   ScenarioRunResponse,
   SupportedScenarioType,
@@ -69,6 +70,20 @@ export function runScenario(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+/**
+ * Keeps a calculation indefinitely (retention class `USER_SAVED`).
+ *
+ * Unlike `findCalculation`, a 404 here is allowed to throw: the user pressed a
+ * button and is owed an error message, whereas a missing calculation on a page
+ * load is a state the page can render honestly.
+ */
+export function saveCalculation(calculationId: string): Promise<RetentionDto> {
+  return request<RetentionDto>(
+    `/api/v1/calculations/${encodeURIComponent(calculationId)}/save`,
+    { method: "POST" },
+  );
 }
 
 /** Returns `null` on a 404 (unknown calculation id) rather than throwing - callers render "not found" honestly. */

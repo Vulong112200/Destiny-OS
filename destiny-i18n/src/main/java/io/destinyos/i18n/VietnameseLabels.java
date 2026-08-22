@@ -10,6 +10,7 @@ import io.destinyos.calendar.YinYang;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.evidence.DataConfidence;
 import io.destinyos.core.result.EngineStatus;
+import io.destinyos.core.retention.RetentionClass;
 import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
@@ -355,6 +356,19 @@ public final class VietnameseLabels {
         map.put(BaziYearBoundary.LUNAR_NEW_YEAR, "Đổi năm tại Tết (chưa triển khai)");
     });
 
+    /**
+     * Why a stored result is kept (CLAUDE.md section 7). Worded from the
+     * reader's point of view, not the operator's: {@code EPHEMERAL} says what
+     * will happen to their result, and says it plainly rather than hiding a
+     * scheduled deletion behind a neutral word like "tạm thời".
+     */
+    private static final Map<RetentionClass, String> RETENTION_CLASS = ordered(map -> {
+        map.put(RetentionClass.PERSISTENT, "Lưu lâu dài");
+        map.put(RetentionClass.USER_SAVED, "Bạn đã lưu — không tự động xóa");
+        map.put(RetentionClass.EPHEMERAL, "Sẽ tự động xóa khi hết hạn lưu");
+        map.put(RetentionClass.AUDIT, "Bản ghi kiểm toán — không tự động xóa");
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -439,6 +453,10 @@ public final class VietnameseLabels {
         return require(BAZI_YEAR_BOUNDARY, value);
     }
 
+    public static String of(RetentionClass value) {
+        return require(RETENTION_CLASS, value);
+    }
+
     /** One pillar rendered the way a reader expects it, e.g. "Giap Ty". */
     public static String pillar(HeavenlyStem stem, EarthlyBranch branch) {
         return of(stem) + " " + of(branch);
@@ -464,7 +482,7 @@ public final class VietnameseLabels {
                 DIMENSION, DATA_CONFIDENCE, UNCERTAINTY, DIMENSION_STATE, FUSION_OUTCOME,
                 CONFLICT_TYPE, METHODOLOGY_STATUS, NARRATIVE_SOURCE, FALLBACK_REASON,
                 HEAVENLY_STEM, EARTHLY_BRANCH, FIVE_ELEMENT, YIN_YANG, SOLAR_TERM,
-                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY);
+                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, RETENTION_CLASS);
     }
 
     /**

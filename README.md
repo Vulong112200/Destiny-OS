@@ -81,12 +81,44 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả, đã có kết quả thật từ engine thật |
 | 7 | Scenario | Xong — 2/10 scenario có chính sách thật (BUSINESS, DAILY_ACTION), 8 còn lại đăng ký nhưng chưa có chính sách |
 | — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | Xong — `CalculationRecorder`, `result_hash` tái lập được |
+| — | **Retention & dọn dẹp (V8)** | **Xong** — phân loại lúc ghi, dry-run, audit trail, batch delete, retry có giới hạn, không bao giờ xóa `USER_SAVED`; tắt mặc định |
 | — | REST API (`destiny-api`) | Xong — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
 | — | Frontend (`destiny-web`) | **Xong** — Tổng quan, Trung tâm quyết định (có ô nhập Bát Tự), Bảng Tứ Trụ, Lịch sử; 10 mục nav còn lại ghi "Sắp ra mắt" |
 | 12 | AI Narrative (`destiny-ai`) | **Xong** — pruning, prompt, provider OpenRouter (tùy chọn, tắt mặc định), fallback phi-AI luôn render được; lưu trữ V7 |
 | **8a** | **Bát Tự — lập lá số Tứ Trụ** | **Xong** — Tứ Trụ theo Tử Bình (Lập Xuân + Tiết Khí), Tàng Can, Thập Thần, đếm Ngũ Hành; golden test đối chiếu bảng đã công bố |
 | 8b | Bát Tự — luận giải (Dụng Thần, Đại Vận, cường độ Nhật Chủ) | Chờ nghiên cứu (R1, R2, R3) |
 | 9–11 | Tử Vi, Phong Thủy, Chiêm tinh | Chờ nghiên cứu |
+
+**Cập nhật Retention (2026-08-22):** Trước đây **mọi calculation được lưu vĩnh
+viễn**, kể cả một lượt xem "hôm nay nên làm gì" dùng một lần — trái trực tiếp
+CLAUDE.md §7. Khoảng trống này vô hình vì không có gì hỏng, database chỉ phình
+lên. Nay mỗi lần tính được phân loại (`EPHEMERAL` / `USER_SAVED` /
+`PERSISTENT` / `AUDIT`) và gắn hạn **ngay lúc ghi**, có job dọn dẹp đúng theo
+`DATA_MODEL_AND_RETENTION.md` §11: dry-run, audit trail, batch delete, retry có
+giới hạn, và **không bao giờ xóa `USER_SAVED`**.
+
+Ba điểm thiết kế đáng nói:
+
+1. **Job tắt mặc định, và khi tắt thì bean không tồn tại.** Một `if` bên trong
+   method sẽ để lại một scheduled task đang sống, chỉ cách một lần refactor là
+   bắt đầu xóa thật.
+2. **Phân loại lúc ghi, không phải lúc dọn.** Suy lại policy lúc dọn dẹp sẽ
+   khiến việc rút ngắn thời hạn lưu trở thành *hồi tố* — một lần sửa config âm
+   thầm biến thành một lần xóa.
+3. **Người dùng có đường thoát, và được cho biết trước.** Trang kết quả nêu
+   ngày sẽ xóa kèm nút "Lưu kết quả" (`POST /api/v1/calculations/{id}/save`).
+   Nếu không có cách chạm tới `USER_SAVED`, quy tắc "không xóa USER_SAVED" chỉ
+   là một nhánh chưa từng được kiểm.
+
+**Phong Thủy Kua (Phase 10) đã dừng lại có chủ đích.** Đây là phần dự định làm
+tiếp, và dừng vì **bằng chứng chưa đủ**, không phải vì hết sức. Công thức Kua và
+trường hợp số 5 giờ đã có hai nguồn độc lập khớp nhau; nhưng **ranh giới năm**
+thực sự khác nhau giữa thực hành Việt (mốc Tết) và cổ điển (mốc Lập Xuân), và
+**bảng 8×8 hướng** chỉ tìm được ở một nguồn duy nhất mà bảng đó lại bất đối
+xứng ở 4/28 cặp — điều cách dạy Bát Trạch tiêu chuẩn không cho phép. Triển khai
+trên nền đó đúng là kiểu kết quả tự tin nhưng sai mà dự án này từ chối tạo ra.
+Thay vào đó, vòng nghiên cứu để lại **5 bất biến cấu trúc** làm tiêu chí nghiệm
+thu cho bảng ứng viên tiếp theo (xem `docs/RESEARCH_BLOCKERS.md` R7).
 
 **Cập nhật Bát Tự (2026-08-22):** Phase 8 được **tách làm hai** — 8a lập lá số,
 8b luận giải (`docs/DECISION_LOG.md`). Cả ba mục chặn Phase 8 (R1 Dụng Thần,
@@ -200,7 +232,7 @@ OpenRouter thay đổi theo thời gian, phải tự xác nhận model còn kh�
 Gọi `POST /api/v1/calculations/{id}/narrative` sau khi đã có `calculationId`
 từ một lần chạy kịch bản.
 
-Bộ test hiện tại — 372 test:
+Bộ test hiện tại — 406 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
@@ -214,6 +246,7 @@ Bộ test hiện tại — 372 test:
 - **Lưu trữ tính toán** — round-trip đầy đủ Calculation/Evidence/Signal/Fusion/Conflict, `result_hash` giống hệt nhau khi cùng input/version/seed/outcome và khác nhau khi bất kỳ yếu tố nào đổi
 - **persistence & registry** — round-trip identity, guard "status cho phép tính toán thì bắt buộc có school/source", độ chính xác của 11 methodology đã seed đối chiếu `RESEARCH_BLOCKERS.md`, và một smoke test khởi động toàn bộ Spring context thật
 - **REST API** — unit test cho từng service (dùng `StubEngine` cục bộ, không phụ thuộc engine thật), slice `@WebMvcTest` cho từng controller (status code, `ApiExceptionHandler`, methodology bị chặn nghiên cứu trả 200 chứ không phải 404), và một test tích hợp HTTP đầu-cuối chạy `TarotEngine`+`NumerologyEngine` thật qua cổng ngẫu nhiên, có ghi vào database rồi đọc lại đúng `resultHash`
+- **Retention** — kết quả đã lưu sống sót dù đã quá hạn (assertion quan trọng nhất: đây là ca mà job sẽ hủy thứ người dùng chủ động yêu cầu giữ), dry-run không xóa gì nhưng vẫn ghi audit, xóa đúng thứ tự khóa ngoại trên fixture *đầy đủ* (evidence + signal trích evidence + fusion + conflict), chạy hai lần thì lần sau không còn gì, thời hạn ≤ 0 bị từ chối lúc khởi động, và `EPHEMERAL` không có expiry là **không biểu diễn được**
 - **Bát Tự** — golden test đối chiếu bảng Tứ Trụ đã công bố cho 6 mốc, trong đó cặp 4/5-02-1984 nằm hai bên Lập Xuân (23:18:44 giờ Bắc Kinh) trong khi Tết 1984 đã qua từ 2/2 — đúng cặp phân biệt quy ước Lập Xuân với quy ước Tết; quy tắc Thập Thần kiểm cả 100 cặp can và xác nhận mỗi Nhật Chủ ánh xạ song ánh lên 10 vai; không có signal nào; ba phần bị chặn có mã nghiên cứu và biến thể trường phái; không có giờ sinh thì không có Nhật Chủ và không có Thập Thần ở bất kỳ đâu; khoảng trống R14b trả `RESEARCH_REQUIRED` chứ không đoán múi giờ; mâu thuẫn R18 nêu cả hai đáp án; cờ ranh giới Tiết Khí có và không báo động giả
 - **Can Chi mở rộng** — bảng Ngũ Hành/Âm Dương, Thổ xuất hiện đúng 4 lần trong 12 chi, hai vòng Tương Sinh/Tương Khắc là song ánh và nghịch đảo của nhau, `relationTo` phân hoạch đúng 5 quan hệ; Tàng Can khớp cả hai nguồn và chính khí luôn trùng Ngũ Hành của chi; đúng Sửu và Tỵ được đánh cờ "thứ tự vai chưa thống nhất"; độ lệch thời điểm Tiết Khí được assert trực tiếp với hai mốc Lập Xuân đã công bố
 - **AI Narrative** — pruning đúng thứ tự ưu tiên và ngân sách 8–20 signal (không bao giờ loại critical để lấy chỗ), prompt hệ thống chứa nguyên văn từng điều cấm của đặc tả, parser từ chối JSON hỏng/rỗng/kèm văn bản thừa, mọi nhánh lỗi provider (timeout, 429, 5xx, unavailable) đều rơi về fallback phi-AI dựng từ đúng dữ liệu tính toán — không throw, không render trống; provider OpenRouter được test bằng `MockRestServiceServer` giả HTTP (không gọi mạng thật); test tích hợp đầu-cuối gọi `POST`/`GET /api/v1/calculations/{id}/narrative` thật qua Spring context thật, AI tắt theo mặc định nên xác nhận đúng nhánh fallback thật, không phải mock

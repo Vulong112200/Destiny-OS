@@ -8,7 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.destinyos.api.dto.ScenarioRunRequest;
+import io.destinyos.api.dto.LabeledValue;
+import io.destinyos.api.dto.RetentionDto;
 import io.destinyos.api.dto.ScenarioRunResponse;
+import io.destinyos.core.retention.RetentionClass;
+import io.destinyos.i18n.VietnameseLabels;
+import java.time.Instant;
 import io.destinyos.api.service.ScenarioOrchestrationService;
 import io.destinyos.scenario.ScenarioType;
 import java.util.List;
@@ -38,7 +43,8 @@ class ScenarioControllerTest {
     @Test
     void runsAValidScenarioAndReturnsTheOrchestrationResult() throws Exception {
         var fixture = new ScenarioRunResponse("calc-1", "BUSINESS", true,
-                List.of(), List.of(), List.of(), List.of(), null, "deadbeef");
+                List.of(), List.of(), List.of(), List.of(), null, "deadbeef",
+                ephemeralRetention());
         when(orchestration.run(eq(ScenarioType.BUSINESS), any(ScenarioRunRequest.class)))
                 .thenReturn(fixture);
 
@@ -62,12 +68,26 @@ class ScenarioControllerTest {
     @Test
     void aMissingRequestBodyIsTreatedAsNoEnginesRequested() throws Exception {
         var fixture = new ScenarioRunResponse("calc-2", "DAILY_ACTION", true,
-                List.of(), List.of("TAROT"), List.of(), List.of(), null, "cafebabe");
+                List.of(), List.of("TAROT"), List.of(), List.of(), null, "cafebabe",
+                ephemeralRetention());
         when(orchestration.run(eq(ScenarioType.DAILY_ACTION), any(ScenarioRunRequest.class)))
                 .thenReturn(fixture);
 
         mockMvc.perform(post("/api/v1/scenarios/daily_action"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.calculationId").value("calc-2"));
+    }
+
+    /**
+     * A fixture retention block. Present rather than null because
+     * {@code ScenarioRunResponse.retention} is documented as always present —
+     * a test that passes null would let a regression that drops it slip past.
+     */
+    private static RetentionDto ephemeralRetention() {
+        return new RetentionDto(
+                LabeledValue.of(RetentionClass.EPHEMERAL,
+                        VietnameseLabels.of(RetentionClass.EPHEMERAL)),
+                Instant.parse("2026-09-21T00:00:00Z"),
+                true);
     }
 }

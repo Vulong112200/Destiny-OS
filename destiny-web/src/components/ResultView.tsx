@@ -1,6 +1,7 @@
 import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
 import { BaziChartCard } from "./BaziChartCard";
 import { LabeledBadge } from "./LabeledBadge";
+import { RetentionNotice } from "./RetentionNotice";
 
 /**
  * Renders one calculation's full explainability record, in the order
@@ -21,6 +22,18 @@ export function ResultView({
 }) {
   return (
     <div className="space-y-8">
+      {/*
+        First, because it is about whether this result will still be here
+        tomorrow - which outranks anything it says (CLAUDE.md section 7).
+        Guarded for robustness against an older cached response shape.
+      */}
+      {result.retention && (
+        <RetentionNotice
+          calculationId={result.calculationId}
+          retention={result.retention}
+        />
+      )}
+
       {!result.policyDefined && (
         <p className="rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
           Chủ đề này chưa có chính sách áp dụng hệ thống cụ thể — chưa hệ thống nào được chạy, để

@@ -66,6 +66,21 @@ export interface FusionResultDto {
   cautionSources: string[];
 }
 
+/**
+ * How long this result will be kept (CLAUDE.md section 7).
+ *
+ * `expiresAt` being null is a positive statement — "not scheduled for
+ * deletion" — not a missing field, which is why the UI branches on it rather
+ * than rendering an empty date.
+ */
+export interface RetentionDto {
+  retentionClass: LabeledValue;
+  /** ISO instant, or null for "never expires". */
+  expiresAt: string | null;
+  /** False once the result is already kept indefinitely, so the save button hides. */
+  canBeSaved: boolean;
+}
+
 export interface ScenarioRunResponse {
   calculationId: string;
   scenarioId: string;
@@ -76,6 +91,7 @@ export interface ScenarioRunResponse {
   signals: SignalDto[];
   fusion: FusionResultDto | null;
   resultHash: string;
+  retention: RetentionDto;
 }
 
 export interface MethodologyDto {

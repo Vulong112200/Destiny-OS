@@ -22,6 +22,10 @@ import java.util.List;
  * @param fusion             the fused conclusion, or {@code null} when
  *                           {@code policyDefined} is {@code false}
  * @param resultHash         reproducibility identity (CLAUDE.md section 6)
+ * @param retention          how long this result will be kept (CLAUDE.md
+ *                           section 7). Always present: a user is entitled to
+ *                           know that a reading is scheduled for deletion
+ *                           before the deletion happens, not after
  */
 public record ScenarioRunResponse(
         String calculationId,
@@ -32,6 +36,7 @@ public record ScenarioRunResponse(
         List<EvidenceDto> evidence,
         List<SignalDto> signals,
         FusionResultDto fusion,
-        String resultHash
+        String resultHash,
+        RetentionDto retention
 ) {
 }

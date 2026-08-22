@@ -11,6 +11,7 @@ import io.destinyos.calendar.YinYang;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.evidence.DataConfidence;
 import io.destinyos.core.result.EngineStatus;
+import io.destinyos.core.retention.RetentionClass;
 import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
@@ -66,7 +67,10 @@ class LabelCoverageTest {
             SolarTerm.class,
             TenGod.class,
             PillarPosition.class,
-            BaziYearBoundary.class);
+            BaziYearBoundary.class,
+            // CLAUDE.md section 7 retention. Reaches the user directly - the
+            // result page tells them whether their reading will be deleted.
+            RetentionClass.class);
 
     @Test
     @DisplayName("Every constant of every user-facing enum has a Vietnamese label")
@@ -198,6 +202,20 @@ class LabelCoverageTest {
         assertThat(registries.get("EarthlyBranch")).hasSize(12);
         assertThat(registries.get("SolarTerm")).hasSize(24);
         assertThat(registries).hasSize(VietnameseLabels.allRegistries().size());
+    }
+
+    @Test
+    @DisplayName("Retention labels tell the reader plainly whether their result will be deleted")
+    void retentionLabelsAreNotEuphemisms() {
+        // The failure mode this guards is a polite label. "Tạm thời" is
+        // technically true of an EPHEMERAL result and tells the reader nothing
+        // about the scheduled deletion, so the label has to name it.
+        assertThat(VietnameseLabels.of(RetentionClass.EPHEMERAL))
+                .contains("tự động xóa");
+        assertThat(VietnameseLabels.of(RetentionClass.USER_SAVED))
+                .contains("không tự động xóa");
+        assertThat(VietnameseLabels.of(RetentionClass.AUDIT))
+                .contains("không tự động xóa");
     }
 
     @Test

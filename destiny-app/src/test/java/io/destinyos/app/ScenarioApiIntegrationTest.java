@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.destinyos.api.dto.BaziRequest;
 import io.destinyos.api.dto.EvidenceDto;
+import io.destinyos.api.dto.RetentionDto;
 import io.destinyos.api.dto.NumerologyRequest;
 import io.destinyos.api.dto.ScenarioRunRequest;
 import io.destinyos.api.dto.ScenarioRunResponse;
@@ -293,6 +294,70 @@ class ScenarioApiIntegrationTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("No evidence with ruleId " + ruleId))
                 .fact();
+    }
+
+    @Test
+    @DisplayName("Every result states how long it will be kept, and the user can keep it for good")
+    void resultCarriesRetentionAndCanBeSaved() {
+        // CLAUDE.md section 7. Before retention existed every calculation was
+        // kept forever; now a run is EPHEMERAL with a real expiry, and the whole
+        // round trip - run, read back, save, read back again - has to agree
+        // about it, which is why this exercises all four steps rather than just
+        // asserting the field is present.
+        var request = new ScenarioRunRequest(
+                new NumerologyRequest("Nguyễn Văn B", LocalDate.of(1988, 7, 7)), null, null);
+
+        ResponseEntity<ScenarioRunResponse> run = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+        assertThat(run.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String calculationId = run.getBody().calculationId();
+
+        assertThat(run.getBody().retention()).isNotNull().satisfies(retention -> {
+            assertThat(retention.retentionClass().technical()).isEqualTo("EPHEMERAL");
+            assertThat(retention.retentionClass().labelVi()).contains("tự động xóa");
+            assertThat(retention.expiresAt()).isNotNull();
+            assertThat(retention.canBeSaved()).isTrue();
+        });
+
+        // Reading the calculation back must report the same retention state the
+        // run reported - the read and write paths share one mapper precisely so
+        // they cannot drift.
+        ResponseEntity<ScenarioRunResponse> readBack = rest.getForEntity(
+                "/api/v1/calculations/" + calculationId, ScenarioRunResponse.class);
+        assertThat(readBack.getBody().retention().expiresAt())
+                .isEqualTo(run.getBody().retention().expiresAt());
+
+        ResponseEntity<RetentionDto> saved = rest.postForEntity(
+                "/api/v1/calculations/" + calculationId + "/save", null, RetentionDto.class);
+        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(saved.getBody().retentionClass().technical()).isEqualTo("USER_SAVED");
+        assertThat(saved.getBody().expiresAt())
+                .as("saving clears the expiry rather than deferring it")
+                .isNull();
+        assertThat(saved.getBody().canBeSaved()).isFalse();
+
+        ResponseEntity<ScenarioRunResponse> afterSave = rest.getForEntity(
+                "/api/v1/calculations/" + calculationId, ScenarioRunResponse.class);
+        assertThat(afterSave.getBody().retention().retentionClass().technical())
+                .isEqualTo("USER_SAVED");
+        assertThat(afterSave.getBody().retention().expiresAt()).isNull();
+    }
+
+    @Test
+    @DisplayName("A daily reading is kept for less time than a business scenario")
+    void dailyReadingsExpireSoonerThanBusinessRuns() {
+        // DATA_MODEL_AND_RETENTION.md section 8 gives daily readings a shorter
+        // life than other transient runs. Asserted through real HTTP because
+        // the mapping from scenario id to lifetime crosses three layers.
+        var tarot = new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 7L, null);
+
+        var daily = rest.postForEntity("/api/v1/scenarios/daily_action",
+                new ScenarioRunRequest(null, tarot, null), ScenarioRunResponse.class);
+        var business = rest.postForEntity("/api/v1/scenarios/business",
+                new ScenarioRunRequest(null, tarot, null), ScenarioRunResponse.class);
+
+        assertThat(daily.getBody().retention().expiresAt())
+                .isBefore(business.getBody().retention().expiresAt());
     }
 
     @Test
