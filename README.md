@@ -112,6 +112,33 @@ Ba điểm thiết kế đáng nói:
    Nếu không có cách chạm tới `USER_SAVED`, quy tắc "không xóa USER_SAVED" chỉ
    là một nhánh chưa từng được kiểm.
 
+**Cập nhật Observability (2026-08-22):** CLAUDE.md §5 yêu cầu mỗi engine có
+timeout, cancellation, error isolation **và metrics**. Ba cái đầu đã là cấu trúc
+từ Phase 1; cái thứ tư không tồn tại — một engine timeout trên production chỉ để
+lại một dòng log. Nay mỗi lần chạy engine đều được đo (status thật chứ không phải
+cờ thành/bại, cờ `timedOut` riêng, và **thời gian chờ permit** — thứ phân biệt
+"engine chậm" với "hệ thống bão hòa"), qua một interface trong
+`destiny-execution` và một implementation Micrometer trong `destiny-app`.
+
+Hai điểm đáng nói:
+
+1. **Metrics không bao giờ được làm hỏng phép tính.** Một metrics backend cấu hình
+   sai không được phép biến một phép tính đúng thành lỗi — có test dùng backend
+   *cố tình throw* để xác nhận.
+2. **Danh sách endpoint Actuator được ghim cứng, không để mặc định.** `/actuator/env`
+   và `/configprops` sẽ render `OPENROUTER_API_KEY` cùng mật khẩu database cho bất
+   kỳ ai chạm được tới cổng. Mặc định của Boot hôm nay là bảo thủ, nhưng "hôm nay"
+   không phải bảo đảm xuyên phiên bản, và giá của một hồi quy ở đây là một
+   credential bị lộ. `ActuatorExposureTest` assert những endpoint đó trả 404.
+
+**Một giả thuyết bị loại, có chủ đích:** 8 scenario còn thiếu chính sách áp dụng
+*có thể* dẫn xuất từ dimension mà engine tự khai báo — nhưng giả thuyết đó **thất
+bại** chính bài kiểm của nó (`DAILY_ACTION` cần `{DAILY, TIMING}`, mà
+`FENGSHUI_KUA` không khai báo dimension nào trong đó, dù Master Spec §7 xếp nó
+`MEDIUM`). Nới quy tắc cho vừa hai ví dụ thì nó không còn là dẫn xuất — nên loại,
+và ghi lại. Thứ đóng được việc này là một quyết định sản phẩm của chủ dự án, không
+phải một vòng nghiên cứu.
+
 **Cập nhật Phong Thủy Bát Trạch (2026-08-22):** Vòng nghiên cứu R7 thứ nhất đã
 **dừng lại có chủ đích** vì bảng 8×8 hướng chỉ tìm được ở một nguồn, mà bảng đó
 sai cấu trúc ở 4 ô. Vòng thứ hai tìm được **quy tắc sinh ra bảng đó** — và điều
@@ -248,10 +275,11 @@ OpenRouter thay đổi theo thời gian, phải tự xác nhận model còn kh�
 Gọi `POST /api/v1/calculations/{id}/narrative` sau khi đã có `calculationId`
 từ một lần chạy kịch bản.
 
-Bộ test hiện tại — 454 test:
+Bộ test hiện tại — 469 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
+- **metrics & vận hành** — mọi nhánh kết thúc của engine đều được đo (kể cả timeout, exception, và câu trả lời-không trung thực, mỗi loại giữ status riêng); một metrics backend cố tình throw **không** làm hỏng được phép tính; và một test về những gì *vắng mặt*: `/actuator/env`, `/configprops`, `/heapdump`… đều phải 404, vì hai endpoint đầu sẽ render `OPENROUTER_API_KEY` và mật khẩu database
 - **kiến trúc** — ranh giới module, cấm phụ thuộc chéo, cấm số thực trong domain **và trong mọi engine** (một ngoại lệ duy nhất được nêu tên: kinh độ nơi sinh — toạ độ địa lý, không phải điểm số)
 - **phủ nhãn tiếng Việt** — mọi enum hướng tới người dùng đều có nhãn, không nhãn nào ngụ ý xác suất
 - **Calendar** — bảng ví dụ tính mẫu gốc của Hồ Ngọc Đức (1983-1986), 4 năm lệch Việt/Trung có tên cụ thể (1985, 2007, 2030, 2053), quét Tết toàn bộ 1900-2100, chu kỳ Can Chi 60 năm, ranh giới giờ Tý 23:00, không suy đoán khi vùng miền chưa xác định (R14b)

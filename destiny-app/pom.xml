@@ -69,6 +69,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
+    <!-- Phase 14 observability. Brings Micrometer, which backs
+         MicrometerEngineMetrics - the fourth thing CLAUDE.md section 5 requires
+         of every engine (timeout, cancellation, error isolation, metrics), and
+         the only one that was missing. Which endpoints are exposed over HTTP is
+         pinned explicitly in application.yml rather than left to defaults. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
     <!-- Loads .env (repo root, gitignored, never committed - Master Spec §28)
          into the Spring Environment, so a real datasource can be supplied
          locally the same way it will be in any real deployment: as

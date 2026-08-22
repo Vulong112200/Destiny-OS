@@ -7,6 +7,8 @@ import io.destinyos.engines.fengshui.FengShuiKuaEngine;
 import io.destinyos.engines.numerology.NumerologyEngine;
 import io.destinyos.engines.tarot.TarotEngine;
 import io.destinyos.execution.EngineExecutor;
+import io.destinyos.execution.EngineMetrics;
+import io.destinyos.execution.ExecutionPolicy;
 import io.destinyos.fusion.FusionEngine;
 import io.destinyos.scenario.ScenarioEngine;
 import java.util.LinkedHashMap;
@@ -58,9 +60,17 @@ public class EngineWiringConfig {
         return new FengShuiKuaEngine();
     }
 
+    /**
+     * The harness, wired to real metrics (CLAUDE.md section 5, Phase 14).
+     *
+     * <p>{@code EngineExecutor.withDefaults()} still exists and still records
+     * nothing - that is the right default for a unit test. Production is where
+     * a metrics backend belongs, and this is the module that assembles
+     * production.
+     */
     @Bean
-    public EngineExecutor engineExecutor() {
-        return EngineExecutor.withDefaults();
+    public EngineExecutor engineExecutor(EngineMetrics engineMetrics) {
+        return new EngineExecutor(ExecutionPolicy.defaults(), engineMetrics);
     }
 
     @Bean

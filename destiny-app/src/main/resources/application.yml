@@ -56,6 +56,27 @@ destiny:
       max-tokens: ${DESTINY_AI_OPENROUTER_MAX_TOKENS:800}
       temperature: ${DESTINY_AI_OPENROUTER_TEMPERATURE:0.3}
 
+# Phase 14 observability. The exposure list is pinned explicitly rather than
+# left to Spring Boot's defaults, because the defaults are a moving target
+# across versions and the cost of a surprise here is a leaked secret: /env and
+# /configprops would render OPENROUTER_API_KEY and the datasource password
+# (Master Spec section 28 forbids exposing either). health/info/metrics carry
+# no credentials. ActuatorExposureTest asserts the dangerous ones stay 404.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+        exclude: env,configprops,beans,heapdump,threaddump,loggers
+  endpoint:
+    health:
+      # Component details can name internal hosts and driver versions. The
+      # liveness answer is the part a load balancer needs.
+      show-details: never
+  info:
+    env:
+      enabled: false
+
 logging:
   level:
     io.destinyos: INFO

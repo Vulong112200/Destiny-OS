@@ -8,6 +8,97 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 14: metrics cho từng engine (CLAUDE.md §5)
+
+CLAUDE.md §5 yêu cầu mỗi engine có **timeout, cancellation, error isolation và
+metrics**. Ba cái đầu đã là cấu trúc trong `EngineExecutor` từ Phase 1. Cái thứ
+tư **không tồn tại** — một engine bắt đầu timeout trên production chỉ để lại đúng
+một dòng log, mà một dòng log thì không alert được, không vẽ đồ thị được. Phase 14
+được ghi là "continuous", và đó là cách nó ở mức 0.
+
+- **`EngineMetrics` (interface, `destiny-execution`)** — module này chỉ phụ thuộc
+  engine SPI và slf4j, và điều đó đáng giữ: nó là phần dễ bị test bằng unit test
+  thuần nhất, kéo một framework metrics vào sẽ khiến mọi test đó phải trả giá.
+  Implementation Micrometer nằm ở `destiny-app` — cùng cách chia mà
+  `AiNarrativeProvider` đang dùng cho OpenRouter
+- **Ghi đúng `EngineStatus` thật, không phải một cờ thành/bại.** Dự án này *dự
+  kiến* có rất nhiều `RESEARCH_REQUIRED` và `NOT_APPLICABLE` — đó là trạng thái
+  bình thường, không phải lỗi. Gộp chúng vào chung với lỗi thật sẽ làm tỉ lệ lỗi
+  mất nghĩa. Lớp Micrometer thêm tag `outcome` thô hơn (answered / declined /
+  failed) cho dashboard, vẫn giữ status chi tiết bên cạnh
+- **`timedOut` là tag riêng, tách khỏi status.** Timeout hiện ra dưới dạng
+  `FAILED_RECOVERABLE`, nên không có cờ này thì *đúng cái lỗi có cách chữa đã
+  biết* (nâng budget, hoặc làm engine nhanh hơn) trở thành không phân biệt được
+  với một engine throw
+- **Đo cả thời gian chờ permit.** `ExecutionPolicy` giới hạn concurrency, nên khi
+  tải cao thì duration của một engine âm thầm bao gồm cả thời gian nằm chờ. "Engine
+  chậm" và "hệ thống bị bão hòa" cần hai cách sửa khác nhau. Ghi cho **mọi** lần
+  chạy, thường là ~0 — vì một series chỉ xuất hiện khi tải cao là series không ai
+  có baseline
+- **Metrics không bao giờ được làm hỏng phép tính.** `EngineMetrics` cấm
+  implementation throw, nhưng một hợp đồng không phải một bảo đảm, và hậu quả của
+  việc tin nó thì vô lý: một metrics backend cấu hình sai biến một phép tính đúng
+  thành một phép tính lỗi. `EngineExecutor` nuốt mọi exception từ metrics (log
+  debug), và có test dùng một backend **cố tình throw** để xác nhận
+
+### Added — Actuator, với danh sách endpoint được ghim cứng
+
+- `spring-boot-starter-actuator` + `management.endpoints.web.exposure` ghim rõ
+  `health,info,metrics` kèm danh sách exclude tường minh, `health.show-details:
+  never`, `info.env.enabled: false`
+- **Lý do ghim thay vì để mặc định:** thêm Actuator là thêm bề mặt HTTP, và hai
+  endpoint hữu ích nhất với developer — `/actuator/env` và `/actuator/configprops`
+  — chính là hai endpoint sẽ render `OPENROUTER_API_KEY` và mật khẩu database cho
+  bất kỳ ai chạm được tới cổng (Master Spec §28). Mặc định của Boot hôm nay là
+  bảo thủ, nhưng "hôm nay" không phải một bảo đảm xuyên phiên bản, và giá của một
+  hồi quy ở đây là **một credential bị lộ**, không phải một test đỏ
+- **Không tag nào lấy từ dữ liệu người dùng.** Mọi giá trị tag đến từ tập đóng:
+  engine id, `EngineStatus`, ba chuỗi outcome cố định. Một tag theo user hay theo
+  calculation sẽ nhân số time series không giới hạn — đúng cách thông thường mà
+  một metrics backend bị hạ bởi chính thứ đáng ra để canh nó
+
+### Nghiên cứu — giả thuyết về 8 chính sách scenario còn thiếu: **bị loại**
+
+Tám trong mười scenario vẫn `policyDefined == false`, vì Master Spec §7 chỉ cho ví
+dụ với BUSINESS và DAILY_ACTION. Từ sau Phase 8a và Phase 10, các engine đã **tự
+khai báo** dimension, nên có một giả thuyết hấp dẫn: *một engine áp dụng cho một
+scenario khi và chỉ khi dimension nó khai báo giao với dimension của scenario* —
+tức một **quy tắc**, không phải 8 bảng bịa; và hai chính sách đã đặc tả sẽ làm dữ
+liệu kiểm chứng, đúng phương pháp vừa giải quyết bảng hướng Bát Trạch.
+
+**Giả thuyết thất bại chính bài kiểm của nó.** `DAILY_ACTION` có dimension
+`{DAILY, TIMING}`. `FENGSHUI_KUA` không khai báo dimension nào trong đó — nó khai
+HOME, FINANCE, CAREER, RELATIONSHIP, HEALTH_REFLECTION, DECISION — nhưng Master
+Spec §7 lại xếp nó `MEDIUM` cho scenario đó. Quy tắc không tái hiện được chính
+đặc tả mà nó phải giải thích.
+
+**Quyết định: loại, không chỉnh cho vừa.** Có thể nới quy tắc đến khi khớp cả hai
+ví dụ — nhưng một quy tắc được fit vào hai điểm dữ liệu thì không còn là dẫn xuất,
+nó là hai ví dụ cộng trang trí, và rồi sẽ được đem áp cho 8 scenario chưa ai kiểm.
+Đúng mùi mà vòng 1 của R7 đã dừng lại vì nó. Ghi lại ở
+`docs/DECISION_LOG.md` để lần sau bắt đầu từ thất bại này chứ không phát hiện lại,
+và để phương án đó không bị âm thầm quên: thứ thực sự đóng được việc này là một
+**quyết định của chủ dự án** về việc engine nào quan trọng với 8 scenario còn lại
+— đây là câu hỏi sản phẩm, không phải câu hỏi nghiên cứu.
+
+### Tests
+
+469 test (tăng từ 454):
+
+- **`EngineMetrics` (9)** — trọng tâm là các nhánh dễ bị bỏ sót. Counter
+  happy-path là phần ai cũng nhớ viết; timeout, exception và một câu trả lời-không
+  trung thực là những nhánh đáng ghim, vì đó đúng là các lần chạy mà người vận
+  hành cần thấy nhất và là nơi một `return` sai nhánh sẽ âm thầm làm mất số liệu.
+  Cộng: một backend **cố tình throw** không làm hỏng được phép tính; harness mặc
+  định không cần backend nào; `null` metrics degrade thành no-op
+- **`ActuatorExposureTest` (6)** — một test về những gì **vắng mặt**, loại test
+  chỉ tồn tại nếu có người cố ý viết: `/actuator/env`,
+  `/actuator/env/OPENROUTER_API_KEY`, `/configprops`, `/beans`, `/heapdump`,
+  `/threaddump`, `/loggers` đều phải trả 404; health không nêu component/host;
+  counter engine tồn tại sau một lần chạy thật và **không** chứa tên người dùng
+  hay `calculationId`
+
+
 ### Added — Phase 10: Phong Thủy Bát Trạch (`destiny-engine-fengshui`)
 
 Đây là engine **đầu tiên của Phong Thủy** phát sinh tín hiệu thật cho Fusion, và
