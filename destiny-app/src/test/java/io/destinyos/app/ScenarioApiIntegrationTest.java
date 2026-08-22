@@ -366,7 +366,12 @@ class ScenarioApiIntegrationTest {
             // verified and implemented. What remains here is what genuinely
             // still needs a school chosen: the Dụng Thần and Day Master
             // strength.
-            assertThat(m.researchIds()).containsExactlyInAnyOrder("R1", "R3");
+            // R20-R22 joined on 2026-08-23 from the Master Spec §13 audit:
+            // combinations/clashes, Liu Nian/Yue/Ri and Shen Sha were named
+            // in the specification with no research id, so nothing could
+            // report them as missing.
+            assertThat(m.researchIds())
+                    .containsExactlyInAnyOrder("R1", "R3", "R20", "R21", "R22");
         });
     }
 

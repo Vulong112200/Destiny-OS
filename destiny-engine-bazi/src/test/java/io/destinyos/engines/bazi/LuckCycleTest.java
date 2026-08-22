@@ -365,12 +365,16 @@ class LuckCycleTest {
         }
 
         @Test
-        @DisplayName("Đại Vận is no longer a blocked section, and R1/R3 still are")
-        void blockedSectionsShrank() {
+        @DisplayName("Đại Vận is no longer a blocked section, and the rest still are")
+        void daiVanIsNoLongerBlocked() {
             BaziChart chart = chart(LocalDateTime.of(1990, 1, 1, 11, 10), 8, Gender.MALE);
+            // R2 leaving this list is the point of this test. The list itself
+            // grew on 2026-08-23 (R20-R22, from the Master Spec §13 audit) —
+            // that is asserted in BaziEngineTest, so this one checks only the
+            // R2 claim it was written for.
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::researchId)
-                    .containsExactlyInAnyOrder("R1", "R3")
+                    .contains("R1", "R3")
                     .doesNotContain("R2");
         }
 

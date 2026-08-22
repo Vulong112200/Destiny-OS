@@ -62,19 +62,60 @@ class BaziEngineTest {
         void blockedSectionsAreNamedWithTheirResearchIds() {
             BaziChart chart = run(LocalDateTime.of(1990, 5, 20, 9, 30)).data();
 
-            // Đại Vận left this list on 2026-08-22 when R2 closed. The list is
-            // asserted exactly, not as a subset, so a section can neither
-            // appear nor disappear without a test being changed on purpose.
+            // Đại Vận left this list on 2026-08-22 when R2 closed; R20-R22
+            // joined it on 2026-08-23, when an audit against Master Spec §13
+            // found three named components with no research id at all — and
+            // therefore no way for the engine to admit they were missing.
+            // The list is asserted exactly, not as a subset, so a section can
+            // neither appear nor disappear without a test changing on purpose.
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::sectionId)
-                    .containsExactlyInAnyOrder("DUNG_THAN", "NHAT_CHU_CUONG_DO");
+                    .containsExactlyInAnyOrder("DUNG_THAN", "NHAT_CHU_CUONG_DO",
+                            "HOP_XUNG_HINH_HAI_PHA", "LUU_NIEN", "THAN_SAT");
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::researchId)
-                    .containsExactlyInAnyOrder("R1", "R3");
+                    .containsExactlyInAnyOrder("R1", "R3", "R20", "R21", "R22");
             // A blocked section with no named variants reads as an oversight
             // rather than as a real disagreement (Rule D).
             assertThat(chart.blockedSections())
                     .allSatisfy(section -> assertThat(section.knownVariants()).isNotEmpty());
+        }
+
+        @Test
+        @DisplayName("Every component Master Spec §13 names is either computed or named as blocked")
+        void everySpecifiedComponentIsAccountedFor() {
+            // The test that would have caught the 2026-08-23 audit finding.
+            // Until then this list was checked only against itself, so three
+            // components named in the specification - combinations/clashes,
+            // Liu Nian/Yue/Ri, and Shen Sha - were missing from it without
+            // anything failing. A component that is neither computed nor
+            // blocked is invisible, which is worse than an admitted gap: the
+            // user cannot even know to ask.
+            BaziChart chart = run(LocalDateTime.of(1990, 5, 20, 9, 30)).data();
+            var blockedIds = chart.blockedSections().stream()
+                    .map(BlockedSection::sectionId).toList();
+
+            // Computed today - present in the chart itself.
+            assertThat(chart.pillars()).as("Four Pillars").isNotEmpty();
+            assertThat(chart.pillars().get(0).stem()).as("Heavenly Stems").isNotNull();
+            assertThat(chart.pillars().get(0).branch()).as("Earthly Branches").isNotNull();
+            assertThat(chart.pillars().get(0).stemPolarity()).as("Yin/Yang").isNotNull();
+            assertThat(chart.pillars().get(0).stemElement()).as("Five Elements").isNotNull();
+            assertThat(chart.pillars().get(0).hiddenStems()).as("Hidden Stems").isNotNull();
+            assertThat(chart.dayMaster()).as("Day Master").isPresent();
+            assertThat(chart.monthPillar().stemTenGod()).as("Ten Gods").isNotNull();
+            // Da Yun needs a gender, which this fixture omits; LuckCycleTest
+            // covers it. What matters here is that it is no longer blocked.
+            assertThat(blockedIds).as("Da Yun is computed since R2 closed")
+                    .doesNotContain("DAI_VAN");
+
+            // Not computed - and each must therefore be named as blocked.
+            assertThat(blockedIds).contains(
+                    "HOP_XUNG_HINH_HAI_PHA",  // combinations/clashes/harm/punishment/break
+                    "NHAT_CHU_CUONG_DO",      // strength methodology
+                    "DUNG_THAN",              // Useful/Favorable/Unfavorable Element
+                    "LUU_NIEN",               // Liu Nian / Liu Yue / Liu Ri
+                    "THAN_SAT");              // Shen Sha (conditional in the spec)
         }
 
         @Test
@@ -88,7 +129,7 @@ class BaziEngineTest {
 
             assertThat(warnings)
                     .filteredOn(w -> w.code().startsWith("BAZI_SECTION_BLOCKED_"))
-                    .hasSize(2)
+                    .hasSize(5)
                     .allSatisfy(w -> assertThat(w.critical()).isTrue());
         }
 

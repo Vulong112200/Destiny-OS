@@ -8,6 +8,92 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Fixed — ba thành phần Bát Tự vô hình: mở R20, R21, R22
+
+Một lượt rà soát đối chiếu **Master Spec §13** với `BaziEngine` phát hiện ba
+thành phần được đặc tả tường minh nhưng **chưa từng được gán mã nghiên cứu**:
+
+| Master Spec §13 | Trạng thái trước rà soát |
+|---|---|
+| "combinations/clashes/harm/punishment/break" | không có mã R |
+| "Liu Nian; Liu Yue; Liu Ri" | không có mã R |
+| "Shen Sha nếu methodology hỗ trợ" | không có mã R |
+
+**Vì sao đây là lỗi nặng hơn một khoảng trống thông thường.** Dụng Thần (R1) và
+cường độ Nhật Chủ (R3) *bị chặn nhưng nhìn thấy được*: engine trả về
+`BlockedSection` kèm lý do và các trường phái đang khác nhau, và giao diện hiển
+thị "Dụng Thần — cần xác minh thuật toán (R1)". Ba mục trên thì **không có gì để
+báo cả** — không mã nghiên cứu nghĩa là không `BlockedSection`, nghĩa là người
+đọc một lá số Tứ Trụ hôm nay không có cách nào biết chúng còn thiếu. Một khoảng
+trống được thừa nhận thì người dùng còn biết đường hỏi; một khoảng trống vô hình
+thì không.
+
+Ba mục mới, mỗi mục trung thực về mức độ đã điều tra:
+
+- **R20 — Hợp/Xung/Hình/Hại/Phá** (`RESEARCH_REQUIRED`, HIGH). Một vòng tìm kiếm
+  đủ xác nhận đây là **phân kỳ trường phái thật**, chưa đủ để đặc tả: các nguồn
+  nói thẳng "学派观点有分歧" về việc hợp có giải được xung không; khoảng cách giữa
+  các trụ (紧贴 vs 远隔) có tính hay không; và thứ tự ưu tiên khi nhiều quan hệ
+  cùng xuất hiện. **Đây là mục hệ trọng nhất trong ba**: nó không phải phần thêm
+  vào mà là tầng thay đổi *cách đọc chính dữ liệu đang hiển thị* — một chi bị
+  xung có thể coi như mất gốc, ảnh hưởng trực tiếp tới bảng đếm Ngũ Hành và tới
+  R3. Nó cũng chặn R3 theo đa số trường phái
+- **R21 — Lưu Niên/Lưu Nguyệt/Lưu Nhật** (`RESEARCH_REQUIRED`, MEDIUM). Chưa
+  điều tra. Trở nên lộ rõ **chính vì R2 vừa đóng**: Đại Vận cho biết giai đoạn 10
+  năm, và người dùng được báo "vận thứ ba bắt đầu lúc 28 tuổi" sẽ hỏi ngay *năm
+  nay* thì sao. Phụ thuộc R20 (tương tác đi qua đúng các quan hệ đó) và R1/R3
+  (một năm tốt hay xấu là phán định Dụng Thần)
+- **R22 — Thần Sát** (`RESEARCH_REQUIRED`, LOW). Chưa điều tra, và **điều kiện
+  trong Master Spec được giữ nguyên chứ không làm phẳng**: bản đặc tả ghi "nếu
+  methodology hỗ trợ", nên câu hỏi đầu tiên là *có dùng hay không* — một số phái
+  dùng nhiều, một số coi là phần thêm về sau. Kết luận "không dùng" cũng là một
+  cách đóng hợp lệ, nên mục này có thể `NOT_APPLICABLE` chứ không nhất thiết cần
+  một thuật toán
+
+`BaziEngine` giờ trả về **5 `BlockedSection`** (trước: 2), mỗi mục kèm cảnh báo
+critical nên pruning của lớp AI không cắt được.
+
+### Added — test bắt đúng loại lỗi này, không chỉ sửa trường hợp cụ thể
+
+`BaziEngineTest.everySpecifiedComponentIsAccountedFor` liệt kê **từng thành phần
+Master Spec §13 nêu tên** và khẳng định mỗi cái *hoặc* được tính *hoặc* được đặt
+tên là blocked. Trước đây danh sách blocked chỉ được đối chiếu **với chính nó**,
+nên ba mục thiếu không làm hỏng bất cứ test nào. Đây là lưới an toàn cho lần sau,
+không chỉ là bản vá cho lần này.
+
+### Fixed — hai hàm hạ tầng lịch chỉ được kiểm gián tiếp
+
+`CanChi.monthPillarOffset` và `SolarYear.solarMonthStartJulianDate` /
+`nextSolarMonthStartJulianDate` được thêm cho Đại Vận (R2) và ban đầu **chỉ được
+kiểm qua hai golden vector ở `destiny-engine-bazi`**. Sai chỗ: mọi phép tính lịch
+khác (`SolarTermInstantTest`, `HiddenStemsTest`, `CanChiAttributesTest`) đều được
+chứng minh ở đúng tầng của nó, và một test ở tầng engine không phân biệt được
+"tìm ranh giới sai" với "phép quy đổi tiêu thụ nó sai".
+
+- **`SolarYearTest` (10, mới)** — bất biến cấu trúc thay vì chép lại golden
+  vector của R2: **cả 12 ranh giới đều là Tiết (節), không ranh giới nào là Trung
+  Khí** (khẳng định trụ cột của R2, kiểm bằng chẵn/lẻ ordinal trong `SolarTerm`);
+  tập 12 mốc tìm được đúng bằng 12 Tiết có tên; mỗi tháng dài 29–32 ngày (bắt lỗi
+  tìm trùng ranh giới hoặc nhảy cóc); ranh giới nối nhau không hở; ranh giới
+  thuộc về tháng nó *mở ra*, không phải tháng nó kết thúc. Cộng **ca wraparound**
+  — tháng Mão trải 345°→15°, cắt qua điểm gián đoạn 360°/0°, là chỗ lỗi chuẩn hóa
+  góc lộ ra và gần như không lộ ở đâu khác
+- **`CanChiTest.MonthPillarOffset` (7, mới)** — bước 0/±1; đi qua ranh giới năm
+  (tháng 12 + 1 bước = tháng 1 năm sau, **không** quay về tháng 1 cùng năm —
+  chính lý do method này tồn tại thay vì truyền tháng ngoài khoảng vào
+  `monthPillar`); chu kỳ 60; 12 bước giữ nguyên chi nhưng đổi can; và 8 bước liên
+  tiếp đôi một khác nhau (nếu trùng thì hai vận mang cùng một trụ)
+
+### Changed
+
+- `MethodologyRegistrySeeder`: `BAZI` lên `1.3`, research ids từ `{R1, R3}` thành
+  `{R1, R3, R20, R21, R22}`
+
+### Tests
+
+532 test (tăng từ 514).
+
+
 ### Added — Phase 7: 7 chính sách scenario mới, từ bằng chứng thực hành truyền thống
 
 Trước thay đổi này, chỉ 2/10 scenario (BUSINESS, DAILY_ACTION) có chính sách

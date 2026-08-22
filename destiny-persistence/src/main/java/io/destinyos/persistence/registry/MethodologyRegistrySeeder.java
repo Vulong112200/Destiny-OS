@@ -230,13 +230,21 @@ public class MethodologyRegistrySeeder {
 
             new Entry("BAZI", "Bát Tự - Luận giải (Dụng Thần, cường độ Nhật Chủ)",
                     "EASTERN",
-                    "1.2",
+                    "1.3",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
-                    Set.of("R1", "R3"),
+                    Set.of("R1", "R3", "R20", "R21", "R22"),
                     "The interpretive half of Bát Tự, Phase 8b. Dụng Thần/Hỷ Thần/Kỵ "
                             + "Thần school selection (R1) and Day Master strength "
                             + "assessment (R3) are unresolved and are the reason "
-                            + "BAZI_TUBINH_CHART emits no signals. R2 (Đại Vận) left "
+                            + "BAZI_TUBINH_CHART emits no signals. R20 (combinations "
+                            + "and clashes), R21 (Liu Nian/Yue/Ri) and R22 (Shen Sha) "
+                            + "joined this entry on 2026-08-23: an audit against "
+                            + "Master Spec section 13 found them named there with no "
+                            + "research id at all, so unlike R1 and R3 the engine had "
+                            + "no way to report them as blocked - a quieter failure "
+                            + "than an admitted gap. R20 is the consequential one: it "
+                            + "gates R3 under most schools and changes how the element "
+                            + "tallies already shown should be read. R2 (Đại Vận) left "
                             + "this entry on 2026-08-22: its direction rule and "
                             + "day-to-year conversion were verified against published "
                             + "worked examples, so the sequence moved to the chart half. "

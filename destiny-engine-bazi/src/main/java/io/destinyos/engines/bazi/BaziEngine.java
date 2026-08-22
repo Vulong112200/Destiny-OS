@@ -159,7 +159,47 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                             + "tự tin nhưng không thể kiểm chứng mà hệ thống này từ chối tạo ra. "
                             + "Bảng đếm Ngũ Hành chỉ là số đếm thô, không phải đánh giá cường độ.",
                     List.of("Đếm theo can", "Đếm theo can + chi", "Đếm cả tàng can",
-                            "Có/không trọng số theo mùa và theo vị trí trụ")));
+                            "Có/không trọng số theo mùa và theo vị trí trụ")),
+            // R20-R22 were added on 2026-08-23. Before that they were absent
+            // from this list entirely - not because the engine computed them,
+            // but because no research id existed to name them, so a reader
+            // had no way to learn they were missing. That is a quieter failure
+            // than an admitted gap, and the reason this list is now checked
+            // against Master Spec section 13 rather than against itself.
+            new BlockedSection("HOP_XUNG_HINH_HAI_PHA",
+                    "Quan hệ Hợp / Xung / Hình / Hại / Phá giữa các trụ", "R20",
+                    "Đây là tầng phân tích quan hệ giữa các Địa Chi (và Thiên Can) với nhau — "
+                            + "nằm giữa 'tám chữ' và mọi lời luận. Các trường phái bất đồng thật "
+                            + "sự ở những điểm quyết định: hợp có hóa giải được xung không, "
+                            + "khoảng cách giữa các trụ có tính không, và khi nhiều quan hệ cùng "
+                            + "xuất hiện thì cái nào thắng. Chưa chọn trường phái nên chưa tính. "
+                            + "Lưu ý: tầng này ảnh hưởng tới cách đọc chính những dữ liệu đang "
+                            + "hiển thị — một chi bị xung có thể coi như mất gốc, nên các bảng "
+                            + "đếm Ngũ Hành ở trên là số đếm thô theo đúng nghĩa đen.",
+                    List.of("Hợp giải được xung / xung phá được hợp",
+                            "Chỉ trụ liền kề mới tác dụng / trụ cách xa vẫn tác dụng yếu hơn",
+                            "Tam hội > Tam hợp > Lục hợp khi cùng xuất hiện",
+                            "Hợp có làm đổi Ngũ Hành của chi (hóa) hay không")),
+            new BlockedSection("LUU_NIEN",
+                    "Lưu Niên / Lưu Nguyệt / Lưu Nhật (vận theo năm, tháng, ngày)", "R21",
+                    "Đây là tầng nằm ngay trên Đại Vận: Đại Vận cho biết giai đoạn 10 năm, "
+                            + "Lưu Niên cho biết một năm cụ thể trong giai đoạn đó tương tác thế "
+                            + "nào. Chưa nghiên cứu. Bản thân can chi của một năm/tháng/ngày thì "
+                            + "hệ thống đã tính được, nhưng cách nó tác động lên lá số gốc lại đi "
+                            + "qua đúng các quan hệ Hợp/Xung mà R20 chưa mở, và việc một năm là "
+                            + "tốt hay xấu thì cần Dụng Thần (R1).",
+                    List.of("Ba tầng năm/tháng/ngày đọc độc lập hay phân cấp",
+                            "Tương tác với lá số gốc, với Đại Vận, hay với cả hai")),
+            new BlockedSection("THAN_SAT",
+                    "Thần Sát (các sao phụ: Đào Hoa, Dịch Mã, Thiên Ất Quý Nhân…)", "R22",
+                    "Chưa nghiên cứu — và khác các mục trên, đây chưa chắc đã là một khoảng "
+                            + "trống cần lấp: Master Spec ghi Thần Sát kèm điều kiện 'nếu "
+                            + "methodology hỗ trợ'. Một số trường phái dùng Thần Sát rất nhiều, "
+                            + "một số coi đây là phần thêm về sau và gần như không dùng. Vì vậy "
+                            + "câu hỏi đầu tiên là có dùng hay không, trước cả câu hỏi tính thế "
+                            + "nào — và câu trả lời 'không dùng' cũng là một kết luận hợp lệ.",
+                    List.of("Trường phái có dùng Thần Sát / không dùng",
+                            "Tập sao thay đổi theo nguồn, từ vài sao tới hơn một trăm")));
 
     @Override
     public EngineResult<BaziChart> calculate(BaziInput input, CalculationContext context) {
