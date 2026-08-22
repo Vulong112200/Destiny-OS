@@ -40,6 +40,28 @@ public final class JulianDay {
         return jd;
     }
 
+    /**
+     * The 0h-UT-referenced Julian date (fractional) for one local wall-clock
+     * instant — the input every function in {@link SolarPosition},
+     * {@link SolarTerm} and {@link NewMoon} is defined against.
+     *
+     * <p>Exists because this conversion is the single most error-prone step in
+     * the module and was previously open-coded at three call sites, each
+     * repeating the {@code -0.5} noon-to-midnight shift and the
+     * {@code -offset/24} local-to-UT shift. {@link SolarTerm#termIndexAt}'s
+     * local-midnight form is exactly this method with a zero time-of-day, and
+     * a test asserts that equivalence so the two can never drift apart.
+     *
+     * @param local           local wall-clock date and time
+     * @param utcOffsetHours  the civil UTC offset in force there (R14a)
+     */
+    public static double fromLocalDateTime(java.time.LocalDateTime local, double utcOffsetHours) {
+        java.util.Objects.requireNonNull(local, "local");
+        long dayNumber = fromDate(local.getDayOfMonth(), local.getMonthValue(), local.getYear());
+        double dayFraction = local.toLocalTime().toNanoOfDay() / 86_400_000_000_000.0;
+        return dayNumber - 0.5 + dayFraction - utcOffsetHours / 24.0;
+    }
+
     /** Inverse of {@link #fromDate}: day/month/year for a Julian day number. */
     public static int[] toDate(long jd) {
         long a;

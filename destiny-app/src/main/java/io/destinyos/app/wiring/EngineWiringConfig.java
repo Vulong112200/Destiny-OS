@@ -2,6 +2,7 @@ package io.destinyos.app.wiring;
 
 import io.destinyos.api.service.EngineTaskFactory;
 import io.destinyos.api.service.EngineTaskFactoryRegistry;
+import io.destinyos.engines.bazi.BaziEngine;
 import io.destinyos.engines.numerology.NumerologyEngine;
 import io.destinyos.engines.tarot.TarotEngine;
 import io.destinyos.execution.EngineExecutor;
@@ -32,6 +33,18 @@ public class EngineWiringConfig {
         return new NumerologyEngine();
     }
 
+    /**
+     * Bát Tự, Phase 8a. Registered under the engine id {@code BAZI}, which is
+     * the id Master Spec section 7's two worked scenario examples already name -
+     * so wiring it here is what finally makes BUSINESS and DAILY_ACTION stop
+     * reporting BAZI as an unavailable engine. It contributes no signal yet
+     * (R1/R2/R3), only chart evidence.
+     */
+    @Bean
+    public BaziEngine baziEngine() {
+        return new BaziEngine();
+    }
+
     @Bean
     public EngineExecutor engineExecutor() {
         return EngineExecutor.withDefaults();
@@ -56,11 +69,14 @@ public class EngineWiringConfig {
     @Bean
     public EngineTaskFactoryRegistry engineTaskFactoryRegistry(TarotEngine tarotEngine,
                                                                NumerologyEngine numerologyEngine,
+                                                               BaziEngine baziEngine,
                                                                TarotTaskFactory tarotTaskFactory,
-                                                               NumerologyTaskFactory numerologyTaskFactory) {
+                                                               NumerologyTaskFactory numerologyTaskFactory,
+                                                               BaziTaskFactory baziTaskFactory) {
         Map<String, EngineTaskFactory> factories = new LinkedHashMap<>();
         factories.put(tarotEngine.engineId(), tarotTaskFactory);
         factories.put(numerologyEngine.engineId(), numerologyTaskFactory);
+        factories.put(baziEngine.engineId(), baziTaskFactory);
         return new EngineTaskFactoryRegistry(factories);
     }
 }

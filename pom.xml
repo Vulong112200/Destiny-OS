@@ -29,6 +29,7 @@
     <module>destiny-persistence</module>
     <module>destiny-engine-tarot</module>
     <module>destiny-engine-numerology</module>
+    <module>destiny-engine-bazi</module>
     <module>destiny-fusion</module>
     <module>destiny-scenario</module>
     <module>destiny-ai</module>

@@ -113,7 +113,38 @@ export interface TarotRequestInput {
   question: string | null;
 }
 
+export interface BaziRequestInput {
+  /** ISO date, e.g. "1984-02-05". */
+  birthDate: string;
+  /**
+   * ISO local time, e.g. "07:30", or null if not known.
+   *
+   * Null is a real answer, not a missing field: Master Spec section 2 forbids
+   * treating an unknown birth time as exact, so the backend returns the year
+   * and month pillars only rather than inventing an hour. Sending "00:00" to
+   * fill the shape would be the worst possible invention - midnight sits
+   * inside the Gio Ty window whose 23:00 boundary rolls the day pillar over.
+   */
+  birthTime: string | null;
+  /** "NORTH" | "SOUTH" | "UNKNOWN". Send UNKNOWN rather than guessing. */
+  region: string | null;
+  /** Degrees east; enables the mean-solar-time correction (R10). */
+  longitude: number | null;
+}
+
 export interface ScenarioRunRequestInput {
   numerology: NumerologyRequestInput | null;
   tarot: TarotRequestInput | null;
+  bazi: BaziRequestInput | null;
 }
+
+/**
+ * Vietnamese labels from `GET /api/v1/labels`, keyed by enum type then by
+ * technical name — e.g. `labels.HeavenlyStem.GIAP === "Giáp"`.
+ *
+ * Needed because a Bát Tự chart arrives inside `EvidenceDto.fact`, which is a
+ * free-form map of technical names rather than `LabeledValue` pairs. Every
+ * other enum in this API travels pre-labelled; these do not, and
+ * UI_UX_VIETNAMESE_SPEC section 1 still forbids showing the raw name.
+ */
+export type LabelRegistries = Record<string, Record<string, string>>;

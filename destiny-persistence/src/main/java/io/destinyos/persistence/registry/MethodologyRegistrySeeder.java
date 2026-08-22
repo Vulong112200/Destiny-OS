@@ -76,15 +76,15 @@ public class MethodologyRegistrySeeder {
                          Set<String> researchIds, String notes) {
     }
 
-    // school/source are null for every entry below except TAROT_RWS.
+    // school/source are null exactly for the entries that may NOT calculate.
     // CONTENT_REQUIRED and PRODUCTION_READY are the two statuses under which
-    // MethodologyStatus.mayCalculate() is true, and TAROT_RWS is the one
-    // entry at that status - Tarot's algorithm (RWS deck structure, seeded
-    // shuffle) is fully specified even though its meaning content is not.
-    // Getting this wrong here is exactly the mistake the
-    // MethodologyVersionEntity constructor guard exists to catch: an
-    // earlier draft of this seeder left TAROT_RWS's school/source blank and
-    // registration failed loudly at startup, as it should have.
+    // MethodologyStatus.mayCalculate() is true, and every entry at one of
+    // those statuses names both - today NUMEROLOGY_PYTHAGOREAN, TAROT_RWS,
+    // CALENDAR_VN_TRADITIONAL and BAZI_TUBINH_CHART. Getting this wrong is
+    // exactly the mistake the MethodologyVersionEntity constructor guard
+    // exists to catch: an earlier draft of this seeder left TAROT_RWS's
+    // school/source blank and registration failed loudly at startup, as it
+    // should have.
     private static final List<Entry> ENTRIES = List.of(
 
             new Entry("NUMEROLOGY_PYTHAGOREAN", "Thần số học - Pythagoras", "WESTERN",
@@ -174,15 +174,57 @@ public class MethodologyRegistrySeeder {
                             + "the same model TAROT_RWS and NUMEROLOGY_PYTHAGOREAN already "
                             + "use for their own content gaps (R11/R8)."),
 
-            new Entry("BAZI", "Bát Tự - Tứ Trụ", "EASTERN",
+            // Phase 8 is registered as TWO methodologies, not one, because the
+            // two halves genuinely have different statuses (DECISION_LOG 2026-08-22).
+            // Chart construction is verified and calculable; the interpretive
+            // layer is not, and collapsing them into a single status would have
+            // to lie in one direction or the other - either hiding a working
+            // Tứ Trụ behind RESEARCH_REQUIRED, or implying a Dụng Thần exists.
+            new Entry("BAZI_TUBINH_CHART", "Bát Tự - Lập lá số Tứ Trụ (Tử Bình)", "EASTERN",
                     "1.0",
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Tử Bình / Tứ Trụ - ranh giới năm tại Lập Xuân, tháng theo Tiết Khí",
+                    "Pillar arithmetic from destiny-calendar (Ngu Ho Don month stem, Ngu "
+                            + "Thu Don hour stem, continuous 60-day cycle), golden-tested "
+                            + "against Ho Ngoc Duc's published tables. Bat Tu-specific "
+                            + "boundaries verified against published Four Pillars tables "
+                            + "for the 1984-02-04/05 Lap Xuan transition, 2000-01-01, "
+                            + "1990-03-15 and 2024-02-04, cross-checked between smxs.com "
+                            + "and k366.com. Tang Can table cross-checked between "
+                            + "4thuman.com (VN) and imperialharvest.com (EN); Thap Than "
+                            + "derivation rule from phongthuykhaitoan.com (VN) and "
+                            + "oracleeast.com/bazi-web.com (EN). All retrieved 2026-08-22.",
+                    Set.of("R18", "R19"),
+                    "Phase 8a: four pillars, Ngu Hanh and Am Duong of every stem and "
+                            + "branch, Tang Can hidden stems, Thap Than relative to the "
+                            + "Day Master, and integer element counts. Emits evidence "
+                            + "only and NO signals - a Bat Tu signal needs a polarity, "
+                            + "and a polarity needs R1/R3, so the engine returns PARTIAL "
+                            + "with Dung Than, Dai Van and Day Master strength reported "
+                            + "as explicitly blocked sections. Two open items are its "
+                            + "own rather than inherited: R18 (Lap Xuan vs Tet year "
+                            + "boundary - the engine implements Lap Xuan, declares it, "
+                            + "and flags every birth where the two conventions disagree) "
+                            + "and R19 (solar-term instants run up to ~16 minutes early "
+                            + "against published tables because the cited Meeus series "
+                            + "omits nutation and aberration, so a 40-minute guard window "
+                            + "raises a boundary uncertainty instead of claiming "
+                            + "minute-level precision). Hidden-stem central/residual role "
+                            + "ordering diverges between the two sources for Suu and Ty; "
+                            + "the set and the principal stem are recorded, the disputed "
+                            + "ordering is flagged and never used."),
+
+            new Entry("BAZI", "Bát Tự - Luận giải (Dụng Thần, Đại Vận)", "EASTERN",
+                    "1.1",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R1", "R2", "R3"),
-                    "Dụng Thần/Hỷ Thần/Kỵ Thần school selection (R1), Đại Vận start "
-                            + "age and direction (R2), and Day Master strength "
-                            + "assessment (R3) are all unresolved. Also depends "
-                            + "transitively on CALENDAR_VN_TRADITIONAL for month "
-                            + "boundaries."),
+                    "The interpretive half of Bát Tự, Phase 8b. Dụng Thần/Hỷ Thần/Kỵ "
+                            + "Thần school selection (R1), Đại Vận start age and "
+                            + "direction (R2), and Day Master strength assessment (R3) "
+                            + "are all unresolved and are the reason BAZI_TUBINH_CHART "
+                            + "emits no signals. The calendar dependency that used to "
+                            + "block this entry is resolved: chart construction now ships "
+                            + "separately as BAZI_TUBINH_CHART."),
 
             new Entry("ZIWEI", "Tử Vi Đẩu Số", "EASTERN",
                     "1.0",

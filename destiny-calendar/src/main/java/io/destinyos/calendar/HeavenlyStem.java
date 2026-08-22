@@ -12,16 +12,42 @@ package io.destinyos.calendar;
  * separation every other user-facing enum in this project uses.
  */
 public enum HeavenlyStem {
-    GIAP(1), AT(2), BINH(3), DINH(4), MAU(5), KY(6), CANH(7), TAN(8), NHAM(9), QUY(10);
+    GIAP(1, FiveElement.WOOD),
+    AT(2, FiveElement.WOOD),
+    BINH(3, FiveElement.FIRE),
+    DINH(4, FiveElement.FIRE),
+    MAU(5, FiveElement.EARTH),
+    KY(6, FiveElement.EARTH),
+    CANH(7, FiveElement.METAL),
+    TAN(8, FiveElement.METAL),
+    NHAM(9, FiveElement.WATER),
+    QUY(10, FiveElement.WATER);
 
     private final int index;
+    private final FiveElement element;
 
-    HeavenlyStem(int index) {
+    HeavenlyStem(int index, FiveElement element) {
         this.index = index;
+        this.element = element;
     }
 
     public int index() {
         return index;
+    }
+
+    /**
+     * Ngũ Hành of this stem. Pairs run in cycle order — Giáp/Ất Mộc,
+     * Bính/Đinh Hỏa, Mậu/Kỷ Thổ, Canh/Tân Kim, Nhâm/Quý Thủy — with the
+     * odd member Dương and the even member Âm. Universal across every
+     * source consulted; no school variation exists to select between.
+     */
+    public FiveElement element() {
+        return element;
+    }
+
+    /** Âm Dương of this stem, from its cycle position (odd = Dương). */
+    public YinYang polarity() {
+        return YinYang.ofCyclePosition(index);
     }
 
     public static HeavenlyStem fromIndex(int index) {

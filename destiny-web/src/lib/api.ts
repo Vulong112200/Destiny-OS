@@ -1,5 +1,6 @@
 import type {
   ErrorResponse,
+  LabelRegistries,
   MethodologyDto,
   ScenarioRunRequestInput,
   ScenarioRunResponse,
@@ -42,6 +43,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function listMethodologies(): Promise<MethodologyDto[]> {
   return request<MethodologyDto[]>("/api/v1/methodologies");
+}
+
+/**
+ * Every Vietnamese label, for rendering enum names that arrive inside
+ * free-form evidence facts (a Bát Tự chart, today).
+ *
+ * Returns an empty registry rather than throwing when the call fails: a
+ * missing label table should degrade a chart to its technical names, not blank
+ * the whole result page a user is waiting on.
+ */
+export async function fetchLabels(): Promise<LabelRegistries> {
+  try {
+    return await request<LabelRegistries>("/api/v1/labels");
+  } catch {
+    return {};
+  }
 }
 
 export function runScenario(

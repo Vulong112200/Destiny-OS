@@ -3,6 +3,11 @@ package io.destinyos.i18n;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import io.destinyos.calendar.EarthlyBranch;
+import io.destinyos.calendar.FiveElement;
+import io.destinyos.calendar.HeavenlyStem;
+import io.destinyos.calendar.SolarTerm;
+import io.destinyos.calendar.YinYang;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.evidence.DataConfidence;
 import io.destinyos.core.result.EngineStatus;
@@ -11,6 +16,9 @@ import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
+import io.destinyos.engines.bazi.BaziYearBoundary;
+import io.destinyos.engines.bazi.PillarPosition;
+import io.destinyos.engines.bazi.TenGod;
 import io.destinyos.fusion.ConflictType;
 import io.destinyos.fusion.DimensionState;
 import io.destinyos.fusion.FusionOutcome;
@@ -47,7 +55,18 @@ class LabelCoverageTest {
             DimensionState.class,
             FusionOutcome.class,
             ConflictType.class,
-            MethodologyStatus.class);
+            MethodologyStatus.class,
+            // Phase 8a. Can Chi identity enums carry no display names of their
+            // own by design, so the label registry is the only thing standing
+            // between a Vietnamese reader and a chart that says "GIAP RAT".
+            HeavenlyStem.class,
+            EarthlyBranch.class,
+            FiveElement.class,
+            YinYang.class,
+            SolarTerm.class,
+            TenGod.class,
+            PillarPosition.class,
+            BaziYearBoundary.class);
 
     @Test
     @DisplayName("Every constant of every user-facing enum has a Vietnamese label")
@@ -125,6 +144,60 @@ class LabelCoverageTest {
         assertThat(VietnameseLabels.of(EngineStatus.NOT_IMPLEMENTED)).isEqualTo("Chưa triển khai");
         assertThat(VietnameseLabels.of(Polarity.SUPPORT)).isEqualTo("Thuận lợi");
         assertThat(VietnameseLabels.of(Polarity.CAUTION)).isEqualTo("Cần thận trọng");
+    }
+
+    @Test
+    @DisplayName("Can Chi labels use the toned Vietnamese syllables, and Ty/Ty stay distinct")
+    void canChiLabelsAreCorrectlyToned() {
+        // The whole reason EarthlyBranch is named by animal: stripping tones
+        // collides the rat and the snake. If these two labels are ever equal,
+        // that protection has been undone in the one place it mattered.
+        assertThat(VietnameseLabels.of(EarthlyBranch.RAT)).isEqualTo("Tý");
+        assertThat(VietnameseLabels.of(EarthlyBranch.SNAKE)).isEqualTo("Tỵ");
+        assertThat(VietnameseLabels.of(EarthlyBranch.RAT))
+                .isNotEqualTo(VietnameseLabels.of(EarthlyBranch.SNAKE));
+
+        assertThat(VietnameseLabels.of(HeavenlyStem.GIAP)).isEqualTo("Giáp");
+        assertThat(VietnameseLabels.of(FiveElement.WOOD)).isEqualTo("Mộc");
+        assertThat(VietnameseLabels.of(YinYang.YANG)).isEqualTo("Dương");
+        assertThat(VietnameseLabels.pillar(HeavenlyStem.GIAP, EarthlyBranch.RAT))
+                .isEqualTo("Giáp Tý");
+    }
+
+    @Test
+    @DisplayName("No Thap Than label carries an interpretation (R1/R3 are still open)")
+    void tenGodLabelsAreNamesNotReadings() {
+        // A label like "Chính Tài — tài lộc ổn định" would be a reading, and a
+        // reading needs Day Master strength (R3) and a Dụng Thần school (R1).
+        // Keeping these short is what keeps the interpretation out.
+        for (TenGod god : TenGod.values()) {
+            assertThat(VietnameseLabels.of(god))
+                    .as("Thập Thần label for %s", god)
+                    .hasSizeLessThan(30)
+                    .doesNotContain("tốt")
+                    .doesNotContain("xấu")
+                    .doesNotContain("thuận lợi")
+                    .doesNotContain("bất lợi");
+        }
+    }
+
+    @Test
+    @DisplayName("The string registry view exposes every labelled enum type by name")
+    void stringRegistryViewCoversEveryType() {
+        // The frontend renders Bát Tự charts from Evidence.fact maps holding
+        // technical names, so this view is the only thing that lets it show
+        // Vietnamese at all. A missing type here is an unlabelled UI.
+        var registries = VietnameseLabels.asStringRegistries();
+
+        assertThat(registries)
+                .containsKeys("HeavenlyStem", "EarthlyBranch", "FiveElement", "YinYang",
+                        "SolarTerm", "TenGod", "PillarPosition", "BaziYearBoundary",
+                        "EngineStatus", "Polarity", "Dimension");
+        assertThat(registries.get("HeavenlyStem")).hasSize(10)
+                .containsEntry("GIAP", "Giáp");
+        assertThat(registries.get("EarthlyBranch")).hasSize(12);
+        assertThat(registries.get("SolarTerm")).hasSize(24);
+        assertThat(registries).hasSize(VietnameseLabels.allRegistries().size());
     }
 
     @Test

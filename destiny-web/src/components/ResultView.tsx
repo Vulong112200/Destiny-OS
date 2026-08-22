@@ -1,13 +1,24 @@
-import type { ScenarioRunResponse } from "@/lib/types";
+import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
+import { BaziChartCard } from "./BaziChartCard";
 import { LabeledBadge } from "./LabeledBadge";
 
 /**
  * Renders one calculation's full explainability record, in the order
  * UI_UX_VIETNAMESE_SPEC section 4 requires (Fusion conclusion first, hard
- * data before any AI text - there is no AI text yet, Phase 12) and
- * following section 3's named flow for what appears below the fold.
+ * data before any AI text) and following section 3's named flow for what
+ * appears below the fold.
+ *
+ * `labels` is optional so every existing caller keeps working; without it the
+ * Bát Tự chart renders technical names rather than disappearing, which is the
+ * right failure mode for a label table that could not be fetched.
  */
-export function ResultView({ result }: { result: ScenarioRunResponse }) {
+export function ResultView({
+  result,
+  labels = {},
+}: {
+  result: ScenarioRunResponse;
+  labels?: LabelRegistries;
+}) {
   return (
     <div className="space-y-8">
       {!result.policyDefined && (
@@ -25,6 +36,14 @@ export function ResultView({ result }: { result: ScenarioRunResponse }) {
           </div>
         </section>
       )}
+
+      {/*
+        Hard data, shown before the aggregate discussion and independently of
+        any AI narrative (CLAUDE.md section 9). Renders nothing when the run
+        had no Bát Tự engine, so it costs an absent section rather than an
+        empty one.
+      */}
+      <BaziChartCard evidence={result.evidence} labels={labels} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Nguồn đóng góp</h2>
@@ -117,6 +136,14 @@ export function ResultView({ result }: { result: ScenarioRunResponse }) {
           ))}
         </div>
       </details>
+
+      {result.signals.length === 0 && result.engines.length > 0 && (
+        <p className="rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-700">
+          Lần chạy này không có tín hiệu nào để tổng hợp. Bát Tự hiện chỉ lập lá số (dữ liệu thật)
+          mà chưa phát sinh tín hiệu, vì mọi tín hiệu Bát Tự đều cần phần luận giải còn đang chờ
+          xác minh. Muốn có kết luận tổng hợp, hãy thêm Thần số học hoặc Tarot.
+        </p>
+      )}
 
       {result.signals.length > 0 && (
         <details className="rounded-lg border border-slate-200 p-4">

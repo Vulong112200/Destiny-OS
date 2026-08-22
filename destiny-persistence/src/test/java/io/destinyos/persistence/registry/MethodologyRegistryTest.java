@@ -119,6 +119,8 @@ class MethodologyRegistryTest {
             assertStatus("NUMEROLOGY_PYTHAGOREAN", MethodologyStatus.PRODUCTION_READY, "R8");
             assertStatus("NUMEROLOGY_CHALDEAN", MethodologyStatus.RESEARCH_REQUIRED, "R8");
             assertStatus("TAROT_RWS", MethodologyStatus.PRODUCTION_READY, "R11");
+            // Phase 8 is two entries with genuinely different statuses.
+            assertStatus("BAZI_TUBINH_CHART", MethodologyStatus.CONTENT_REQUIRED, "R18", "R19");
             assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED, "R1", "R2", "R3");
             assertStatus("ZIWEI", MethodologyStatus.RESEARCH_REQUIRED, "R4");
             assertStatus("WESTERN_ASTROLOGY", MethodologyStatus.DECISION_REQUIRED, "R5", "R6");
@@ -146,7 +148,13 @@ class MethodologyRegistryTest {
             entityManager.flush();
             entityManager.clear();
 
-            Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN", "CALENDAR_VN_TRADITIONAL");
+            // BAZI_TUBINH_CHART is CONTENT_REQUIRED: the chart algorithm is
+            // verified and calculable while the interpretive content that would
+            // make it a reading is not - the same state TAROT_RWS was in before
+            // its meaning corpus was authored. BAZI itself (the interpretive
+            // half) stays non-calculable, which is the point of the split.
+            Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
+                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();
@@ -171,6 +179,7 @@ class MethodologyRegistryTest {
             entityManager.clear();
 
             assertThat(registry.allVersions("BAZI")).hasSize(1);
+            assertThat(registry.allVersions("BAZI_TUBINH_CHART")).hasSize(1);
         }
 
         private void assertStatus(String methodologyId, MethodologyStatus expected,

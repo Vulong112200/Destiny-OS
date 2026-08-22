@@ -16,17 +16,47 @@ package io.destinyos.calendar;
  * satisfies {@code b = x mod 12}, with remainder 0 read as index 12).
  */
 public enum EarthlyBranch {
-    RAT(1), OX(2), TIGER(3), RABBIT(4), DRAGON(5), SNAKE(6),
-    HORSE(7), GOAT(8), MONKEY(9), ROOSTER(10), DOG(11), PIG(12);
+    RAT(1, FiveElement.WATER),
+    OX(2, FiveElement.EARTH),
+    TIGER(3, FiveElement.WOOD),
+    RABBIT(4, FiveElement.WOOD),
+    DRAGON(5, FiveElement.EARTH),
+    SNAKE(6, FiveElement.FIRE),
+    HORSE(7, FiveElement.FIRE),
+    GOAT(8, FiveElement.EARTH),
+    MONKEY(9, FiveElement.METAL),
+    ROOSTER(10, FiveElement.METAL),
+    DOG(11, FiveElement.EARTH),
+    PIG(12, FiveElement.WATER);
 
     private final int index;
+    private final FiveElement element;
 
-    EarthlyBranch(int index) {
+    EarthlyBranch(int index, FiveElement element) {
         this.index = index;
+        this.element = element;
     }
 
     public int index() {
         return index;
+    }
+
+    /**
+     * Ngũ Hành of this branch: Tý Thủy, Sửu Thổ, Dần/Mão Mộc, Thìn Thổ,
+     * Tỵ/Ngọ Hỏa, Mùi Thổ, Thân/Dậu Kim, Tuất Thổ, Hợi Thủy. Universal
+     * across every source consulted.
+     */
+    public FiveElement element() {
+        return element;
+    }
+
+    /**
+     * Âm Dương from cycle position (odd = Dương). See {@link YinYang} for
+     * why the "Tý is functionally Âm" subtlety is recorded there and never
+     * reached by any calculation in this project.
+     */
+    public YinYang polarity() {
+        return YinYang.ofCyclePosition(index);
     }
 
     public static EarthlyBranch fromIndex(int index) {

@@ -8,6 +8,180 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 8a: Bát Tự lập lá số Tứ Trụ (`destiny-engine-bazi`)
+
+Phase 8 được **tách làm hai** (xem `docs/DECISION_LOG.md`, 2026-08-22): 8a lập
+lá số, 8b luận giải. Cả ba mục nghiên cứu đang chặn Phase 8 — R1 (Dụng Thần),
+R2 (Đại Vận), R3 (cường độ Nhật Chủ) — đều thuộc phần **luận giải**, không mục
+nào liên quan đến việc lập lá số. Sau khi cụm Calendar được giải quyết
+(2026-08-19), giữ nguyên một lá số đã kiểm chứng được phía sau ba mục đó chính
+là một kiểu không trung thực khác: từ chối đưa ra dữ liệu thật vì một phần khác
+của cùng phase chưa xong.
+
+**Module mới `destiny-engine-bazi`** — phụ thuộc `destiny-engine-api` và
+`destiny-calendar` (hạ tầng, không phải engine, nên luật ArchUnit
+`enginesStayIndependent` không bị ảnh hưởng). Tính được:
+
+- **Tứ Trụ** theo quy ước Tử Bình: Trụ Năm đổi tại **Lập Xuân** (không phải
+  Tết), Trụ Tháng theo **Tiết Khí** (không phải tháng âm lịch). Phép toán Can
+  Chi không viết lại — `CanChi` đã có sẵn Ngũ Hổ Độn và Ngũ Thử Độn đã
+  golden-test; phần Bát Tự thêm vào chỉ là *đưa năm nào và số tháng nào* vào
+  đó
+- **Ngũ Hành và Âm Dương** của mọi Thiên Can / Địa Chi (`FiveElement`,
+  `YinYang` trong `destiny-calendar` — đây là thuộc tính của chính hệ Can Chi,
+  không phải diễn giải, và đặt ở đó để Bát Tự / Tử Vi / Phong Thủy sau này
+  không bao giờ phải phụ thuộc lẫn nhau vì nó)
+- **Tàng Can** (`HiddenStems`) — đối chiếu hai nguồn độc lập
+- **Thập Thần** (`TenGod`, `TenGods`) — cài bằng *quy tắc* (quan hệ Ngũ Hành ×
+  cùng/khác Âm Dương) chứ không phải bảng tra 10×10 chép tay, vì một bảng chép
+  tay có thể sai một ô mà không ai đọc ra
+- **Số đếm Ngũ Hành** (`ElementTally`) — **ba nhóm đếm riêng** (theo can, theo
+  chi, theo tàng can), cố tình không cộng gộp và không có trọng số
+
+### Trung thực về những gì *không* được tính
+
+- **Engine không phát sinh signal nào.** Một `Signal` bắt buộc có `Polarity`,
+  và một polarity Bát Tự bắt buộc cần R1 + R3. `BaziEngineTest.emitsNoSignals`
+  làm hỏng build nếu danh sách đó khác rỗng — nên việc điền vào đó phải là một
+  quyết định có ý thức, chống lại một test đang fail, không phải chuyện tự trôi
+- **Status là `PARTIAL`, không phải `SUCCESS`**, kèm `ResearchReference` nói
+  rõ phần luận giải thiếu vì sao
+- **Ba phần bị chặn là *nội dung trả về*, không phải chỗ trống.**
+  `BlockedSection` mang tên tiếng Việt, mã nghiên cứu, lý do, và các trường
+  phái khác nhau đang tồn tại; mỗi phần cũng thành một `EngineWarning`
+  **critical** để pruning của lớp AI không cắt được. UI hiển thị "Dụng Thần —
+  cần xác minh thuật toán (R1)", không bao giờ là một lá số âm thầm thiếu Dụng
+  Thần
+- **Hai entry registry, không phải một**: `BAZI_TUBINH_CHART` ở
+  `CONTENT_REQUIRED` (tính được) và `BAZI` ở `RESEARCH_REQUIRED` (không tính
+  được). Gộp một entry thì buộc phải nói sai theo hướng này hoặc hướng kia
+
+### Added — hai mục nghiên cứu mới, phát hiện khi làm 8a
+
+- **R18 — ranh giới năm Lập Xuân hay Tết.** Hai quy ước cho ra Trụ Năm khác
+  nhau cho mọi ca sinh giữa Tết và Lập Xuân, và vì Trụ Tháng lấy can từ can
+  năm (Ngũ Hổ Độn) nên sai ranh giới là sai **hai** trong tám chữ. Chọn **Lập
+  Xuân**, khai báo thẳng trong metadata của engine; quy ước Tết được đặt tên
+  trong `BaziYearBoundary` nhưng **cố tình không cài** — nó tồn tại để engine
+  phát hiện được mâu thuẫn, không phải để âm thầm chuyển sang. Khi hai quy ước
+  khác nhau, engine tính luôn Trụ Năm theo Tết và báo
+  `METHODOLOGY_UNRESOLVED` (`affectsResult = true`) nêu **cả hai** đáp án
+  → `RESOLVED` như một lựa chọn trường phái *đã khai báo*, không phải như một
+  khẳng định chỉ có một quy ước đúng
+- **R19 — độ chính xác thời điểm Tiết Khí.** Đo được, không phải phỏng đoán:
+  chuỗi Meeus low-precision mà dự án đang dùng tính kinh độ **hình học** của
+  mặt trời, bỏ nutation và aberration, nên chạy sớm so với bảng công bố —
+  Lập Xuân 1984 lệch −7,4 phút, Lập Xuân 2024 lệch −15,9 phút. Xử lý bằng
+  cửa sổ bảo vệ **40 phút**: sinh trong khoảng đó sẽ nhận
+  `SOLAR_TERM_BOUNDARY` (`affectsResult = true`) + cảnh báo critical, và cửa
+  sổ này được *assert* trực tiếp với cả hai thời điểm công bố trong
+  `SolarTermInstantTest` nên không thể âm thầm thu nhỏ. Trụ Tháng vẫn được
+  trả về — đó là đáp án tốt nhất của mô hình — nhưng không bao giờ như một
+  điều chắc chắn → `DECISION_REQUIRED` (có nên nhận hiệu chỉnh
+  apparent-longitude hay không)
+
+### Added — API và UI
+
+- `POST /api/v1/scenarios/{type}` nhận thêm khối `bazi`
+  (`birthDate`, `birthTime`, `region`, `longitude`). `birthTime` **null nghĩa
+  là không biết**, không phải thiếu trường: `BaziTaskFactory` dịch nó thành
+  `BirthTimePrecision.UNKNOWN` và engine chỉ trả Trụ Năm + Trụ Tháng. Giờ
+  danh nghĩa dùng nội bộ là **giữa trưa, không phải nửa đêm** — nửa đêm nằm
+  trong khung Giờ Tý mà ranh giới 23:00 làm Trụ Ngày nhảy sang ngày sau
+- **`GET /api/v1/labels` (mới)** — toàn bộ nhãn tiếng Việt, khóa theo tên enum
+  rồi tên kỹ thuật. Cần thiết vì 8a là feature đầu tiên có payload là *dữ liệu
+  có cấu trúc* thay vì các trường DTO cố định: lá số đi qua
+  `Evidence.fact` với tên kỹ thuật thô (`GIAP`, `TY_KIEN`), và hai phương án
+  còn lại đều tệ hơn — nhúng chuỗi tiếng Việt vào output của engine (đặt chữ
+  hiển thị vào đúng lớp phải sạch chữ hiển thị), hoặc nhân đôi bảng nhãn sang
+  TypeScript (hai registry sẽ lệch nhau, mà `LabelCoverageTest` chỉ canh được
+  một cái)
+- **Nhãn tiếng Việt mới**: Thiên Can (10), Địa Chi (12), Ngũ Hành (5), Âm
+  Dương (2), Tiết Khí (24), Thập Thần (10), vị trí trụ (4), quy ước ranh giới
+  năm (2). `LabelCoverageTest` mở rộng phủ cả 8 enum này, cộng một test riêng
+  xác nhận **Tý và Tỵ không trùng nhãn** — chính lý do `EarthlyBranch` được
+  đặt tên theo con vật thay vì phiên âm
+- **`BaziChartCard` (frontend)** dựng bảng Tứ Trụ *từ evidence*, không từ một
+  DTO riêng: evidence là bản ghi giải trình của dự án, nên lá số dựng từ
+  evidence là lá số không thể lệch khỏi những gì audit trail ghi lại. Hiển thị
+  Thiên Can / Địa Chi / Ngũ Hành / Tàng Can / Thập Thần, ba bảng đếm Ngũ Hành
+  riêng, và danh sách phần luận giải bị chặn kèm lý do
+- **`destiny-i18n` nay phụ thuộc `destiny-calendar` và `destiny-engine-bazi`**
+  — cùng tiền lệ với `destiny-ai`: registry nhãn là nơi duy nhất được biết về
+  enum hướng người dùng của module phía dưới, vì `UI_UX_VIETNAMESE_SPEC` §1
+  coi một enum không có nhãn là một lỗi và `LabelCoverageTest` canh việc đó ở
+  một chỗ tập trung
+
+### Changed
+
+- `BAZI` giờ **thật sự chạy** trong kịch bản BUSINESS và DAILY_ACTION — hai
+  kịch bản đã nêu tên engine id `BAZI` từ đầu (Master Spec §7), nên trước đây
+  nó luôn xuất hiện trong `unavailableEngines`
+- `MethodologyRegistrySeeder`: `BAZI` lên version `1.1` và đổi tên hiển thị
+  thành "Bát Tự - Luận giải (Dụng Thần, Đại Vận)" để phản ánh việc nó giờ chỉ
+  còn là nửa luận giải; thêm entry `BAZI_TUBINH_CHART` version `1.0`
+- `ScenarioRunRequest` thêm trường thứ ba `bazi` (thay đổi arity của record)
+- `ResultView` nay nói rõ khi một lần chạy **không có tín hiệu nào**, thay vì
+  im lặng ẩn mục tín hiệu — trường hợp này xảy ra thật khi người dùng chỉ bật
+  Bát Tự
+
+### Changed — luật kiến trúc mạnh thêm
+
+- Luật ArchUnit "không có số thực trong domain" (ADR D6) được mở rộng từ
+  `destiny-core`/`destiny-fusion` sang **cả `io.destinyos.engines..`** —
+  engine chính là nơi một điểm số bịa dễ được *nghĩ ra* nhất, vì đó là nơi có
+  động cơ: mọi bảng Tàng Can đã công bố đều đính tỉ lệ 60/30/10, mọi bài viết
+  "Nhật Chủ mạnh yếu thế nào" đều đính một con số, mà R3 nói không tồn tại
+  thang điểm nào được công nhận chung. Đúng **một** trường được cho qua và
+  được nêu tên tường minh (không dùng khớp mẫu tên, để ngoại lệ luôn kiểm tra
+  được): kinh độ nơi sinh trong `BaziInput` — một toạ độ địa lý đưa *vào*, để
+  đổi giờ đồng hồ sang giờ mặt trời (R10), không phải điểm số về một kết quả.
+  Luật đã được kiểm chứng ngược (bỏ ngoại lệ đi thì test fail đúng 1 vi phạm)
+  nên nó không pass rỗng
+
+### Tests
+
+372 test (tăng từ 310):
+
+- **`destiny-engine-bazi` (34)** — golden test đối chiếu bảng Tứ Trụ đã công
+  bố cho 6 mốc thời gian, trong đó cặp 4/5-02-1984 nằm hai bên Lập Xuân
+  (23:18:44 giờ Bắc Kinh) trong khi Tết 1984 đã qua từ 2/2 — đúng cặp phân
+  biệt quy ước này với quy ước Tết; quy tắc Thập Thần kiểm cả 100 cặp can và
+  xác nhận mỗi Nhật Chủ ánh xạ **song ánh** lên 10 vai (thuộc tính mà một
+  bảng chép tay không đảm bảo được); không có signal; ba phần bị chặn có mã
+  nghiên cứu và biến thể trường phái; UNKNOWN precision không sinh Nhật Chủ
+  và không sinh Thập Thần ở bất kỳ đâu; khoảng trống R14b trả
+  `RESEARCH_REQUIRED` chứ không đoán múi giờ; mâu thuẫn R18 nêu cả hai đáp
+  án; cờ ranh giới Tiết Khí có và **không** báo động giả; tái lập được
+- **`destiny-calendar` (+16, tổng 106)** — bảng Ngũ Hành/Âm Dương của can chi,
+  Thổ xuất hiện đúng 4 lần trong 12 chi, hai vòng Tương Sinh/Tương Khắc là
+  song ánh và nghịch đảo của nhau, `relationTo` phân hoạch đúng 5 quan hệ
+  (thuộc tính khiến switch 10 nhánh của Thập Thần không có nhánh chết);
+  Tàng Can khớp cả hai nguồn, chính khí luôn trùng Ngũ Hành của chi, đúng
+  Sửu và Tỵ được cờ "thứ tự vai chưa thống nhất"; thời điểm Tiết Khí đối
+  chiếu hai mốc Lập Xuân đã công bố, và **độ lệch được assert trực tiếp** nên
+  cửa sổ 40 phút không thể bị thu nhỏ âm thầm
+- **Tích hợp HTTP đầu-cuối (+4)** — chạy `BaziEngine` thật qua cổng ngẫu
+  nhiên, xác nhận lá số 5/2/1984 khớp bảng công bố sau khi đi qua toàn bộ
+  đường dẫn (DTO → dịch region/precision → engine → evidence → database),
+  Thập Thần của can năm là Chính Quan so với Nhật Chủ Kỷ, ba phần bị chặn
+  đến được client, `GET /api/v1/labels` trả đủ nhãn, và registry liệt kê cả
+  hai nửa Phase 8 với hai status khác nhau
+
+### Deliberately not done
+
+- **Nạp Âm** — chưa có gì cần đến nó
+- **Thập Thần theo Địa Chi** — sách vở không thống nhất chuyện Tý "thể dương
+  dụng âm", mà mọi nguồn đã đối chiếu đều lấy Thập Thần từ *can*; điều này
+  được ghi trong Javadoc của `YinYang` và làm cho không code nào chạm tới
+- **Thứ tự trung khí / dư khí của Tàng Can** — hai nguồn xếp khác nhau cho
+  Sửu và Tỵ; bộ can ẩn và chính khí được ghi lại, thứ tự đang tranh chấp được
+  đánh cờ và không dùng vào bất kỳ phép tính nào. Các tỉ lệ 60/30/10 mà cả
+  hai nguồn đính kèm **không** được nhập vào — đó đúng là loại trọng số bịa
+  mà ADR D6 cấm, và `ArchitectureRulesTest.noProbabilityInTheDomain` sẽ chặn
+  vì chúng cần `double`
+
+
 ### Added — Phase 12: AI Narrative layer (`destiny-ai`, ADR D8)
 
 - Module mới `destiny-ai` — chỉ phụ thuộc `destiny-core`; không bao giờ phụ

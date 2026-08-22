@@ -12,6 +12,19 @@ const SPREAD_OPTIONS: { value: TarotSpreadName; label: string; cardCount: number
 ];
 
 /**
+ * Region matters only for births between 1955 and 1975, when North and South
+ * ran different UTC offsets. "Chưa rõ" is the default and a legitimate answer:
+ * research item R14b found no source for the geographic boundary, so a birth in
+ * that window with an unknown region comes back unresolvable — which is the
+ * honest result, and better than making the user pick a side to get a number.
+ */
+const REGION_OPTIONS: { value: string; label: string }[] = [
+  { value: "UNKNOWN", label: "Chưa rõ / không áp dụng" },
+  { value: "NORTH", label: "Miền Bắc" },
+  { value: "SOUTH", label: "Miền Nam" },
+];
+
+/**
  * The Decision Center intake form (UI_UX_VIETNAMESE_SPEC section 3, first
  * three steps: chọn chủ đề -> nhập câu hỏi/context -> hệ thống áp dụng).
  * Only BUSINESS and DAILY_ACTION are offered - the only two scenarios with
@@ -28,6 +41,11 @@ export function DecisionCenterForm() {
   const [useTarot, setUseTarot] = useState(true);
   const [spread, setSpread] = useState<TarotSpreadName>("PAST_PRESENT_FUTURE");
   const [question, setQuestion] = useState("");
+  const [useBazi, setUseBazi] = useState(false);
+  const [baziBirthDate, setBaziBirthDate] = useState("");
+  const [baziBirthTime, setBaziBirthTime] = useState("");
+  const [baziRegion, setBaziRegion] = useState("UNKNOWN");
+  const [baziLongitude, setBaziLongitude] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,8 +54,21 @@ export function DecisionCenterForm() {
     setError(null);
 
     const hasNumerology = fullName.trim() !== "" && birthDate !== "";
-    if (!hasNumerology && !useTarot) {
-      setError("Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, hoặc bật rút bài Tarot.");
+    const hasBazi = useBazi && baziBirthDate !== "";
+    if (useBazi && baziBirthDate === "") {
+      setError("Bát Tự cần ngày sinh. Giờ sinh có thể để trống — khi đó chỉ lập được Trụ Năm và Trụ Tháng.");
+      return;
+    }
+    if (!hasNumerology && !useTarot && !hasBazi) {
+      setError(
+        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, hoặc bật Bát Tự.",
+      );
+      return;
+    }
+
+    const longitude = baziLongitude.trim() === "" ? null : Number(baziLongitude);
+    if (longitude !== null && !Number.isFinite(longitude)) {
+      setError("Kinh độ phải là một số, ví dụ 106.7. Để trống nếu không biết.");
       return;
     }
 
@@ -46,6 +77,17 @@ export function DecisionCenterForm() {
       const result = await runScenario(scenarioType, {
         numerology: hasNumerology ? { fullName: fullName.trim(), birthDate } : null,
         tarot: useTarot ? { spread, seed: null, question: question.trim() || null } : null,
+        bazi: hasBazi
+          ? {
+              birthDate: baziBirthDate,
+              // Empty means "not known", never a stand-in hour: the backend
+              // returns two pillars and says so, rather than treating an
+              // unknown time as exact (Master Spec section 2).
+              birthTime: baziBirthTime === "" ? null : baziBirthTime,
+              region: baziRegion,
+              longitude,
+            }
+          : null,
       });
       router.push(`/ket-qua/${result.calculationId}`);
     } catch (err) {
@@ -148,6 +190,87 @@ export function DecisionCenterForm() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
               />
             </label>
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-900">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useBazi}
+              onChange={(e) => setUseBazi(e.target.checked)}
+            />
+            Bát Tự — lập lá số Tứ Trụ
+          </label>
+        </legend>
+        {useBazi && (
+          <div className="space-y-3">
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Hiện chỉ <span className="font-medium">lập lá số</span>: Tứ Trụ, Ngũ Hành, Tàng Can,
+              Thập Thần và số đếm Ngũ Hành — tất cả là dữ liệu tính toán tất định. Phần luận giải
+              (Dụng Thần, Đại Vận, cường độ Nhật Chủ) chưa được cung cấp vì các trường phái chưa
+              thống nhất và hệ thống không tự chọn giúp bạn. Vì vậy Bát Tự chưa góp tín hiệu nào
+              vào kết luận tổng hợp.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Ngày sinh (dương lịch)</span>
+                <input
+                  type="date"
+                  value={baziBirthDate}
+                  onChange={(e) => setBaziBirthDate(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Giờ sinh (để trống nếu không biết)</span>
+                <input
+                  type="time"
+                  value={baziBirthTime}
+                  onChange={(e) => setBaziBirthTime(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+                <span className="mt-1 block text-xs text-slate-500">
+                  Không biết giờ thì để trống — hệ thống sẽ chỉ lập Trụ Năm và Trụ Tháng, không
+                  đặt giờ giả.
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Vùng sinh</span>
+                <select
+                  value={baziRegion}
+                  onChange={(e) => setBaziRegion(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                >
+                  {REGION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-1 block text-xs text-slate-500">
+                  Chỉ ảnh hưởng với người sinh trong khoảng 1955–1975, khi hai miền dùng múi giờ
+                  khác nhau.
+                </span>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Kinh độ nơi sinh (tùy chọn)</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={baziLongitude}
+                  onChange={(e) => setBaziLongitude(e.target.value)}
+                  placeholder="106.7"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+                <span className="mt-1 block text-xs text-slate-500">
+                  Có kinh độ thì giờ sinh được hiệu chỉnh về giờ mặt trời — chỉ quan trọng khi giờ
+                  sinh sát ranh giới canh giờ.
+                </span>
+              </label>
+            </div>
           </div>
         )}
       </fieldset>

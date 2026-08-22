@@ -2,6 +2,11 @@ package io.destinyos.i18n;
 
 import io.destinyos.ai.FallbackReason;
 import io.destinyos.ai.NarrativeSource;
+import io.destinyos.calendar.EarthlyBranch;
+import io.destinyos.calendar.FiveElement;
+import io.destinyos.calendar.HeavenlyStem;
+import io.destinyos.calendar.SolarTerm;
+import io.destinyos.calendar.YinYang;
 import io.destinyos.core.context.UncertaintyKind;
 import io.destinyos.core.evidence.DataConfidence;
 import io.destinyos.core.result.EngineStatus;
@@ -10,6 +15,9 @@ import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
+import io.destinyos.engines.bazi.BaziYearBoundary;
+import io.destinyos.engines.bazi.PillarPosition;
+import io.destinyos.engines.bazi.TenGod;
 import io.destinyos.fusion.ConflictType;
 import io.destinyos.fusion.DimensionState;
 import io.destinyos.fusion.FusionOutcome;
@@ -222,6 +230,131 @@ public final class VietnameseLabels {
         map.put(FallbackReason.EMPTY_RESPONSE, "Dịch vụ AI không trả về nội dung");
     });
 
+    /**
+     * Thien Can. The enum constants are ASCII transliterations
+     * ({@code GIAP}, {@code AT}, ...) because {@code HeavenlyStem} keeps
+     * display names out of the identity enum on purpose; this is where they
+     * live.
+     */
+    private static final Map<HeavenlyStem, String> HEAVENLY_STEM = ordered(map -> {
+        map.put(HeavenlyStem.GIAP, "Giáp");
+        map.put(HeavenlyStem.AT, "Ất");
+        map.put(HeavenlyStem.BINH, "Bính");
+        map.put(HeavenlyStem.DINH, "Đinh");
+        map.put(HeavenlyStem.MAU, "Mậu");
+        map.put(HeavenlyStem.KY, "Kỷ");
+        map.put(HeavenlyStem.CANH, "Canh");
+        map.put(HeavenlyStem.TAN, "Tân");
+        map.put(HeavenlyStem.NHAM, "Nhâm");
+        map.put(HeavenlyStem.QUY, "Quý");
+    });
+
+    /**
+     * Dia Chi. {@code EarthlyBranch} is named by zodiac animal precisely so
+     * that Ty (rat) and Ty (snake) cannot collide once tone marks are
+     * stripped - this map is the only place the toned Vietnamese syllables
+     * appear, and getting one wrong here is exactly the bug that naming
+     * choice was made to prevent.
+     */
+    private static final Map<EarthlyBranch, String> EARTHLY_BRANCH = ordered(map -> {
+        map.put(EarthlyBranch.RAT, "Tý");
+        map.put(EarthlyBranch.OX, "Sửu");
+        map.put(EarthlyBranch.TIGER, "Dần");
+        map.put(EarthlyBranch.RABBIT, "Mão");
+        map.put(EarthlyBranch.DRAGON, "Thìn");
+        map.put(EarthlyBranch.SNAKE, "Tỵ");
+        map.put(EarthlyBranch.HORSE, "Ngọ");
+        map.put(EarthlyBranch.GOAT, "Mùi");
+        map.put(EarthlyBranch.MONKEY, "Thân");
+        map.put(EarthlyBranch.ROOSTER, "Dậu");
+        map.put(EarthlyBranch.DOG, "Tuất");
+        map.put(EarthlyBranch.PIG, "Hợi");
+    });
+
+    /** Ngu Hanh. */
+    private static final Map<FiveElement, String> FIVE_ELEMENT = ordered(map -> {
+        map.put(FiveElement.WOOD, "Mộc");
+        map.put(FiveElement.FIRE, "Hỏa");
+        map.put(FiveElement.EARTH, "Thổ");
+        map.put(FiveElement.METAL, "Kim");
+        map.put(FiveElement.WATER, "Thủy");
+    });
+
+    /** Am Duong. */
+    private static final Map<YinYang, String> YIN_YANG = ordered(map -> {
+        map.put(YinYang.YANG, "Dương");
+        map.put(YinYang.YIN, "Âm");
+    });
+
+    /**
+     * Tiet Khi, in the enum's own solar-longitude order (Xuan phan at 0
+     * degrees first) rather than by calendar month - the same order the
+     * astronomy uses, so a reader comparing the two never has to re-sort.
+     */
+    private static final Map<SolarTerm, String> SOLAR_TERM = ordered(map -> {
+        map.put(SolarTerm.XUAN_PHAN, "Xuân phân");
+        map.put(SolarTerm.THANH_MINH, "Thanh minh");
+        map.put(SolarTerm.COC_VU, "Cốc vũ");
+        map.put(SolarTerm.LAP_HA, "Lập hạ");
+        map.put(SolarTerm.TIEU_MAN, "Tiểu mãn");
+        map.put(SolarTerm.MANG_CHUNG, "Mang chủng");
+        map.put(SolarTerm.HA_CHI, "Hạ chí");
+        map.put(SolarTerm.TIEU_THU, "Tiểu thử");
+        map.put(SolarTerm.DAI_THU, "Đại thử");
+        map.put(SolarTerm.LAP_THU, "Lập thu");
+        map.put(SolarTerm.XU_THU, "Xử thử");
+        map.put(SolarTerm.BACH_LO, "Bạch lộ");
+        map.put(SolarTerm.THU_PHAN, "Thu phân");
+        map.put(SolarTerm.HAN_LO, "Hàn lộ");
+        map.put(SolarTerm.SUONG_GIANG, "Sương giáng");
+        map.put(SolarTerm.LAP_DONG, "Lập đông");
+        map.put(SolarTerm.TIEU_TUYET, "Tiểu tuyết");
+        map.put(SolarTerm.DAI_TUYET, "Đại tuyết");
+        map.put(SolarTerm.DONG_CHI, "Đông chí");
+        map.put(SolarTerm.TIEU_HAN, "Tiểu hàn");
+        map.put(SolarTerm.DAI_HAN, "Đại hàn");
+        map.put(SolarTerm.LAP_XUAN, "Lập xuân");
+        map.put(SolarTerm.VU_THUY, "Vũ thủy");
+        map.put(SolarTerm.KINH_TRAP, "Kinh trập");
+    });
+
+    /**
+     * Thap Than (Phase 8a). Names only - what each role MEANS for a person is
+     * gated on research items R1 and R3, so no interpretive wording appears
+     * here. Both common alternate names are given where a reader is likely to
+     * know the other one.
+     */
+    private static final Map<TenGod, String> TEN_GOD = ordered(map -> {
+        map.put(TenGod.TY_KIEN, "Tỷ Kiên");
+        map.put(TenGod.KIEP_TAI, "Kiếp Tài");
+        map.put(TenGod.THUC_THAN, "Thực Thần");
+        map.put(TenGod.THUONG_QUAN, "Thương Quan");
+        map.put(TenGod.THIEN_TAI, "Thiên Tài");
+        map.put(TenGod.CHINH_TAI, "Chính Tài");
+        map.put(TenGod.THAT_SAT, "Thất Sát (Thiên Quan)");
+        map.put(TenGod.CHINH_QUAN, "Chính Quan");
+        map.put(TenGod.THIEN_AN, "Thiên Ấn (Kiêu Thần)");
+        map.put(TenGod.CHINH_AN, "Chính Ấn");
+    });
+
+    /** Tu Tru positions. */
+    private static final Map<PillarPosition, String> PILLAR_POSITION = ordered(map -> {
+        map.put(PillarPosition.YEAR, "Trụ Năm");
+        map.put(PillarPosition.MONTH, "Trụ Tháng");
+        map.put(PillarPosition.DAY, "Trụ Ngày");
+        map.put(PillarPosition.HOUR, "Trụ Giờ");
+    });
+
+    /**
+     * Which convention set the Bat Tu year pillar (research item R18). Both
+     * labels name the convention rather than endorsing it, because the point
+     * of surfacing this at all is to let the reader see that a choice exists.
+     */
+    private static final Map<BaziYearBoundary, String> BAZI_YEAR_BOUNDARY = ordered(map -> {
+        map.put(BaziYearBoundary.LAP_XUAN, "Đổi năm tại Lập Xuân (Tử Bình)");
+        map.put(BaziYearBoundary.LUNAR_NEW_YEAR, "Đổi năm tại Tết (chưa triển khai)");
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -274,6 +407,43 @@ public final class VietnameseLabels {
         return require(FALLBACK_REASON, value);
     }
 
+    public static String of(HeavenlyStem value) {
+        return require(HEAVENLY_STEM, value);
+    }
+
+    public static String of(EarthlyBranch value) {
+        return require(EARTHLY_BRANCH, value);
+    }
+
+    public static String of(FiveElement value) {
+        return require(FIVE_ELEMENT, value);
+    }
+
+    public static String of(YinYang value) {
+        return require(YIN_YANG, value);
+    }
+
+    public static String of(SolarTerm value) {
+        return require(SOLAR_TERM, value);
+    }
+
+    public static String of(TenGod value) {
+        return require(TEN_GOD, value);
+    }
+
+    public static String of(PillarPosition value) {
+        return require(PILLAR_POSITION, value);
+    }
+
+    public static String of(BaziYearBoundary value) {
+        return require(BAZI_YEAR_BOUNDARY, value);
+    }
+
+    /** One pillar rendered the way a reader expects it, e.g. "Giap Ty". */
+    public static String pillar(HeavenlyStem stem, EarthlyBranch branch) {
+        return of(stem) + " " + of(branch);
+    }
+
     /** Non-throwing lookup, for the coverage test. */
     public static Optional<String> lookup(Enum<?> value) {
         if (value == null) {
@@ -292,7 +462,37 @@ public final class VietnameseLabels {
     public static java.util.List<Map<? extends Enum<?>, String>> allRegistries() {
         return java.util.List.of(ENGINE_STATUS, POLARITY, STRENGTH, APPLICABILITY,
                 DIMENSION, DATA_CONFIDENCE, UNCERTAINTY, DIMENSION_STATE, FUSION_OUTCOME,
-                CONFLICT_TYPE, METHODOLOGY_STATUS, NARRATIVE_SOURCE, FALLBACK_REASON);
+                CONFLICT_TYPE, METHODOLOGY_STATUS, NARRATIVE_SOURCE, FALLBACK_REASON,
+                HEAVENLY_STEM, EARTHLY_BRANCH, FIVE_ELEMENT, YIN_YANG, SOLAR_TERM,
+                TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY);
+    }
+
+    /**
+     * Every registry as plain strings, keyed by enum simple name - the shape a
+     * frontend needs.
+     *
+     * <p>Exists because Phase 8a is the first feature whose payload is
+     * structured data rather than a fixed set of DTO fields: a Bat Tu chart
+     * arrives as {@code Evidence.fact} maps holding technical names like
+     * {@code GIAP} and {@code TY_KIEN}, and a renderer has nowhere to look
+     * them up. The alternative was to embed Vietnamese strings in engine
+     * output, which would put display text in the one layer that must stay
+     * free of it (Evidence's own Javadoc: "structured finding, never prose").
+     */
+    public static Map<String, Map<String, String>> asStringRegistries() {
+        Map<String, Map<String, String>> byType = new LinkedHashMap<>();
+        for (Map<? extends Enum<?>, String> registry : allRegistries()) {
+            Map<String, String> entries = new LinkedHashMap<>();
+            String typeName = null;
+            for (Map.Entry<? extends Enum<?>, String> entry : registry.entrySet()) {
+                typeName = entry.getKey().getDeclaringClass().getSimpleName();
+                entries.put(entry.getKey().name(), entry.getValue());
+            }
+            if (typeName != null) {
+                byType.put(typeName, Map.copyOf(entries));
+            }
+        }
+        return Map.copyOf(byType);
     }
 
     @SuppressWarnings("unchecked")

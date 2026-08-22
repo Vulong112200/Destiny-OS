@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-engine-bazi</artifactId>
+  <name>Destiny OS :: Engine :: Bat Tu (chart construction)</name>
+  <description>
+    Bat Tu / Tu Tru chart construction only - Phase 8a.
+
+    What this module DOES compute: the four Can Chi pillars under the Tu Binh
+    convention (Lap Xuan year boundary, solar-term month boundary), the Ngu
+    Hanh and Am Duong of every stem and branch, the Tang Can hidden stems,
+    the Thap Than of every stem relative to the Day Master, and integer
+    element counts.
+
+    What this module DELIBERATELY does NOT compute, because
+    docs/RESEARCH_BLOCKERS.md has it open: Dung Than / Hy Than / Ky Than
+    (R1), Dai Van luck cycles (R2), and Day Master strength (R3). Those are
+    reported as explicitly blocked sections with their research ids, never
+    approximated. That is also why this engine emits NO signals at all: a
+    polarity for a Bat Tu finding would require exactly the interpretive
+    layer R1/R3 gate.
+
+    Framework-free, like the other engines. Depends on destiny-calendar,
+    which is infrastructure rather than an engine, so the ArchUnit rule
+    enginesStayIndependent is unaffected.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-calendar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>

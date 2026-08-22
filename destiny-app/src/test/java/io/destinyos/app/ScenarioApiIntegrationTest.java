@@ -2,10 +2,14 @@ package io.destinyos.app;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.destinyos.api.dto.BaziRequest;
+import io.destinyos.api.dto.EvidenceDto;
 import io.destinyos.api.dto.NumerologyRequest;
 import io.destinyos.api.dto.ScenarioRunRequest;
 import io.destinyos.api.dto.ScenarioRunResponse;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +53,8 @@ class ScenarioApiIntegrationTest {
     void runsBusinessScenarioAndPersistsIt() {
         var request = new ScenarioRunRequest(
                 new NumerologyRequest("Nguyễn Văn A", LocalDate.of(1990, 5, 15)),
-                new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 42L, "Tôi có nên mở rộng kinh doanh không?"));
+                new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 42L, "Tôi có nên mở rộng kinh doanh không?"),
+                null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -138,7 +143,7 @@ class ScenarioApiIntegrationTest {
     @Test
     @DisplayName("A scenario with no defined applicability policy runs zero engines rather than guessing one")
     void undefinedPolicyScenarioRunsNothing() {
-        var request = new ScenarioRunRequest(null, null);
+        var request = new ScenarioRunRequest(null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/career", request, ScenarioRunResponse.class);
@@ -163,6 +168,131 @@ class ScenarioApiIntegrationTest {
             assertThat(m.calculable()).isFalse();
             assertThat(m.status().labelVi()).isEqualTo("Cần xác minh thuật toán");
         });
+    }
+
+    @Test
+    @DisplayName("A BUSINESS run with Bát Tự returns a real Tứ Trụ chart as evidence and no signals")
+    void baziContributesChartEvidenceButNoSignals() {
+        // The golden vector from BaziEngineGoldenTest, driven through real HTTP
+        // this time: 5 February 1984 is the day after Lập Xuân, so the chart is
+        // Giáp Tý / Bính Dần / Kỷ Tỵ. Asserting it here proves the whole path -
+        // request DTO, region/precision translation in BaziTaskFactory, the
+        // engine, evidence mapping, and the database round-trip - agrees with
+        // the published table, not just the engine in isolation.
+        var request = new ScenarioRunRequest(null, null,
+                new BaziRequest(LocalDate.of(1984, 2, 5), LocalTime.of(12, 0), "UNKNOWN", null));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        assertThat(body.engines())
+                .as("BAZI must actually have run, not be reported unavailable")
+                .anySatisfy(engine -> {
+                    assertThat(engine.engine()).isEqualTo("BAZI");
+                    assertThat(engine.status().technical()).isEqualTo("PARTIAL");
+                    assertThat(engine.status().labelVi()).isEqualTo("Một phần");
+                });
+        assertThat(body.unavailableEngines()).doesNotContain("BAZI");
+
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_YEAR"))
+                .containsEntry("stem", "GIAP").containsEntry("branch", "RAT");
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_MONTH"))
+                .containsEntry("stem", "BINH").containsEntry("branch", "TIGER");
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_DAY"))
+                .containsEntry("stem", "KY").containsEntry("branch", "SNAKE");
+
+        // Thập Thần relative to the Day Master Kỷ: the year stem Giáp is Mộc
+        // khắc Thổ with opposite polarity, i.e. Chính Quan.
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_YEAR"))
+                .containsEntry("stemTenGod", "CHINH_QUAN");
+
+        // The three blocked sections travel to the client as evidence too, so a
+        // UI cannot render a chart that silently lacks a Dụng Thần.
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .contains("BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_DAI_VAN",
+                        "BAZI_BLOCKED_NHAT_CHU_CUONG_DO");
+
+        // And Bát Tự casts no vote: every signal in this run came from
+        // somewhere else (here, nowhere - no other engine was supplied).
+        assertThat(body.signals()).noneMatch(signal -> signal.engine().equals("BAZI"));
+    }
+
+    @Test
+    @DisplayName("Bát Tự without a birth time returns two pillars, not four, and says so")
+    void baziWithoutBirthTimeDegradesHonestly() {
+        // Master Spec section 2: UNKNOWN is never treated as EXACT. The client
+        // omitted the time, so there is no Day Master and therefore no Thập
+        // Thần anywhere - not a Thập Thần computed against something else.
+        var request = new ScenarioRunRequest(null, null,
+                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .contains("BAZI_PILLAR_YEAR", "BAZI_PILLAR_MONTH")
+                .doesNotContain("BAZI_PILLAR_DAY", "BAZI_PILLAR_HOUR");
+        assertThat(pillar(body.evidence(), "BAZI_PILLAR_YEAR"))
+                .doesNotContainKey("stemTenGod");
+        assertThat(pillar(body.evidence(), "BAZI_BOUNDARY"))
+                .containsEntry("hasHourPrecision", false);
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/labels gives the frontend every Vietnamese label it needs for a chart")
+    void labelEndpointCoversCanChiAndThapThan() {
+        @SuppressWarnings("unchecked")
+        ResponseEntity<java.util.Map<String, java.util.Map<String, String>>> response =
+                (ResponseEntity<java.util.Map<String, java.util.Map<String, String>>>)
+                        (ResponseEntity<?>) rest.getForEntity("/api/v1/labels", java.util.Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        var labels = response.getBody();
+        assertThat(labels).isNotNull();
+        assertThat(labels.get("HeavenlyStem")).containsEntry("GIAP", "Giáp");
+        assertThat(labels.get("EarthlyBranch"))
+                .containsEntry("RAT", "Tý")
+                .containsEntry("SNAKE", "Tỵ");
+        assertThat(labels.get("TenGod")).containsEntry("CHINH_QUAN", "Chính Quan");
+        assertThat(labels.get("FiveElement")).containsEntry("WOOD", "Mộc");
+    }
+
+    @Test
+    @DisplayName("The registry lists both halves of Phase 8 with their different statuses")
+    void registryListsBothBaziMethodologies() {
+        ResponseEntity<io.destinyos.api.dto.MethodologyDto[]> response = rest.getForEntity(
+                "/api/v1/methodologies", io.destinyos.api.dto.MethodologyDto[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+
+        assertThat(response.getBody()).anySatisfy(m -> {
+            assertThat(m.methodologyId()).isEqualTo("BAZI_TUBINH_CHART");
+            assertThat(m.calculable()).isTrue();
+            assertThat(m.status().labelVi()).isEqualTo("Thiếu nội dung diễn giải");
+            assertThat(m.researchIds()).containsExactlyInAnyOrder("R18", "R19");
+        });
+        assertThat(response.getBody()).anySatisfy(m -> {
+            assertThat(m.methodologyId()).isEqualTo("BAZI");
+            assertThat(m.calculable()).isFalse();
+            assertThat(m.researchIds()).containsExactlyInAnyOrder("R1", "R2", "R3");
+        });
+    }
+
+    private static java.util.Map<String, Object> pillar(List<EvidenceDto> evidence, String ruleId) {
+        return evidence.stream()
+                .filter(e -> e.ruleId().equals(ruleId))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No evidence with ruleId " + ruleId))
+                .fact();
     }
 
     @Test

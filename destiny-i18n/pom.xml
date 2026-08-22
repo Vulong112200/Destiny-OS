@@ -35,5 +35,27 @@
       <artifactId>destiny-ai</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!--
+      Can Chi identity enums (Thien Can, Dia Chi, Ngu Hanh, Am Duong, Tiet Khi)
+      deliberately carry no display names of their own - HeavenlyStem's Javadoc
+      says so explicitly - so their Vietnamese labels live here, which means
+      this module needs the calendar on its classpath.
+    -->
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-calendar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!--
+      Thap Than and pillar-position labels. Same precedent as destiny-ai above:
+      the label registry is the one place allowed to know about a downstream
+      module's user-facing enums, because UI_UX_VIETNAMESE_SPEC section 1 makes
+      an unlabelled enum a defect and LabelCoverageTest enforces it centrally.
+    -->
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-bazi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

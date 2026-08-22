@@ -44,6 +44,69 @@ public enum SolarTerm {
 
     private static final SolarTerm[] VALUES = values();
 
+    /** Degrees of ecliptic longitude spanned by one of the 24 terms. */
+    private static final double DEGREES_PER_TERM = 15.0;
+
+    /**
+     * The sun's mean daily motion in ecliptic longitude, degrees per day
+     * (360 / 365.2422 tropical days). Used only to convert an angular
+     * distance from a term boundary into an approximate time distance for
+     * {@link #minutesToNearestTermBoundary} — never to compute a term
+     * instant, which always comes from {@link SolarPosition}.
+     */
+    private static final double MEAN_DEGREES_PER_DAY = 0.98564736;
+
+    /**
+     * 0-23 index of the term containing the sun's longitude at one exact
+     * instant, rather than at local midnight.
+     *
+     * <p>Bát Tự needs this: its month pillar changes at the term instant, not
+     * at the start of the day containing it, so a birth at 22:00 and one at
+     * 23:30 on the same date can legitimately fall in different months
+     * (verified against published tables — Lập Xuân 1984 fell at 23:18
+     * Beijing time).
+     *
+     * @param julianDateUt 0h-UT-referenced Julian date, as produced by
+     *                     {@link JulianDay#fromLocalDateTime}
+     */
+    public static int termIndexAtJulianDate(double julianDateUt) {
+        double longitude = SolarPosition.longitudeRadians(julianDateUt);
+        return (int) Math.floor(longitude / Math.PI * 12.0);
+    }
+
+    /** {@link #termIndexAtJulianDate} as an enum value. */
+    public static SolarTerm atJulianDate(double julianDateUt) {
+        return VALUES[termIndexAtJulianDate(julianDateUt)];
+    }
+
+    /**
+     * The sun's ecliptic longitude in degrees at one instant — the quantity
+     * every solar-term boundary is defined by, exposed in degrees because
+     * that is how published Tiết Khí tables state them.
+     */
+    public static double solarLongitudeDegreesAtJulianDate(double julianDateUt) {
+        return Math.toDegrees(SolarPosition.longitudeRadians(julianDateUt));
+    }
+
+    /**
+     * Approximate distance, in minutes, from this instant to the nearest of
+     * the 24 term boundaries — always non-negative.
+     *
+     * <p>Deliberately computed from the angular gap divided by the sun's mean
+     * motion rather than by root-finding the exact boundary instant. The
+     * caller's only use for this number is deciding whether a birth is close
+     * enough to a boundary that the answer must be flagged as
+     * boundary-sensitive, and for that purpose a value good to a few percent
+     * is enough; a root-found instant would imply a precision the underlying
+     * low-precision solar series does not have (see research item R19).
+     */
+    public static double minutesToNearestTermBoundary(double julianDateUt) {
+        double longitude = solarLongitudeDegreesAtJulianDate(julianDateUt);
+        double withinTerm = longitude % DEGREES_PER_TERM;
+        double gapDegrees = Math.min(withinTerm, DEGREES_PER_TERM - withinTerm);
+        return gapDegrees / MEAN_DEGREES_PER_DAY * 1440.0;
+    }
+
     /** 0-23 index of the term containing the sun's longitude at local midnight of the given day. */
     public static int termIndexAt(long dayNumber, double timezoneOffsetHours) {
         double jdLocalMidnight = dayNumber - 0.5 - timezoneOffsetHours / 24.0;

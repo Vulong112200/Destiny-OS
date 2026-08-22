@@ -85,6 +85,8 @@ class ArchitectureRulesTest {
                 .anyMatch(p -> p.startsWith("io.destinyos.fusion"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.tarot"))
                 .anyMatch(p -> p.startsWith("io.destinyos.engines.numerology"))
+                .anyMatch(p -> p.startsWith("io.destinyos.engines.bazi"))
+                .anyMatch(p -> p.startsWith("io.destinyos.calendar"))
                 .anyMatch(p -> p.startsWith("io.destinyos.scenario"))
                 .anyMatch(p -> p.startsWith("io.destinyos.api"))
                 .anyMatch(p -> p.startsWith("io.destinyos.ai"));
@@ -242,6 +244,40 @@ class ArchitectureRulesTest {
                 .because("ADR D6: no probability, score or weight in the domain. "
                         + "Make weighted averaging unrepresentable rather than "
                         + "merely discouraged.");
+
+        rule.check(production());
+    }
+
+    @Test
+    @DisplayName("No engine may expose a numeric score either (ADR D6, extended to engines)")
+    void noProbabilityInAnyEngine() {
+        // The rule above guards core and fusion. Engines are where a fabricated
+        // score is most likely to be *invented* in the first place, because
+        // that is where the temptation lives: every published Bát Tự
+        // hidden-stem table attaches 60/30/10 weights, and every "how strong is
+        // this Day Master" article attaches a number. Research item R3 says no
+        // agreed scheme exists, so importing those numbers would manufacture
+        // exactly the confident, unfalsifiable output CLAUDE.md Rule C forbids.
+        //
+        // One field is allowed through, named explicitly rather than matched by
+        // a name pattern so the exception stays auditable: BaziInput's birth
+        // longitude. It is a geographic coordinate supplied as *input*, used to
+        // convert clock time to mean solar time (R10) - a physical measurement,
+        // not a score, weight or confidence about an outcome.
+        ArchRule rule = fields()
+                .that().areDeclaredInClassesThat()
+                .resideInAPackage("io.destinyos.engines..")
+                .and().areNotStatic()
+                .and(com.tngtech.archunit.base.DescribedPredicate.not(
+                        com.tngtech.archunit.core.domain.properties.HasName.Predicates.name(
+                                "longitudeDegreesIfKnown")))
+                .should().notHaveRawType(double.class)
+                .andShould().notHaveRawType(float.class)
+                .andShould().notHaveRawType(Double.class)
+                .andShould().notHaveRawType(Float.class)
+                .andShould().notHaveRawType(java.math.BigDecimal.class)
+                .because("ADR D6: an engine that can hold a double can hold a "
+                        + "fabricated strength score, and R3 says no agreed one exists.");
 
         rule.check(production());
     }

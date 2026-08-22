@@ -59,7 +59,7 @@ class ScenarioOrchestrationServiceTest {
                 .thenReturn(recordedCalculation);
 
         var service = new ScenarioOrchestrationService(scenarioEngine, recorder, registry);
-        ScenarioRunResponse response = service.run(ScenarioType.BUSINESS, new ScenarioRunRequest(null, null));
+        ScenarioRunResponse response = service.run(ScenarioType.BUSINESS, new ScenarioRunRequest(null, null, null));
 
         assertThat(response.calculationId()).isEqualTo("calc-fixture-1");
         assertThat(response.resultHash()).isEqualTo("deadbeef");
@@ -93,7 +93,7 @@ class ScenarioOrchestrationServiceTest {
                 .thenReturn(recordedCalculation);
 
         var service = new ScenarioOrchestrationService(scenarioEngine, recorder, registry);
-        ScenarioRunResponse response = service.run(ScenarioType.CAREER, new ScenarioRunRequest(null, null));
+        ScenarioRunResponse response = service.run(ScenarioType.CAREER, new ScenarioRunRequest(null, null, null));
 
         assertThat(response.policyDefined()).isFalse();
         assertThat(response.fusion()).isNull();
