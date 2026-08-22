@@ -8,6 +8,17 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — CI cho frontend (`web-verify`)
+
+Trước đây `destiny-web` **hoàn toàn không được CI kiểm** — README gọi hệ thống
+là một MVP có UI thật, nhưng một lỗi TypeScript hay một build hỏng có thể merge
+vào `main` mà không ai biết cho tới khi có người tự chạy tay. Thêm job
+`web-verify` trong `.github/workflows/build.yml`: cài dependency qua `npm ci`,
+`typecheck` (script mới, `tsc --noEmit`), `lint`, rồi `next build` thật —
+`next build` còn tự kiểm type và sinh trang tĩnh, nên đây là ba bước một
+contributor vẫn chạy tay trước khi có job này.
+
+
 ### Added — Phase 14: metrics cho từng engine (CLAUDE.md §5)
 
 CLAUDE.md §5 yêu cầu mỗi engine có **timeout, cancellation, error isolation và

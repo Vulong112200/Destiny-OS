@@ -71,3 +71,43 @@ jobs:
           -Dspring.datasource.driver-class-name=org.postgresql.Driver
           -Dspring.datasource.username=destinyos
           -Dspring.datasource.password=destinyos
+
+  # destiny-web is a separate npm project, deliberately outside the Maven
+  # reactor (see its own module Javadoc / README "Build" section) - so it
+  # needs its own job rather than a Maven step. Until this job existed, the
+  # frontend had NO CI coverage at all despite the README calling the system
+  # an end-to-end MVP with a real UI: a TypeScript error or a broken build
+  # could merge to main and nobody would know until someone ran it by hand.
+  web-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: destiny-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: destiny-web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: destiny-web
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: destiny-web
+        run: npm run lint
+
+      # Exercises the real Next.js production build, including the type
+      # checking and static-page generation next build performs on top of
+      # tsc - the same three checks a contributor runs locally before this
+      # workflow existed to catch a regression for them.
+      - name: Build
+        working-directory: destiny-web
+        run: npm run build
+

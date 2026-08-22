@@ -296,7 +296,7 @@ Bộ test hiện tại — 469 test:
 - **Can Chi mở rộng** — bảng Ngũ Hành/Âm Dương, Thổ xuất hiện đúng 4 lần trong 12 chi, hai vòng Tương Sinh/Tương Khắc là song ánh và nghịch đảo của nhau, `relationTo` phân hoạch đúng 5 quan hệ; Tàng Can khớp cả hai nguồn và chính khí luôn trùng Ngũ Hành của chi; đúng Sửu và Tỵ được đánh cờ "thứ tự vai chưa thống nhất"; độ lệch thời điểm Tiết Khí được assert trực tiếp với hai mốc Lập Xuân đã công bố
 - **AI Narrative** — pruning đúng thứ tự ưu tiên và ngân sách 8–20 signal (không bao giờ loại critical để lấy chỗ), prompt hệ thống chứa nguyên văn từng điều cấm của đặc tả, parser từ chối JSON hỏng/rỗng/kèm văn bản thừa, mọi nhánh lỗi provider (timeout, 429, 5xx, unavailable) đều rơi về fallback phi-AI dựng từ đúng dữ liệu tính toán — không throw, không render trống; provider OpenRouter được test bằng `MockRestServiceServer` giả HTTP (không gọi mạng thật); test tích hợp đầu-cuối gọi `POST`/`GET /api/v1/calculations/{id}/narrative` thật qua Spring context thật, AI tắt theo mặc định nên xác nhận đúng nhánh fallback thật, không phải mock
 
-Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`).
+Test persistence chạy trên H2 ở chế độ tương thích PostgreSQL vì môi trường phát triển hiện không có Docker/PostgreSQL cục bộ. CI chạy thêm một job riêng đối chiếu cùng bộ test đó trên PostgreSQL thật (xem `.github/workflows/build.yml`). CI cũng có một job riêng (`web-verify`) cho `destiny-web` — typecheck, lint, và `next build` thật; trước đó frontend hoàn toàn không được CI kiểm dù README gọi hệ thống là một MVP có UI thật.
 
 ---
 
