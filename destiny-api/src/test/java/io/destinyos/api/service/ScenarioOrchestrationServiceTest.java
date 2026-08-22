@@ -93,7 +93,9 @@ class ScenarioOrchestrationServiceTest {
                 .thenReturn(recordedCalculation);
 
         var service = new ScenarioOrchestrationService(scenarioEngine, recorder, registry);
-        ScenarioRunResponse response = service.run(ScenarioType.CAREER, new ScenarioRunRequest(null, null, null, null));
+        // COMPATIBILITY, not CAREER: CAREER gained a real policy on
+        // 2026-08-23 (docs/DECISION_LOG.md).
+        ScenarioRunResponse response = service.run(ScenarioType.COMPATIBILITY, new ScenarioRunRequest(null, null, null, null));
 
         assertThat(response.policyDefined()).isFalse();
         assertThat(response.fusion()).isNull();

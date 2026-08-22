@@ -112,8 +112,24 @@ export interface ErrorResponse {
   message: string;
 }
 
-/** Only the two scenarios with a real applicability policy (ScenarioRegistry). */
-export type SupportedScenarioType = "BUSINESS" | "DAILY_ACTION";
+/**
+ * The scenarios with a real applicability policy (ScenarioRegistry) —
+ * everything except COMPATIBILITY, which stays undefined because its
+ * strongest traditional evidence (Bát Tự hợp hôn, Tử Vi xem tuổi, Chiêm tinh
+ * synastry) needs two charts and this system takes one. Extended from
+ * {BUSINESS, DAILY_ACTION} to the full set on 2026-08-23
+ * (docs/DECISION_LOG.md).
+ */
+export type SupportedScenarioType =
+  | "BUSINESS"
+  | "DAILY_ACTION"
+  | "CAREER"
+  | "FINANCE"
+  | "RELATIONSHIP"
+  | "PURCHASE"
+  | "TRAVEL"
+  | "PROJECT"
+  | "GENERAL_DECISION";
 
 export interface NumerologyRequestInput {
   fullName: string;

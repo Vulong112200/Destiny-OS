@@ -109,9 +109,13 @@ class ScenarioEngineTest {
     @Test
     @DisplayName("A scenario with no defined policy runs nothing and returns no fusion result")
     void undefinedPolicyScenarioRunsNothing() {
+        // COMPATIBILITY, not PURCHASE: PURCHASE gained a real policy on
+        // 2026-08-23 (docs/DECISION_LOG.md). COMPATIBILITY stays undefined on
+        // purpose - its strongest evidence is all dual-chart, which this
+        // system's single-chart ScenarioDefinition cannot represent.
         var tarot = EngineTask.of(stubEngine("TAROT", Polarity.SUPPORT, Applicability.HIGH), "q");
 
-        var result = scenario.run(ScenarioType.PURCHASE, Map.of("TAROT", tarot), context());
+        var result = scenario.run(ScenarioType.COMPATIBILITY, Map.of("TAROT", tarot), context());
 
         assertThat(result.policyDefined()).isFalse();
         assertThat(result.execution().executions()).isEmpty();

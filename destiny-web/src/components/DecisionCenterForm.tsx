@@ -47,15 +47,32 @@ const REGION_OPTIONS: { value: string; label: string }[] = [
 /**
  * The Decision Center intake form (UI_UX_VIETNAMESE_SPEC section 3, first
  * three steps: chọn chủ đề -> nhập câu hỏi/context -> hệ thống áp dụng).
- * Only BUSINESS and DAILY_ACTION are offered - the only two scenarios with
- * a real applicability policy (ScenarioRegistry); offering the other eight
- * would mean either guessing a policy or presenting a request that always
- * comes back "policyDefined: false", neither of which belongs on the
- * primary intake form.
+ * Offers every {@link SupportedScenarioType} — every scenario with a real
+ * applicability policy (ScenarioRegistry) except COMPATIBILITY, which stays
+ * undefined because its strongest evidence needs two charts and this system
+ * takes one. Presenting COMPATIBILITY here would mean a request that always
+ * comes back "policyDefined: false", which does not belong on the primary
+ * intake form.
  */
 export function DecisionCenterForm() {
   const router = useRouter();
   const [scenarioType, setScenarioType] = useState<SupportedScenarioType>("BUSINESS");
+
+  // Vietnamese labels from ScenarioRegistry's own displayNameVi — kept in
+  // sync by hand rather than fetched, since the set of *supported* scenarios
+  // is a frontend decision (which ones get a dedicated input form below),
+  // not something GET /api/v1/methodologies exposes.
+  const SCENARIO_LABELS: Record<SupportedScenarioType, string> = {
+    BUSINESS: "Mở rộng kinh doanh",
+    DAILY_ACTION: "Hôm nay nên làm gì",
+    CAREER: "Sự nghiệp",
+    FINANCE: "Tài chính",
+    RELATIONSHIP: "Quan hệ",
+    PURCHASE: "Mua sắm",
+    TRAVEL: "Di chuyển",
+    PROJECT: "Dự án",
+    GENERAL_DECISION: "Quyết định chung",
+  };
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [useTarot, setUseTarot] = useState(true);
@@ -152,11 +169,11 @@ export function DecisionCenterForm() {
     <form onSubmit={handleSubmit} className="space-y-8">
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold text-slate-900">1. Bạn đang muốn xem điều gì?</legend>
-        <div className="flex gap-3">
-          {(["BUSINESS", "DAILY_ACTION"] as const).map((type) => (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {(Object.keys(SCENARIO_LABELS) as SupportedScenarioType[]).map((type) => (
             <label
               key={type}
-              className={`flex-1 cursor-pointer rounded-lg border px-4 py-3 text-sm ${
+              className={`cursor-pointer rounded-lg border px-4 py-3 text-center text-sm ${
                 scenarioType === type
                   ? "border-slate-900 bg-slate-900 text-white"
                   : "border-slate-200 text-slate-700 hover:border-slate-400"
@@ -170,12 +187,14 @@ export function DecisionCenterForm() {
                 onChange={() => setScenarioType(type)}
                 className="sr-only"
               />
-              {type === "BUSINESS" ? "Mở rộng kinh doanh" : "Hôm nay nên làm gì"}
+              {SCENARIO_LABELS[type]}
             </label>
           ))}
         </div>
         <p className="text-xs text-slate-500">
-          Đây là 2 chủ đề duy nhất hiện có chính sách áp dụng hệ thống đầy đủ.
+          9 chủ đề đã có chính sách áp dụng hệ thống thật. Riêng &quot;Tương hợp&quot;
+          (so hai lá số trước khi cưới/hợp tác) chưa có ở đây — hệ thống hiện chỉ nhận một
+          lá số mỗi lượt tính, còn thực hành truyền thống mạnh nhất cho tương hợp lại cần hai.
         </p>
       </fieldset>
 

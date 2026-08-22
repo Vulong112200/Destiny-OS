@@ -145,10 +145,14 @@ class ScenarioApiIntegrationTest {
     @Test
     @DisplayName("A scenario with no defined applicability policy runs zero engines rather than guessing one")
     void undefinedPolicyScenarioRunsNothing() {
+        // COMPATIBILITY, not CAREER: CAREER gained a real policy on
+        // 2026-08-23 (docs/DECISION_LOG.md). COMPATIBILITY stays undefined -
+        // its strongest evidence (Bát Tự hợp hôn, Tử Vi xem tuổi, Chiêm tinh
+        // synastry) is dual-chart, which this system cannot represent yet.
         var request = new ScenarioRunRequest(null, null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
-                "/api/v1/scenarios/career", request, ScenarioRunResponse.class);
+                "/api/v1/scenarios/compatibility", request, ScenarioRunResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         ScenarioRunResponse body = response.getBody();

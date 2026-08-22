@@ -8,6 +8,116 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 7: 7 chính sách scenario mới, từ bằng chứng thực hành truyền thống
+
+Trước thay đổi này, chỉ 2/10 scenario (BUSINESS, DAILY_ACTION) có chính sách
+áp dụng thật — tám scenario còn lại đăng ký nhưng `policyDefined == false`,
+đúng như CHANGELOG mục "Rejected: deriving the eight missing scenario
+policies" (2026-08-22) đã ghi: suy dimension engine tự khai thất bại chính
+bài test của nó, và việc gán chính sách là **quyết định sản phẩm**, không
+phải bài toán suy luận.
+
+Chủ dự án quyết định (2026-08-23) sau khi xem báo cáo thu thập bằng chứng
+thực hành truyền thống theo từng cặp scenario × engine
+(`docs/research_drafts/scenario_scope_reference.md`):
+
+- **CAREER, FINANCE, RELATIONSHIP** — Thập Thần Quan/Tài (Bát Tự), cung Quan
+  Lộc/Tài Bạch/Phu Thê (Tử Vi), Nhà 10/2&8/7 (Chiêm tinh) đều là nhánh kinh
+  điển có tên riêng. FENGSHUI_KUA chỉ MEDIUM ở FINANCE (góc tài lộc là thực
+  hành phổ biến thật) và **vắng mặt hẳn** ở RELATIONSHIP (không tìm được
+  nhánh nào — Đào Hoa vị thuộc một phương pháp Phong Thủy khác, không phải
+  Bát Trạch)
+- **PURCHASE, TRAVEL** — cung Điền Trạch/Thiên Di (Tử Vi) và hướng nhà/hướng
+  xuất hành theo Kua (Phong Thủy Bát Trạch, đúng mục đích gốc của phương
+  pháp) là nhánh mạnh nhất. BAZI/TAROT/NUMEROLOGY **vắng mặt** ở cả hai —
+  không tìm được nhánh nào phân biệt việc mua sắm/di chuyển với các chủ đề
+  khác
+- **PROJECT** — không nguồn nào phân biệt "một dự án cụ thể" với "mở rộng
+  kinh doanh" trong thực hành chọn ngày khởi sự truyền thống. Thay vì bịa
+  một tiêu chí riêng, dùng **đúng bộ engine của BUSINESS, hạ một bậc mỗi
+  engine** — phản ánh quy mô nhỏ hơn mà không tuyên bố một loại liên quan
+  khác đã được tìm thấy
+- **GENERAL_DECISION** — chỉ TAROT đạt HIGH (trải 3 lá Quá khứ-Hiện tại-
+  Tương lai là spread cổ điển nhất, dùng đúng cho câu hỏi mở). BAZI/ASTROLOGY
+  giữ LOW (là hệ lá số trọn đời, không có cơ chế truyền thống trả lời một
+  câu hỏi tại một thời điểm) chứ không nâng lên MEDIUM — không có bằng chứng
+  nào biện minh cho việc đó
+- **COMPATIBILITY cố ý vẫn để `policyDefined = false`.** Đây là scenario có
+  bằng chứng truyền thống **mạnh nhất** trong cả 8 (Bát Tự hợp hôn, Tử Vi
+  xem tuổi, Chiêm tinh synastry đều có tên riêng, quy trình rõ) — nhưng cả
+  ba đều cần **hai lá số**, còn `ScenarioDefinition`/mọi input engine hiện
+  tại chỉ nhận một. Khai chính sách ở đây sẽ nói sai về việc **hệ thống làm
+  được gì hôm nay**, không chỉ về việc truyền thống khuyến nghị gì
+
+**Nguyên tắc xuyên suốt:** một engine vắng mặt trong một scenario nghĩa là
+vòng nghiên cứu **không tìm được nhánh truyền thống nào** nối engine đó với
+scenario đó — không phải bị quên, và không được gán `LOW` cho có (Rule C:
+không có bằng chứng thì bỏ, không đoán).
+
+### Added — R5 (ephemeris) và R6 (quy ước chiêm tinh): quyết định hướng cho Phase 11
+
+**R5 chốt: tự xây trên nền Meeus/VSOP87**, không dùng Swiss Ephemeris (miễn
+phí AGPL hay trả phí Professional License). `destiny-calendar/SolarPosition`
+đã là một cài đặt Meeus có trích dẫn, đối chiếu chéo, golden-test; cùng cuốn
+sách (*Astronomical Algorithms*, 1998) có chương vị trí hành tinh (ch. 32,
+VSOP87 rút gọn) và Mặt Trăng (ch. 47). Độ chính xác không phải tiêu chí phân
+biệt — giới hạn ~0,01° hiện có dư ~100 lần so với orb hẹp nhất của chiêm
+tinh (xem `docs/research_drafts/R5_meeus_path_survey.md`). Việc còn lại
+trước khi viết engine: dùng dữ liệu VSOP87 gốc từ IMCCE (không chép bảng rút
+gọn có bản quyền trong sách Meeus), và ước lượng công sức ELP-2000 (Mặt
+Trăng).
+
+**R6 chốt một phần: Tropical + Whole Sign.** Tropical khớp đúng tên
+methodology "Western Astrology" đã đăng ký, không cần ayanamsa. Whole Sign
+được chọn cho bản đầu vì lý do kỹ thuật, không phải vì phổ biến nhất
+(Placidus mới là mặc định của đa số phần mềm, ~45-70% thị phần tùy khảo
+sát): Whole Sign chỉ cần Ascendant nên tính đúng ở **mọi vĩ độ** kể cả vòng
+cực, nơi Placidus/Koch không xác định được về mặt toán học. Bộ aspect/orb
+vẫn `DECISION_REQUIRED`. `houseSystem` bắt buộc versioned theo từng lá số
+(Master Spec §15) nên thêm Placidus ở bản sau không xáo trộn bản này.
+
+**Cả hai vẫn đang ở mức quyết định hướng, chưa implement.** Phase 11 (Chiêm
+tinh phương Tây) chưa có dòng code nào — R5/R6 mở khóa việc bắt đầu viết,
+không phải bản thân việc viết.
+
+### Nghiên cứu — R4 (Tử Vi): đọc được nguyên văn cổ thư lần đầu
+
+Tìm ra cách đọc trực tiếp *Tử Vi Đẩu Số Toàn Thư* qua Wikisource (không cần
+proxy) và *Tam Mệnh Thông Hội*/*Trích Thiên Tủy Xiển Vi* qua `ctext.org`
+(chặn bot trực tiếp, đọc được qua proxy `r.jina.ai`). Lần đầu dự án đọc được
+nguyên văn cổ thư thay vì chỉ nguồn thứ cấp trên web.
+
+Tìm được câu trả lời **có nguồn gốc trực tiếp** cho tháng nhuận (một trong 5
+quan điểm mà nghiên cứu trước chỉ có qua một bài diễn đàn không dẫn nguồn):
+"又若闰月正月生者要在二月内起安身命，凡有闰月具要依此为例" — lấy tháng sau. Trích
+dẫn được xác nhận hai lần độc lập, và tự kiểm chứng đúng 3/3 với ví dụ ngay
+trong đoạn văn. R3 có thêm nguồn cổ điển thứ ba (`命理探源`) minh thị nói
+"không có công thức cứng" — củng cố chứ không đảo ngược kết luận đã có.
+
+**Chưa đóng R4.** Đây là một phần nhỏ (chính sách tháng nhuận) trong một mục
+lớn (bảng Tứ Hóa, tập sao phụ, công thức Đại Hạn vẫn thiếu). Ghi ở
+`docs/research_drafts/R4_primary_source_breakthrough.md`, cố tình chưa qua
+xác minh Opus, chưa động vào code.
+
+### Added — UI
+
+- Trung tâm quyết định hiển thị đủ **9 scenario** có chính sách (trước đây
+  chỉ 2) — lưới 2-3 cột thay cho hàng ngang 2 nút. COMPATIBILITY không xuất
+  hiện, kèm giải thích ngắn vì sao (vướng kiến trúc một-lá-số)
+
+### Tests
+
+514 test (tăng từ 493):
+
+- **`ScenarioRegistryTest` (21, mới)** — khóa **chính xác** từng ô của cả 7
+  chính sách mới, không chỉ kiểm "có chứa" — một thay đổi vô tình ở một ô sẽ
+  làm hỏng đúng test đặt tên ô đó. Cộng: PROJECT thấp hơn BUSINESS đúng một
+  bậc ở **mọi** engine chung; FINANCE's FENGSHUI_KUA cao hơn CAREER's (góc
+  tài lộc là thực hành thật, quan hệ sự nghiệp thì gián tiếp); mọi chính
+  sách đã định nghĩa đều có ít nhất một engine (chính sách 0-engine là lỗi,
+  không phải trạng thái hợp lệ)
+
+
 ### Added — Đại Vận (R2 đóng): chuỗi vận 10 năm trong `destiny-engine-bazi`
 
 R2 là mục nghiên cứu **đầu tiên đóng lại bằng xác minh thuần túy** — không chọn

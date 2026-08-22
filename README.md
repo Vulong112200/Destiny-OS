@@ -80,7 +80,7 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 4 | Thần số học (Pythagoras) | **Xong** — 5 chỉ số + nội dung diễn giải 65 tổ hợp; Chaldean vẫn chặn (không có nguồn) |
 | 5 | Tarot | **Xong** — cấu trúc, rút bài, và nội dung diễn giải đủ 78 lá |
 | 6 | Fusion | **Xong** — đủ 14/14 test case bắt buộc theo đặc tả, đã có kết quả thật từ engine thật |
-| 7 | Scenario | Xong — 2/10 scenario có chính sách thật (BUSINESS, DAILY_ACTION), 8 còn lại đăng ký nhưng chưa có chính sách |
+| 7 | Scenario | Xong — 9/10 scenario có chính sách thật; chỉ COMPATIBILITY còn đăng ký nhưng chưa có chính sách (vướng kiến trúc dual-chart) |
 | — | Lưu trữ Calculation/Evidence/Signal/Fusion (V4-V6) | Xong — `CalculationRecorder`, `result_hash` tái lập được |
 | — | **Retention & dọn dẹp (V8)** | **Xong** — phân loại lúc ghi, dry-run, audit trail, batch delete, retry có giới hạn, không bao giờ xóa `USER_SAVED`; tắt mặc định |
 | — | REST API (`destiny-api`) | Xong — 3 nhóm endpoint, xác thực bằng test tích hợp HTTP thật với engine thật |
@@ -91,6 +91,25 @@ Hai ràng buộc kiến trúc được **kiểm tra tự động bằng ArchUnit
 | 8b-ii | Bát Tự — luận giải (Dụng Thần, cường độ Nhật Chủ) | Chờ nghiên cứu (R1, R3) |
 | **10** | **Phong Thủy — Bát Trạch (cung phi & hướng)** | **Xong** — 4/5 mục R7 đã đóng; ranh giới năm được *biểu diễn* (tính cả hai quy ước) chứ không chọn |
 | 9, 11 | Tử Vi, Chiêm tinh | Chờ nghiên cứu |
+
+**Cập nhật Scenario + R5 (2026-08-23, quyết định chủ dự án):**
+
+- **9/10 scenario giờ có chính sách áp dụng thật.** Bảy scenario mới (CAREER,
+  FINANCE, RELATIONSHIP, PURCHASE, TRAVEL, PROJECT, GENERAL_DECISION) được
+  xây từ bằng chứng thực hành truyền thống có tên riêng cho từng engine
+  (`docs/research_drafts/scenario_scope_reference.md`), không phải suy diễn
+  từ dimension engine tự khai (cách đó đã thất bại chính bài test của nó, xem
+  `DECISION_LOG.md`). Engine vắng mặt trong một scenario nghĩa là **không tìm
+  được nhánh truyền thống nào**, không phải bị quên. **COMPATIBILITY** cố ý
+  vẫn để trống: bằng chứng mạnh nhất của nó (Bát Tự hợp hôn, Tử Vi xem tuổi,
+  Chiêm tinh synastry) đều cần **hai lá số**, mà kiến trúc hiện tại chỉ nhận
+  một.
+- **R5 (ephemeris) chốt: tự xây trên nền Meeus/VSOP87**, không dùng Swiss
+  Ephemeris. `SolarPosition.java` đã là một cài đặt Meeus có trích dẫn, đối
+  chiếu chéo, golden-test; cùng cuốn sách có cả hành tinh lẫn Mặt Trăng, và
+  độ chính xác không phải tiêu chí phân biệt (giới hạn hiện có dư ~100 lần so
+  với orb hẹp nhất của chiêm tinh). R6 (Tropical + Whole Sign) cũng đã chốt —
+  chi tiết ở `docs/DECISION_LOG.md`.
 
 **Cập nhật Đại Vận (2026-08-22):** R2 là mục nghiên cứu **đầu tiên đóng lại bằng
 xác minh thuần túy** — không có trường phái nào được chọn, vì không nguồn nào bất
