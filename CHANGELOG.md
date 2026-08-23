@@ -8,6 +8,42 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R21 (Lưu Niên): tìm được khung phân loại đầy đủ Chiến/Xung/Hòa/Hảo
+
+Mục vừa mở hôm nay và ghi "chưa điều tra". 滴天髓 có hẳn chương `歲運論` (Luận
+Vận Năm) bàn đúng câu hỏi này — lấy được nguyên văn qua `zh.wikisource.org`.
+
+Câu mở đầu xác định phạm vi ngay: 「休咎係乎運，尤係乎歲」 — họa phúc phụ thuộc
+Đại Vận, và phụ thuộc Lưu Niên (太歲) còn nhiều hơn — xác nhận Lưu Niên được đọc
+so với **cả** lá số gốc **lẫn** Đại Vận đang chạy, không phải so với lá số gốc
+một mình.
+
+**Khung phân loại 4 nhánh đầy đủ, mỗi nhánh kèm ví dụ có điều kiện:**
+
+- **戰 (khắc chế)** — Can Vận và Can Tuế ở quan hệ khắc (vd Bính Vận/Canh Tuế —
+  Hỏa khắc Kim). Cho quy tắc bên nào "nhường" (降) tùy có gì tiết/khắc bên
+  thắng. Giải thích rõ vì sao: 「太歲為專神，故以和解為上」 — năm là "thần
+  chuyên nhất" nên hòa giải là tốt nhất, còn Đại Vận 10 năm thì "gần với mệnh
+  hơn", khó ép nhường hơn
+- **衝 (xung)** — Chi Vận và Chi Tuế xung trực tiếp (vd Tý Vận/Ngọ Tuế). Bên
+  nào thắng tùy bên nào có nhiều "đảng" (党, các hành hỗ trợ) hơn trong lá số
+- **和 (hòa, qua hóa)** — Can/Chi Vận và Tuế hợp hóa thành hành mới (Ất-Canh →
+  Kim, Tý-Sửu → Thổ)
+- **好 (hảo, tương trợ)** — Vận và Tuế cùng hành khác Âm Dương (Canh Vận/Tân
+  Tuế, Thân Vận/Dậu Tuế) — vốn đã tương trợ
+
+**Cùng ràng buộc cấu trúc với R1 đã thấy ở R20, và chương này cho thấy rõ đến
+mức không thể bỏ qua.** Mọi phán định trong cả 4 nhánh đều viết dạng "日主喜X
+則吉" (Nhật Chủ thích X thì tốt) — tầng phân loại (quan hệ nào đang xảy ra)
+trả lời được mà không cần R1; tầng đánh giá (quan hệ đó có phải tin tốt không)
+thì không tính được cho tới khi R1 chọn trường phái Dụng Thần. Cùng một ranh
+giới cơ học/đánh giá như R20, giờ xác nhận cụ thể cho quan hệ Vận-Tuế.
+
+**Chương này chưa đề cập:** Lưu Nguyệt và Lưu Nhật (chỉ có Lưu Niên so với Đại
+Vận); ba tầng năm/tháng/ngày lồng nhau nghiêm ngặt hay tương tác độc lập với
+lá số gốc ở từng tầng; lá số ví dụ đầy đủ.
+
+
 ### Nghiên cứu — R20 (Hợp/Xung/Hình/Hại/Phá): tìm được cổ thư gốc, và một ràng buộc cấu trúc với R1
 
 Mục vừa mở hôm nay (`docs/RESEARCH_BLOCKERS.md` R20) chỉ có một vòng tìm kiếm sơ
