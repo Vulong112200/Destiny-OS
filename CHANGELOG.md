@@ -8,6 +8,45 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase 11 v1: Chiêm tinh học phương Tây — lập lá số (`destiny-engine-astrology`)
+
+Module mới `destiny-engine-astrology`, triển khai phần đã được chốt ở R5/R6
+(`docs/DECISION_LOG.md`, quyết định 2026-08-22/23): vị trí Mặt Trời (tái dùng
+`SolarPosition` sẵn có trong `destiny-calendar` thay vì tính lại — đúng hướng
+tự xây trên nền Meeus/VSOP87 mà khảo sát R5 chỉ ra), Thiên Đỉnh (Midheaven) và
+Cung Mọc (Ascendant) theo Jean Meeus, *Astronomical Algorithms* (1998) ch.
+12/22, và hệ thống nhà Whole Sign (đã chọn thay Placidus vì đúng ở mọi vĩ độ
+kể cả vùng cực, không cần chia thời gian).
+
+**Công thức Cung Mọc được tự suy ra lại từ đầu.** Hai nguồn web độc lập cho ra
+cùng một tỉ số `tan` nhưng chọn góc phần tư `atan2` lệch nhau 180° — một
+nguồn thực chất cho ra Cung Lặn (Descendant). Thay vì tin một trong hai, công
+thức được suy từ điều kiện hình học chân trời và kiểm chứng bằng hai trường
+hợp số độc lập cộng với ví dụ GMST có sẵn của chính Meeus (1994-06-16 18h UT
+→ 174.7711135°) — chi tiết trong Javadoc của `ChartAngles`.
+
+**Registry được tách làm hai, cùng cách BAZI/BAZI_TUBINH_CHART đã tách cho
+Đại Vận.** `WESTERN_ASTROLOGY_CHART_ANGLES` (lập lá số: Mặt Trời/góc
+chiếu/nhà) chuyển sang `CONTENT_REQUIRED`, tính được; `WESTERN_ASTROLOGY`
+(luận giải: Mặt Trăng và 7 hành tinh còn lại, góc chiếu giữa các điểm) vẫn
+`RESEARCH_REQUIRED`. Mỗi lá số mang theo hai `BlockedSection` đăng ký công
+khai — `PLANETS_BEYOND_SUN` (R5) và `ASPECTS` (R6, orb chưa chốt) — không bị
+lược bỏ âm thầm.
+
+**Nối đủ API/wiring:** `AstrologyRequest` DTO, trường thứ năm của
+`ScenarioRunRequest`, `AstrologyTaskFactory` (từ chối chạy thay vì đoán khi
+thiếu giờ sinh hoặc tọa độ — Cung Mọc di chuyển ~1°/4 phút nên đoán giờ cho ra
+kết quả sai một cách tự tin, khác với việc Bát Tự có thể giảm về hai trụ một
+cách trung thực), và bean/registry trong `EngineWiringConfig` dưới engine id
+`WESTERN_ASTROLOGY` — id mà chính sách BUSINESS/PROJECT đã dùng sẵn từ trước.
+Có test HTTP đầu-cuối trong `ScenarioApiIntegrationTest`, dùng lại đúng ví dụ
+GMST của Meeus làm fixture.
+
+**Giới hạn được ghi nhận, không giấu:** `AstrologyRequest` vẫn giả định giờ
+sinh là giờ dân sự Việt Nam (như `BaziTaskFactory`), dù vĩ độ/kinh độ có thể
+là bất kỳ đâu trên thế giới — chưa có bộ chọn múi giờ. Chưa dùng dữ liệu
+VSOP87 gốc từ IMCCE cho các hành tinh khác — mục đó của R5 vẫn treo.
+
 ### Nghiên cứu — R21 (Lưu Niên): tìm được khung phân loại đầy đủ Chiến/Xung/Hòa/Hảo
 
 Mục vừa mở hôm nay và ghi "chưa điều tra". 滴天髓 có hẳn chương `歲運論` (Luận

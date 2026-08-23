@@ -209,11 +209,35 @@ export interface FengShuiRequestInput {
   facingDirection: CompassDirectionName | null;
 }
 
+/**
+ * Unlike Bát Tự and Phong Thủy, every field here is required — the backend
+ * task factory declines to run rather than guess a missing one. The
+ * Ascendant moves roughly 1 degree every 4 minutes, so a chart built on a
+ * guessed time or place would be confidently wrong, not degraded, the way
+ * an hourless Bát Tự chart still is.
+ *
+ * `birthDate`/`birthTime` are read as Vietnam civil time on the backend
+ * (`AstrologyTaskFactory`), even though `latitudeDegrees`/`longitudeDegrees`
+ * can name any place on Earth - a stated limitation, not a hidden one, for a
+ * user entering a foreign birthplace's own local time.
+ */
+export interface AstrologyRequestInput {
+  /** ISO date, e.g. "1994-06-17". */
+  birthDate: string;
+  /** ISO local time, e.g. "01:00". Required - see the interface note above. */
+  birthTime: string;
+  /** Positive north, in [-90, 90]. */
+  latitudeDegrees: number;
+  /** Positive east, in [-180, 180]. */
+  longitudeDegrees: number;
+}
+
 export interface ScenarioRunRequestInput {
   numerology: NumerologyRequestInput | null;
   tarot: TarotRequestInput | null;
   bazi: BaziRequestInput | null;
   fengShui: FengShuiRequestInput | null;
+  astrology: AstrologyRequestInput | null;
 }
 
 /**

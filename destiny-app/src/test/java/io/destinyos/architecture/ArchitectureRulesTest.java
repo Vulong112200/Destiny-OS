@@ -260,18 +260,36 @@ class ArchitectureRulesTest {
         // agreed scheme exists, so importing those numbers would manufacture
         // exactly the confident, unfalsifiable output CLAUDE.md Rule C forbids.
         //
-        // One field is allowed through, named explicitly rather than matched by
-        // a name pattern so the exception stays auditable: BaziInput's birth
-        // longitude. It is a geographic coordinate supplied as *input*, used to
-        // convert clock time to mean solar time (R10) - a physical measurement,
-        // not a score, weight or confidence about an outcome.
+        // Each exception is named explicitly rather than matched by a name
+        // pattern so the list stays auditable - adding a field here must be a
+        // deliberate, reviewable act naming exactly which field and why, never
+        // a pattern broad enough to admit a fabricated score by accident.
+        //
+        // BaziInput.longitudeDegreesIfKnown: a geographic coordinate supplied
+        // as *input*, used to convert clock time to mean solar time (R10).
+        //
+        // The remaining six all belong to destiny-engine-astrology (Phase 11,
+        // R5/R6) and are the same kind of thing: physical angles from
+        // spherical astronomy - ecliptic longitude, latitude, the obliquity of
+        // the ecliptic, sidereal time - verified against a textbook worked
+        // example and first-principles derivation (ChartAngles's Javadoc), not
+        // a strength/confidence/weight about a metaphysical outcome. A degree
+        // of ecliptic longitude cannot be represented as an enum the way a
+        // categorical judgement could; it is continuous by the nature of the
+        // physical quantity, not by a shortcut around this rule.
+        var allowedGeometricFields = com.tngtech.archunit.core.domain.properties.HasName.Predicates
+                .name("longitudeDegreesIfKnown")
+                .or(com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("latitudeDegrees"))
+                .or(com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("longitudeDegreesEast"))
+                .or(com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("eclipticLongitudeDegrees"))
+                .or(com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("degreesIntoSign"))
+                .or(com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("obliquityDegrees"))
+                .or(com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("ramcDegrees"));
         ArchRule rule = fields()
                 .that().areDeclaredInClassesThat()
                 .resideInAPackage("io.destinyos.engines..")
                 .and().areNotStatic()
-                .and(com.tngtech.archunit.base.DescribedPredicate.not(
-                        com.tngtech.archunit.core.domain.properties.HasName.Predicates.name(
-                                "longitudeDegreesIfKnown")))
+                .and(com.tngtech.archunit.base.DescribedPredicate.not(allowedGeometricFields))
                 .should().notHaveRawType(double.class)
                 .andShould().notHaveRawType(float.class)
                 .andShould().notHaveRawType(Double.class)

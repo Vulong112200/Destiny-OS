@@ -1,4 +1,5 @@
 import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
+import { AstrologyChartCard } from "./AstrologyChartCard";
 import { BaziChartCard } from "./BaziChartCard";
 import { BatTrachCard } from "./BatTrachCard";
 import { LabeledBadge } from "./LabeledBadge";
@@ -61,6 +62,9 @@ export function ResultView({
 
       {/* Same contract: renders nothing when Bát Trạch did not take part. */}
       <BatTrachCard evidence={result.evidence} labels={labels} />
+
+      {/* Same contract: renders nothing when Western astrology did not take part. */}
+      <AstrologyChartCard evidence={result.evidence} labels={labels} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Nguồn đóng góp</h2>

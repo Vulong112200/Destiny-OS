@@ -2,6 +2,7 @@ package io.destinyos.app.wiring;
 
 import io.destinyos.api.service.EngineTaskFactory;
 import io.destinyos.api.service.EngineTaskFactoryRegistry;
+import io.destinyos.engines.astrology.WesternAstrologyEngine;
 import io.destinyos.engines.bazi.BaziEngine;
 import io.destinyos.engines.fengshui.FengShuiKuaEngine;
 import io.destinyos.engines.numerology.NumerologyEngine;
@@ -61,6 +62,19 @@ public class EngineWiringConfig {
     }
 
     /**
+     * Western astrology, Phase 11. Registered under the engine id
+     * {@code WESTERN_ASTROLOGY}, which existing scenario policies (e.g.
+     * BUSINESS/PROJECT) already name — so wiring it here is what finally
+     * makes those scenarios stop reporting it as unavailable. It contributes
+     * chart evidence (Sun sign, Midheaven, Ascendant, Whole Sign houses) and
+     * emits no signal (R5/R6 still block the other planets and aspects).
+     */
+    @Bean
+    public WesternAstrologyEngine westernAstrologyEngine() {
+        return new WesternAstrologyEngine();
+    }
+
+    /**
      * The harness, wired to real metrics (CLAUDE.md section 5, Phase 14).
      *
      * <p>{@code EngineExecutor.withDefaults()} still exists and still records
@@ -94,15 +108,18 @@ public class EngineWiringConfig {
                                                                NumerologyEngine numerologyEngine,
                                                                BaziEngine baziEngine,
                                                                FengShuiKuaEngine fengShuiKuaEngine,
+                                                               WesternAstrologyEngine westernAstrologyEngine,
                                                                TarotTaskFactory tarotTaskFactory,
                                                                NumerologyTaskFactory numerologyTaskFactory,
                                                                BaziTaskFactory baziTaskFactory,
-                                                               FengShuiTaskFactory fengShuiTaskFactory) {
+                                                               FengShuiTaskFactory fengShuiTaskFactory,
+                                                               AstrologyTaskFactory astrologyTaskFactory) {
         Map<String, EngineTaskFactory> factories = new LinkedHashMap<>();
         factories.put(tarotEngine.engineId(), tarotTaskFactory);
         factories.put(numerologyEngine.engineId(), numerologyTaskFactory);
         factories.put(baziEngine.engineId(), baziTaskFactory);
         factories.put(fengShuiKuaEngine.engineId(), fengShuiTaskFactory);
+        factories.put(westernAstrologyEngine.engineId(), astrologyTaskFactory);
         return new EngineTaskFactoryRegistry(factories);
     }
 }

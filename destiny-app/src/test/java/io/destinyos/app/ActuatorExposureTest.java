@@ -65,7 +65,7 @@ class ActuatorExposureTest {
                 new io.destinyos.api.dto.ScenarioRunRequest(
                         new io.destinyos.api.dto.NumerologyRequest(
                                 "Nguyễn Văn C", java.time.LocalDate.of(1991, 4, 4)),
-                        null, null, null),
+                        null, null, null, null),
                 io.destinyos.api.dto.ScenarioRunResponse.class);
 
         var response = rest.getForEntity("/actuator/metrics/destiny.engine.executions",
@@ -92,7 +92,7 @@ class ActuatorExposureTest {
                 new io.destinyos.api.dto.ScenarioRunRequest(
                         new io.destinyos.api.dto.NumerologyRequest(
                                 "Trần Thị D", java.time.LocalDate.of(1987, 2, 2)),
-                        null, null, null),
+                        null, null, null, null),
                 io.destinyos.api.dto.ScenarioRunResponse.class);
 
         var response = rest.getForEntity("/actuator/metrics/destiny.engine.concurrency.wait",

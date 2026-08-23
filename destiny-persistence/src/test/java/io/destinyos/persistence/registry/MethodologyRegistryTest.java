@@ -131,7 +131,14 @@ class MethodologyRegistryTest {
             assertStatus("BAZI", MethodologyStatus.RESEARCH_REQUIRED,
                     "R1", "R3", "R20", "R21", "R22");
             assertStatus("ZIWEI", MethodologyStatus.RESEARCH_REQUIRED, "R4");
-            assertStatus("WESTERN_ASTROLOGY", MethodologyStatus.DECISION_REQUIRED, "R5", "R6");
+            // Phase 11 (2026-08-23): the chart half split off the same way
+            // BAZI_TUBINH_CHART split from BAZI, once R5 (ephemeris) and R6
+            // (zodiac/house system) were decided for the Sun/angles/houses.
+            // WESTERN_ASTROLOGY itself (the interpretive half - other planets,
+            // aspects) stays blocked, which is the point of the split.
+            assertStatus("WESTERN_ASTROLOGY_CHART_ANGLES", MethodologyStatus.CONTENT_REQUIRED,
+                    "R5", "R6");
+            assertStatus("WESTERN_ASTROLOGY", MethodologyStatus.RESEARCH_REQUIRED, "R5", "R6");
             // Phase 10: four of R7's five items are closed, and the fifth (the
             // year boundary) is represented per calculation rather than guessed -
             // the same model CALENDAR_VN_TRADITIONAL uses for R14b.
@@ -165,7 +172,8 @@ class MethodologyRegistryTest {
             // its meaning corpus was authored. BAZI itself (the interpretive
             // half) stays non-calculable, which is the point of the split.
             Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
-                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART", "FENGSHUI_KUA");
+                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART", "FENGSHUI_KUA",
+                    "WESTERN_ASTROLOGY_CHART_ANGLES");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();

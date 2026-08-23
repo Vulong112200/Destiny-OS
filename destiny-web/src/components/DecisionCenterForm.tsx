@@ -92,6 +92,11 @@ export function DecisionCenterForm() {
   const [fsGender, setFsGender] = useState<"MALE" | "FEMALE">("MALE");
   const [fsRegion, setFsRegion] = useState("UNKNOWN");
   const [fsFacing, setFsFacing] = useState<CompassDirectionName | "">("");
+  const [useAstrology, setUseAstrology] = useState(false);
+  const [astroBirthDate, setAstroBirthDate] = useState("");
+  const [astroBirthTime, setAstroBirthTime] = useState("");
+  const [astroLatitude, setAstroLatitude] = useState("");
+  const [astroLongitude, setAstroLongitude] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,6 +107,12 @@ export function DecisionCenterForm() {
     const hasNumerology = fullName.trim() !== "" && birthDate !== "";
     const hasBazi = useBazi && baziBirthDate !== "";
     const hasFengShui = useFengShui && fsBirthDate !== "";
+    const hasAstrology =
+      useAstrology &&
+      astroBirthDate !== "" &&
+      astroBirthTime !== "" &&
+      astroLatitude.trim() !== "" &&
+      astroLongitude.trim() !== "";
     if (useBazi && baziBirthDate === "") {
       setError("Bát Tự cần ngày sinh. Giờ sinh có thể để trống — khi đó chỉ lập được Trụ Năm và Trụ Tháng.");
       return;
@@ -110,9 +121,18 @@ export function DecisionCenterForm() {
       setError("Bát Trạch cần ngày sinh và giới tính để tính cung phi.");
       return;
     }
-    if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui) {
+    if (
+      useAstrology &&
+      (astroBirthDate === "" || astroBirthTime === "" || astroLatitude.trim() === "" || astroLongitude.trim() === "")
+    ) {
       setError(
-        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, bật Bát Tự, hoặc bật Bát Trạch.",
+        "Chiêm tinh phương Tây cần đủ ngày sinh, giờ sinh chính xác và tọa độ nơi sinh — không thể lập lá số nếu thiếu một trong các mục này.",
+      );
+      return;
+    }
+    if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui && !hasAstrology) {
+      setError(
+        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, bật Bát Tự, bật Bát Trạch, hoặc bật Chiêm tinh phương Tây.",
       );
       return;
     }
@@ -120,6 +140,13 @@ export function DecisionCenterForm() {
     const longitude = baziLongitude.trim() === "" ? null : Number(baziLongitude);
     if (longitude !== null && !Number.isFinite(longitude)) {
       setError("Kinh độ phải là một số, ví dụ 106.7. Để trống nếu không biết.");
+      return;
+    }
+
+    const astroLat = hasAstrology ? Number(astroLatitude) : null;
+    const astroLon = hasAstrology ? Number(astroLongitude) : null;
+    if (hasAstrology && (!Number.isFinite(astroLat) || !Number.isFinite(astroLon))) {
+      setError("Vĩ độ và kinh độ nơi sinh (chiêm tinh) phải là số, ví dụ 10.8 và 106.7.");
       return;
     }
 
@@ -154,6 +181,14 @@ export function DecisionCenterForm() {
               // the eight-direction profile and no signal, rather than judging
               // a direction the user never gave.
               facingDirection: fsFacing === "" ? null : fsFacing,
+            }
+          : null,
+        astrology: hasAstrology
+          ? {
+              birthDate: astroBirthDate,
+              birthTime: astroBirthTime,
+              latitudeDegrees: astroLat as number,
+              longitudeDegrees: astroLon as number,
             }
           : null,
       });
@@ -439,6 +474,77 @@ export function DecisionCenterForm() {
                 </select>
               </label>
             </div>
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-900">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useAstrology}
+              onChange={(e) => setUseAstrology(e.target.checked)}
+            />
+            Chiêm tinh học phương Tây — lập lá số
+          </label>
+        </legend>
+        {useAstrology && (
+          <div className="space-y-3">
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Cần <span className="font-medium">đủ cả bốn mục</span> dưới đây — không thể lập lá số
+              với giờ sinh hoặc tọa độ đoán chừng: Cung Mọc dịch chuyển khoảng 1° mỗi 4 phút, nên
+              một giờ sinh đoán sai sẽ cho ra kết quả sai một cách tự tin, không phải một kết quả
+              rút gọn. Hiện chỉ lập được vị trí Mặt Trời, Thiên Đỉnh, Cung Mọc và 12 nhà (Whole
+              Sign) — Mặt Trăng, các hành tinh khác và góc chiếu chưa được cung cấp, nên mục này
+              chưa góp tín hiệu nào vào kết luận tổng hợp.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Ngày sinh</span>
+                <input
+                  type="date"
+                  value={astroBirthDate}
+                  onChange={(e) => setAstroBirthDate(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Giờ sinh (bắt buộc, càng chính xác càng tốt)</span>
+                <input
+                  type="time"
+                  value={astroBirthTime}
+                  onChange={(e) => setAstroBirthTime(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Vĩ độ nơi sinh</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={astroLatitude}
+                  onChange={(e) => setAstroLatitude(e.target.value)}
+                  placeholder="10.8 (Bắc dương)"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-600">Kinh độ nơi sinh</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={astroLongitude}
+                  onChange={(e) => setAstroLongitude(e.target.value)}
+                  placeholder="106.7 (Đông dương)"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </label>
+            </div>
+            <p className="text-xs text-slate-500">
+              Ngày và giờ sinh được đọc theo giờ dân sự Việt Nam. Nếu nơi sinh thực tế ở múi giờ
+              khác, kết quả sẽ không chính xác — hệ thống hiện chưa có bộ chọn múi giờ riêng.
+            </p>
           </div>
         )}
       </fieldset>

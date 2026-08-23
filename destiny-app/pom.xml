@@ -52,6 +52,11 @@
     </dependency>
     <dependency>
       <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-astrology</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
       <artifactId>destiny-fusion</artifactId>
       <version>${project.version}</version>
     </dependency>

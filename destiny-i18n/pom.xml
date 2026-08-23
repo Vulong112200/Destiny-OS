@@ -63,5 +63,11 @@
       <artifactId>destiny-engine-fengshui</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Zodiac sign and astrological house labels. Same precedent. -->
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-astrology</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

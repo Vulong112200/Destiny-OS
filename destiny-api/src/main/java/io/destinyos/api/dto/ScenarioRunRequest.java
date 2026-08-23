@@ -14,6 +14,7 @@ public record ScenarioRunRequest(
         NumerologyRequest numerology,
         TarotRequest tarot,
         BaziRequest bazi,
-        FengShuiRequest fengShui
+        FengShuiRequest fengShui,
+        AstrologyRequest astrology
 ) {
 }

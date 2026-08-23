@@ -265,14 +265,52 @@ public class MethodologyRegistrySeeder {
                     "No authoritative an sao rulebook selected. Master Spec section "
                             + "14 explicitly forbids placeholder star placement."),
 
-            new Entry("WESTERN_ASTROLOGY", "Chiêm tinh học phương Tây", "WESTERN",
+            new Entry("WESTERN_ASTROLOGY_CHART_ANGLES",
+                    "Chiêm tinh học phương Tây - Lập lá số (góc chiếu, cung mọc)", "WESTERN",
                     "1.0",
-                    MethodologyStatus.DECISION_REQUIRED, null, null,
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Tropical zodiac, Whole Sign houses (R6, owner decision 2026-08-23)",
+                    "Jean Meeus, Astronomical Algorithms (1998), ch. 12/22",
                     Set.of("R5", "R6"),
-                    "Ephemeris source and its licence (R5 - Swiss Ephemeris is "
-                            + "AGPL-or-commercial) and zodiac/house-system/aspect-orb "
-                            + "policy (R6) both need a recorded decision before "
-                            + "Phase 11."),
+                    "Julian Day/T/obliquity/GMST/RAMC and the Midheaven formula "
+                            + "follow Jean Meeus, Astronomical Algorithms (1998) ch. 12 "
+                            + "and 22 directly. The Sun's ecliptic longitude reuses "
+                            + "destiny-calendar's already golden-tested SolarPosition "
+                            + "(VSOP87-derived), rather than re-deriving it - this is "
+                            + "the self-build path R5's follow-up survey "
+                            + "(R5_meeus_path_survey.md) found the original R5 draft had "
+                            + "missed because it could not see this repository's own "
+                            + "calendar module. The Ascendant formula was re-derived "
+                            + "from first principles after two independent web sources "
+                            + "were found to disagree on its atan2 quadrant by 180 "
+                            + "degrees; the result was verified against two "
+                            + "independently-reasoned numerical cases and against Meeus's "
+                            + "own GMST worked example. Whole Sign houses need no "
+                            + "time-based subdivision, so they carry no further "
+                            + "uncertainty beyond the Ascendant itself. Phase 11 v1: "
+                            + "emits Sun/Midheaven/Ascendant/houses as chart evidence "
+                            + "and no signal. The Moon and the other seven planets "
+                            + "(R5 - no VSOP87/ELP2000 data sourced with adequate rigor "
+                            + "yet) and aspects (R6 - orb policy still undecided) remain "
+                            + "registered BlockedSections on the chart, not silently "
+                            + "omitted."),
+
+            new Entry("WESTERN_ASTROLOGY", "Chiêm tinh học phương Tây - Luận giải", "WESTERN",
+                    "1.1",
+                    MethodologyStatus.RESEARCH_REQUIRED, null, null,
+                    Set.of("R5", "R6"),
+                    "The interpretive half: planetary positions beyond the Sun, "
+                            + "aspects between them, and what any of it means. Split "
+                            + "from WESTERN_ASTROLOGY_CHART_ANGLES on 2026-08-23 the same "
+                            + "way BAZI was split from BAZI_TUBINH_CHART - chart "
+                            + "construction moved to CONTENT_REQUIRED once R5 (ephemeris: "
+                            + "self-built on Meeus/VSOP87, owner decision) and R6 "
+                            + "(zodiac/house system: Tropical + Whole Sign, owner "
+                            + "decision) were resolved for the Sun/angles/houses; the "
+                            + "remaining planets still have no sourced ephemeris and the "
+                            + "aspect-orb policy is still open, so this entry stays "
+                            + "blocked rather than narrowing what DECISION_REQUIRED used "
+                            + "to cover."),
 
             new Entry("FENGSHUI_KUA", "Phong Thủy - Bát Trạch (Cung Phi)", "EASTERN",
                     "1.1",

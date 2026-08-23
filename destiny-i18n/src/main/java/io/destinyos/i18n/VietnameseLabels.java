@@ -17,6 +17,8 @@ import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
+import io.destinyos.engines.astrology.AstrologicalHouse;
+import io.destinyos.engines.astrology.ZodiacSign;
 import io.destinyos.engines.bazi.BaziYearBoundary;
 import io.destinyos.engines.bazi.LuckCycleDirection;
 import io.destinyos.engines.bazi.PillarPosition;
@@ -457,6 +459,42 @@ public final class VietnameseLabels {
         map.put(LuckCycleDirection.NGHICH, "Vận nghịch (đi ngược)");
     });
 
+    /**
+     * The twelve tropical zodiac signs (Phase 11, R6). Deliberately NOT reused
+     * for anything Tử Vi — {@code ZiWeiPalace}'s 12 cung is a different system
+     * with a different origin point, and CLAUDE.md's terminology section
+     * forbids conflating them under a shared label set as much as under a
+     * shared type.
+     */
+    private static final Map<ZodiacSign, String> ZODIAC_SIGN = ordered(map -> {
+        map.put(ZodiacSign.ARIES, "Bạch Dương");
+        map.put(ZodiacSign.TAURUS, "Kim Ngưu");
+        map.put(ZodiacSign.GEMINI, "Song Tử");
+        map.put(ZodiacSign.CANCER, "Cự Giải");
+        map.put(ZodiacSign.LEO, "Sư Tử");
+        map.put(ZodiacSign.VIRGO, "Xử Nữ");
+        map.put(ZodiacSign.LIBRA, "Thiên Bình");
+        map.put(ZodiacSign.SCORPIO, "Bọ Cạp");
+        map.put(ZodiacSign.SAGITTARIUS, "Nhân Mã");
+        map.put(ZodiacSign.CAPRICORN, "Ma Kết");
+        map.put(ZodiacSign.AQUARIUS, "Bảo Bình");
+        map.put(ZodiacSign.PISCES, "Song Ngư");
+    });
+
+    /**
+     * The twelve houses of a Western astrology chart (Phase 11). Named by
+     * ordinal only ("Nhà 1"..."Nhà 12"), not by the traditional short meaning
+     * ("Nhà 10 - sự nghiệp") — that meaning is interpretive content this phase
+     * has not authored (the engine emits no signals yet), and a house label
+     * that already implies a meaning would be exactly the kind of unearned
+     * confidence CLAUDE.md Rule B forbids from the display layer.
+     */
+    private static final Map<AstrologicalHouse, String> ASTROLOGICAL_HOUSE = ordered(map -> {
+        for (AstrologicalHouse house : AstrologicalHouse.values()) {
+            map.put(house, "Nhà " + house.number());
+        }
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -573,6 +611,14 @@ public final class VietnameseLabels {
         return require(GENDER, value);
     }
 
+    public static String of(ZodiacSign value) {
+        return require(ZODIAC_SIGN, value);
+    }
+
+    public static String of(AstrologicalHouse value) {
+        return require(ASTROLOGICAL_HOUSE, value);
+    }
+
     /** One pillar rendered the way a reader expects it, e.g. "Giap Ty". */
     public static String pillar(HeavenlyStem stem, EarthlyBranch branch) {
         return of(stem) + " " + of(branch);
@@ -601,7 +647,7 @@ public final class VietnameseLabels {
                 TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, LUCK_CYCLE_DIRECTION,
                 RETENTION_CLASS,
                 TRIGRAM, COMPASS_DIRECTION, TRIGRAM_GROUP, BAT_TRACH_RELATION,
-                KUA_YEAR_BOUNDARY, GENDER);
+                KUA_YEAR_BOUNDARY, GENDER, ZODIAC_SIGN, ASTROLOGICAL_HOUSE);
     }
 
     /**

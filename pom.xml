@@ -31,6 +31,7 @@
     <module>destiny-engine-numerology</module>
     <module>destiny-engine-bazi</module>
     <module>destiny-engine-fengshui</module>
+    <module>destiny-engine-astrology</module>
     <module>destiny-fusion</module>
     <module>destiny-scenario</module>
     <module>destiny-ai</module>

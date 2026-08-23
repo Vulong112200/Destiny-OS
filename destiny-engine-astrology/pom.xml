@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-engine-astrology</artifactId>
+  <name>Destiny OS :: Engine :: Western Astrology</name>
+  <description>
+    Western (tropical) astrology chart angles - research items R5/R6, Phase 11.
+
+    Ships the part of a natal chart that is pure spherical astronomy and
+    already golden-tested infrastructure: the Sun's tropical position (reused
+    from destiny-calendar's SolarPosition), Midheaven, Ascendant, and the
+    twelve Whole Sign houses derived from it.
+
+    Does NOT ship the other nine planets (Moon through Pluto) or aspects.
+    Both need data or a decision this phase does not yet have: planetary
+    positions need VSOP87/ELP2000 coefficient tables sourced and
+    cross-checked with the same rigor as SolarPosition, which has not been
+    done; aspects need an orb policy (R6) that is still open. Both are
+    reported as explicitly blocked sections rather than silently omitted
+    (ADR D7), the same pattern destiny-engine-bazi uses for Dung Than and Day
+    Master strength.
+
+    Zodiac: Tropical (owner decision, 2026-08-23, RESEARCH_BLOCKERS.md R6).
+    House system: Whole Sign for this first version - correct at every
+    latitude including the polar circle, where Placidus and Koch are
+    mathematically undefined (owner decision, same date).
+
+    Framework-free, like the other engines. Depends on destiny-calendar for
+    Julian date conversion and the Sun's ecliptic longitude.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-calendar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>
