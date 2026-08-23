@@ -8,6 +8,58 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R4 (Tử Vi): lần đầu đọc được chính văn cổ thư, và một kết luận bị điều chỉnh
+
+Các vòng trước chỉ đọc được nguồn thứ cấp hiện đại vì cổ thư nằm sau chặn bot.
+Vòng này mở được hai đường, ghi lại để lần sau bắt đầu từ đây:
+
+- **`zh.wikisource.org` có toàn văn 紫微斗數全書** và fetch trực tiếp được. Có
+  卷一, 卷二, 卷三 — **không có 卷四**, điều này quan trọng ở dưới
+- **`ctext.org` chặn fetch (403) nhưng đọc được qua proxy `r.jina.ai`** — đây là
+  cách 三命通會, 滴天髓闡微 và 命理探源 được tiếp cận cho R1/R3
+
+**Xác nhận được từ chính văn (卷二, 安身命例):**
+
+1. **Công thức an Mệnh/Thân** — và đoạn văn tự chứa **ba ví dụ** của chính nó
+   (tháng 1 với giờ Tý, Sửu, Dần). Cả ba tái hiện đúng dưới công thức mà dự án
+   đã dựng trước đó từ nguồn thứ cấp — **3/3**
+2. **Chuỗi dẫn xuất Cục số**: Ngũ Hổ Độn cho Can của cung Mệnh (năm 甲 → 丙寅),
+   Nạp Âm của cặp can-chi cho hành (丙寅丁卯 = 炉中火), hành đó là Cục. Lấy được
+   từ nguồn, không phải suy ra
+3. **Ngũ Hổ Độn chính là quy tắc dự án đã cài** cho Trụ Tháng Bát Tự và đã
+   golden-test — không cần cài lại lần hai
+4. **Hỏa lục cục, ngày 1 → cung Dậu**, xác nhận độc lập một neo của khẩu quyết
+   「六五四三二，酉午亥辰丑」, mà cả năm neo đã được chứng minh riêng là rơi ra
+   đúng từ thuật toán an Tử Vi (`VERIFICATION_OPUS.md` §A3)
+
+**Điều chỉnh — kết luận tháng nhuận của vòng thu thập là quá mạnh.** Trích dẫn
+「又若閏正月生者，要在二月內起安身命」 là **thật** (lấy lại độc lập), nhưng nó
+**không** đóng được tranh cãi:
+
+- **Một cổ thư khác cho quy tắc khác.** 斗數宣微: chia ở ngày 15 (「十五日以前，
+  作正月看；十五日以後，作二月看」). Nghĩa là quy ước "1-15 / 16-30" **cũng là cổ
+  điển** — thư viện `iztro` có triển khai nó, nhưng nó không bắt nguồn từ đó
+- **Chính 紫微斗數全書 tự mâu thuẫn bằng ví dụ của mình.** 卷四 có lá số 進士之命,
+  sinh 丙申年閏十二月初十日亥時, lập **theo tháng 12** chứ không theo tháng Giêng
+  năm sau. Hai nguồn độc lập xác nhận
+- **Ca 閏十二月 cho thấy vì sao.** Lấy "tháng sau" ở đó sẽ đẩy sang năm mới, đổi
+  **Trụ Năm** và do đó đổi Tứ Hóa — hệ quả không cổ thư nào bàn tới, tự nó là
+  bằng chứng quy tắc không được hiểu theo nghĩa đen
+
+**Tác động thực:** câu hỏi tháng nhuận đi từ "năm ý kiến trên diễn đàn" thành
+**ba lập trường, hai có nguồn cổ điển đích danh, cộng một mâu thuẫn nội tại có
+thật trong chính văn**. Tiến bộ thật, và vẫn **không phải lời giải** — chọn giữa
+chúng vẫn là một lựa chọn trường phái theo Rule D.
+
+**Vẫn mở, và vì sao R4 vẫn CRITICAL:** bảng an Tử Vi 30×5 chưa đối chiếu với bảng
+công bố nào; 13 chính tinh còn lại mới chỉ kiểm với nguồn thứ cấp và code
+`iztro`; sao phụ chưa có nguồn nào liệt kê một tập đầy đủ có giới hạn (卷一 thuần
+luận giải, **không có** khẩu quyết an sao nào); Tứ Hóa có hàng Canh tranh chấp
+thật; công thức Đại Hạn không có trong 卷一–卷三. **Lấy được 卷四 là bước tiếp
+theo giá trị nhất** — đó là nơi có lá số ví dụ, đúng thứ R4 cần để viết golden
+test.
+
+
 ### Fixed — ba thành phần Bát Tự vô hình: mở R20, R21, R22
 
 Một lượt rà soát đối chiếu **Master Spec §13** với `BaziEngine` phát hiện ba
