@@ -8,6 +8,25 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R4 (Tử Vi), vòng thứ hai cùng ngày: thêm ba mục đóng, một mâu thuẫn giả được gỡ, một phát hiện mới cần tách bạch
+
+Tiếp tục vòng vừa xong (đọc chính văn 紫微斗數全書 qua Wikisource/`r.jina.ai`).
+
+**Ba mục trước đây ghi là thiếu, nay có nguồn gốc trực tiếp:**
+
+1. **Khẩu quyết an đủ 14 chính tinh** — 「紫微天機逆行旁，隔一陽武天同當…」. Không phải phát hiện mới về nội dung — đây chính là khẩu quyết cho đúng cách sắp xếp (vòng Tử Vi cách 1/cách 2/cách 3 cung, vòng Thiên Phủ liền 7 sao rồi cách 3) mà dự án đã **kiểm chứng bằng tính toán** ở vòng trước (`VERIFICATION_OPUS.md` §A3). Giờ thuật toán và chính văn xác nhận lẫn nhau từ hai hướng độc lập
+2. **Công thức an Văn Xương/Văn Khúc** — trước đây R4b ghi rõ "chưa lấy được công thức cụ thể" cho Văn Xương. Nay có: 「子時戌上起文昌，逆到生時是貴鄉，文曲數從辰上起，順到生時是本鄉」 — Văn Xương khởi cung Tuất tại giờ Tý, đếm nghịch tới giờ sinh; Văn Khúc khởi cung Thìn tại giờ Tý, đếm thuận
+3. **Toàn bộ 60 câu Nạp Âm Giáp Tý** — trước đây cả R1 và R4a đều ghi thiếu bảng này. Lấy được đủ 60 cặp qua proxy sau khi lần fetch đầu (qua Wikisource trực tiếp) bị chặn bởi chính bước tóm tắt tự nghi ngờ bản quyền của nó. **Tự bắt được 2 lỗi OCR** bằng cách đối chiếu bảng với chính cấu trúc chu kỳ 60 của nó (không cần nguồn ngoài): "甲戊乙亥" phải là 甲戌乙亥, "戊戌已亥" phải là 戊戌己亥 — cả hai đều là các cặp chữ Hán rất dễ lẫn khi OCR (戊/戌 lệch một nét, 已/己 lệch một nét chưa khép)
+
+**Một mâu thuẫn tưởng có, hóa ra là lỗi tóm tắt:** lần fetch đầu về Đại Hạn đọc như thể vận đầu tiên khởi ở cung Phụ Mẫu/Huynh Đệ, trái với công thức R4b đã tìm (khởi tại chính cung Mệnh). Đối chiếu nguồn thứ hai cho thấy câu gốc nói **vận thứ hai** mới vào Phụ Mẫu/Huynh Đệ — Đại Hạn 1 vẫn là cung Mệnh, đúng như R4b. Ghi lại đúng loại lỗi này vì chữ Hán cổ không dấu câu rất dễ đọc sai theo hướng này, và nó lẽ ra sẽ bị ghi sai vào tài liệu nếu không kiểm tra chéo lần hai.
+
+**Phát hiện mới, cố tình KHÔNG gộp vào các mục trên:** bản 紫微斗數 trên `ctext.org` (thuộc Đạo Tạng — 正統道藏) dùng **một tập tên sao hoàn toàn khác** — 虛, 實, 印, 壽, 空, 鸞, 庫, 貫, 文, 福, 祿 và 天杖, 異, 毛, 刃 — không trùng bất kỳ sao nào trong 14 chính tinh chuẩn (Tử Vi, Thiên Cơ… Phá Quân) mà Wikisource, `iztro`, và mọi nguồn tiếng Việt đều hội tụ về. Nhiều khả năng đây là một truyền thống văn bản khác, chỉ trùng tên thể loại "Tử Vi Đẩu Số" chứ không phải một dị bản của cùng một hệ thống. Ghi lại để vòng sau không phát hiện lại từ đầu, và để không ai nhầm hai hệ là một nếu tra lại bản Đạo Tạng.
+
+**卷四 (chứa lá số ví dụ 進士之命) không tìm thấy ở cả hai bản đã khảo sát** — không có trong mục lục Wikisource, không có trong bản Đạo Tạng 3 quyển trên ctext.org. Có thể thuộc một bản in chú giải hiện đại cụ thể (ví dụ bản Vương Đình Chi). Lấy được quyển này vẫn là bước giá trị nhất tiếp theo cho R4 — không đổi so với vòng trước.
+
+**R4 không đổi trạng thái** (`RESEARCH_REQUIRED`, CRITICAL) — đây là thu hẹp phạm vi thiếu, không phải đóng mục.
+
+
 ### Nghiên cứu — R4 (Tử Vi): lần đầu đọc được chính văn cổ thư, và một kết luận bị điều chỉnh
 
 Các vòng trước chỉ đọc được nguồn thứ cấp hiện đại vì cổ thư nằm sau chặn bot.
