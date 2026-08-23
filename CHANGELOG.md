@@ -8,6 +8,47 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R20 (Hợp/Xung/Hình/Hại/Phá): tìm được cổ thư gốc, và một ràng buộc cấu trúc với R1
+
+Mục vừa mở hôm nay (`docs/RESEARCH_BLOCKERS.md` R20) chỉ có một vòng tìm kiếm sơ
+bộ. Tìm thêm được **滴天髓 (Trích Thiên Tủy) có hẳn một chương `戰合論`** (Luận
+Chiến/Hợp) bàn trực tiếp câu hỏi này — lấy được nguyên văn qua `zh.wikisource.org`
+(fetch trực tiếp, không cần proxy cho văn bản này).
+
+**Ba điểm về mặt cơ học đã có nguồn:**
+
+1. **Xung Can và xung Chi không cùng mức độ nghiêm trọng** — cổ thư nói thẳng
+   「天戰猶自可，地戰急如火」: xung Can (Giáp-Canh, Ất-Tân) chịu được, nhất là
+   khi Chi bên dưới yên tĩnh; xung Chi (Dần-Thân, Mão-Dậu) "gấp như lửa" vì
+   "幹不能為力" (Can bên trên không giúp được). Khi cả Can lẫn Chi cùng xung một
+   lúc (như 庚申 đối 甲寅), gọi là **天地交戰** — mức thứ tự ưu tiên **có tên,
+   có nguồn**, khác hẳn bảng 三會>三合>六合 chưa dẫn nguồn trước đó
+2. **Hợp có giải được Xung không — không phải luật cứng đúng/sai, mà có điều
+   kiện, và cổ thư nói rõ cân cái gì**: 「遇運歲合之會之，視其勝負」(gặp vận/năm
+   đưa hợp/hội tới thì xem bên nào thắng) và 「兩沖者，只得一個合神有力…以收其
+   動氣」(hai xung, chỉ một hợp thần có lực thì thu được khí động). Câu trả lời
+   thật là "chỉ khi Hợp Thần đủ mạnh" — không phải "luôn luôn" hay "không bao
+   giờ" — dù không cho ngưỡng đo lực cụ thể (cùng khoảng trống mà R3 đã có)
+3. **合而不化 (hợp mà không hóa) vẫn có lực ràng buộc** — cần có "引神" (thần
+   dẫn) hiện rõ (không phải tàng ẩn) thì mới hóa; không có thì chỉ ràng buộc,
+   không đổi Ngũ Hành
+
+**Phát hiện cấu trúc quan trọng nhất: nửa "đánh giá tốt/xấu" của mục này không
+thể tách khỏi R1.** Đoạn thứ hai của chương đánh giá mọi trường hợp là "宜"
+(nên) hay "不宜" (không nên) — và mọi đánh giá đều dùng đúng từ vựng 喜神/凶神
+(Hỷ Thần/Hung Thần) mà R1 chưa chọn trường phái. Nghĩa là: **tầng cơ học** (cặp
+Can Chi nào tạo quan hệ gì, điều kiện hóa, thứ tự ưu tiên) trả lời được mà
+không cần R1, và nên là mục tiêu của lần implement đầu; **tầng đánh giá** (một
+quan hệ cụ thể là tốt hay xấu cho lá số này) không chỉ đang bị R20 chặn — nó bị
+chặn bởi chính cấu trúc của khung cổ điển, không phải do cách chia phase của
+dự án.
+
+**Vẫn chưa đủ để đặc tả** ngay cả tầng cơ học: bảng đầy đủ cặp/bộ ba Can Chi nào
+tạo quan hệ nào; quy tắc khoảng cách tính được (mới có "遠隔…相和好" cho một
+quan hệ, từ trích dẫn thứ cấp chưa lần ra nguồn gốc); điều kiện hóa chính xác
+ngoài "cần 引神 hiện rõ"; lá số vàng.
+
+
 ### Nghiên cứu — R4 (Tử Vi), vòng thứ hai cùng ngày: thêm ba mục đóng, một mâu thuẫn giả được gỡ, một phát hiện mới cần tách bạch
 
 Tiếp tục vòng vừa xong (đọc chính văn 紫微斗數全書 qua Wikisource/`r.jina.ai`).
