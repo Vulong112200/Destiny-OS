@@ -8,6 +8,20 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R20 (Hợp/Xung/Hình/Hại), vòng ba: cổ thư thứ hai, chưa qua xác minh Opus
+
+`docs/research_drafts/R20_ziping_zhenquan_chapter7.md`. Tìm được chương thứ
+hai dành riêng cho đúng câu hỏi này: **子平真詮** (Tử Bình Chân Thuyên, một
+trong ba cổ thư tham chiếu của dự án) chương 7, **論刑沖會合解法**. Câu mở
+đầu định nghĩa 刑/沖/會/合 khớp gần như nguyên văn qua 3 nguồn scrape độc lập
+(ctext.org, ab.newdu.com, donglishuzhai.net) — cùng chuẩn đối chiếu 3 nguồn
+đã dùng cho R7. Thêm hai manh mối chưa xác nhận đủ chuẩn trích dẫn (quy tắc
+khoảng cách "隔位太遠", quy tắc ưu tiên "會合可以解衝") vì chỉ có ở một lần
+fetch qua model tóm tắt, chưa trích nguyên văn lại trực tiếp. Cũng phát hiện
+hai kết quả tìm kiếm web mâu thuẫn nhau về nhóm tự hình 三刑 (ba hay bốn địa
+chi). **Không đổi status R20** — kết quả đánh dấu DRAFT, chờ Opus xác minh
+trước khi implement, đúng quy trình hai-model đã dùng cho R4/R5.
+
 ### Added — Phase 11 v1: Chiêm tinh học phương Tây — lập lá số (`destiny-engine-astrology`)
 
 Module mới `destiny-engine-astrology`, triển khai phần đã được chốt ở R5/R6
