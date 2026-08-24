@@ -8,6 +8,30 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R12 (Kinh Dịch/Mai Hoa): giả thuyết "hệ thống đóng" được xác nhận, chưa qua xác minh Opus
+
+`docs/research_drafts/R12_iching_maihoa.md`. Khác với Bát Tự (Dụng Thần
+kẹt vì nhiều trường phái mô tả cùng một "sự thật" không thể phân xử), cơ chế
+gieo quẻ Kinh Dịch/Mai Hoa (8 quẻ đơn, bảng 64 quẻ, 4 cách gieo quẻ, hào
+động, quẻ biến) được xác nhận là **specifiable đầy đủ, không cần chọn phe**.
+Tìm được và cross-check qua 2-3 nguồn độc lập: 8 quẻ đơn (Tiên Thiên +
+Hậu Thiên, từ Thuyết Quái truyện), bảng 64 quẻ Văn Vương đầy đủ (tự bắt và
+sửa một lỗi transcription thật), phương pháp Tam Tiền (bảng 6/7/8/9, phân
+phối 1:3:3:1), phương pháp Thi Thảo (quy trình 18 bước từ chính Hệ Từ,
+phân phối khác thật ~1:5:7:3), công thức mod-8/mod-6 của Mai Hoa cho cả
+phương pháp Số và Năm-Tháng-Ngày-Giờ (trích trực tiếp từ chính văn). Vòng
+vá lỗi hổng thứ hai giải quyết thêm: cách tách 1 số nguyên nhiều chữ số
+thành thượng/hạ quái (2 nguồn thứ cấp đồng thuận: "thiên khinh thanh, địa
+trọng trọc"), và làm mạnh thêm (chưa đóng hẳn) suy đoán cho trường hợp dư=0
+khi chia hào động cho 6, dựa trên cùng khuôn mẫu đã xác nhận ở 2 phép chia
+khác (mod 8, mod 4) trong cùng họ phương pháp. Tranh cãi thật duy nhất tìm
+được (mặt xu nào là Dương) chỉ là quy ước UI cho xu vật lý, biến mất khi
+dùng RNG có seed.
+
+**Không đổi status R12** (vẫn `RESEARCH_REQUIRED`, đánh dấu DRAFT chờ Opus
+xác minh) nhưng đây là mục nghiên cứu huyền học gần sẵn sàng implement nhất
+hiện có — không gặp bế tắc chọn trường phái nào ở tầng cơ học.
+
 ### Nghiên cứu — R1/R3: nguồn sơ cấp thật do chủ dự án mua và cung cấp, chưa qua xác minh Opus
 
 Chủ dự án mua sách `Dự đoán theo Tứ trụ` (Thiệu Vĩ Hoa & Trần Viên, NXB Văn
