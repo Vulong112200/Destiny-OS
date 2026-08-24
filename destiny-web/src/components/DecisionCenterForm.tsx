@@ -5,9 +5,17 @@ import { useState } from "react";
 import { ApiError, runScenario } from "@/lib/api";
 import type {
   CompassDirectionName,
+  IChingCastingMethod,
   SupportedScenarioType,
   TarotSpreadName,
 } from "@/lib/types";
+
+const ICHING_METHOD_OPTIONS: { value: IChingCastingMethod; label: string }[] = [
+  { value: "THREE_COINS", label: "Tam Tiền (rút xu, nhanh)" },
+  { value: "YARROW", label: "Thi Thảo (cỏ thi, cổ điển)" },
+  { value: "MAI_HOA_NUMBER", label: "Mai Hoa — theo 2 con số" },
+  { value: "MAI_HOA_TIME", label: "Mai Hoa — theo thời điểm hiện tại" },
+];
 
 const SPREAD_OPTIONS: { value: TarotSpreadName; label: string; cardCount: number }[] = [
   { value: "PAST_PRESENT_FUTURE", label: "Quá khứ – Hiện tại – Tương lai", cardCount: 3 },
@@ -97,6 +105,10 @@ export function DecisionCenterForm() {
   const [astroBirthTime, setAstroBirthTime] = useState("");
   const [astroLatitude, setAstroLatitude] = useState("");
   const [astroLongitude, setAstroLongitude] = useState("");
+  const [useIChing, setUseIChing] = useState(false);
+  const [ichingMethod, setIChingMethod] = useState<IChingCastingMethod>("THREE_COINS");
+  const [ichingUpperNumber, setIChingUpperNumber] = useState("");
+  const [ichingLowerNumber, setIChingLowerNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,9 +142,15 @@ export function DecisionCenterForm() {
       );
       return;
     }
-    if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui && !hasAstrology) {
+    const hasIChingNumbers = ichingUpperNumber.trim() !== "" && ichingLowerNumber.trim() !== "";
+    if (useIChing && ichingMethod === "MAI_HOA_NUMBER" && !hasIChingNumbers) {
+      setError("Mai Hoa theo Số cần đủ 2 con số — không nhận 1 số duy nhất.");
+      return;
+    }
+    const hasIChing = useIChing;
+    if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui && !hasAstrology && !hasIChing) {
       setError(
-        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, bật Bát Tự, bật Bát Trạch, hoặc bật Chiêm tinh phương Tây.",
+        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, bật Bát Tự, bật Bát Trạch, bật Chiêm tinh phương Tây, hoặc bật Kinh Dịch.",
       );
       return;
     }
@@ -189,6 +207,14 @@ export function DecisionCenterForm() {
               birthTime: astroBirthTime,
               latitudeDegrees: astroLat as number,
               longitudeDegrees: astroLon as number,
+            }
+          : null,
+        iching: hasIChing
+          ? {
+              method: ichingMethod,
+              seed: null,
+              upperNumber: ichingMethod === "MAI_HOA_NUMBER" ? Number(ichingUpperNumber) : null,
+              lowerNumber: ichingMethod === "MAI_HOA_NUMBER" ? Number(ichingLowerNumber) : null,
             }
           : null,
       });
@@ -545,6 +571,72 @@ export function DecisionCenterForm() {
               Ngày và giờ sinh được đọc theo giờ dân sự Việt Nam. Nếu nơi sinh thực tế ở múi giờ
               khác, kết quả sẽ không chính xác — hệ thống hiện chưa có bộ chọn múi giờ riêng.
             </p>
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-900">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useIChing}
+              onChange={(e) => setUseIChing(e.target.checked)}
+            />
+            Kinh Dịch — gieo quẻ
+          </label>
+        </legend>
+        {useIChing && (
+          <div className="space-y-3">
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Hiện chỉ <span className="font-medium">gieo quẻ và xác định quẻ</span> (quẻ gốc, hào
+              động, quẻ biến) — dữ liệu tính toán tất định. Lời đoán theo hào/quẻ chưa được cung
+              cấp, nên mục này chưa góp tín hiệu nào vào kết luận tổng hợp.
+            </p>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">Cách gieo quẻ</span>
+              <select
+                value={ichingMethod}
+                onChange={(e) => setIChingMethod(e.target.value as IChingCastingMethod)}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+              >
+                {ICHING_METHOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {ichingMethod === "MAI_HOA_NUMBER" && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-slate-600">Số thứ nhất (thượng quái)</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={ichingUpperNumber}
+                    onChange={(e) => setIChingUpperNumber(e.target.value)}
+                    placeholder="3"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-slate-600">Số thứ hai (hạ quái)</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={ichingLowerNumber}
+                    onChange={(e) => setIChingLowerNumber(e.target.value)}
+                    placeholder="6"
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                  />
+                </label>
+                <p className="text-xs text-slate-500 sm:col-span-2">
+                  Cần đủ hai số — cách tách một số nhiều chữ số thành thượng/hạ quái chưa có nguồn
+                  đủ tin cậy nên chưa hỗ trợ.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </fieldset>

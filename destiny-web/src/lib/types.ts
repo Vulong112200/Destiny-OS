@@ -232,12 +232,29 @@ export interface AstrologyRequestInput {
   longitudeDegrees: number;
 }
 
+export type IChingCastingMethod = "THREE_COINS" | "YARROW" | "MAI_HOA_NUMBER" | "MAI_HOA_TIME";
+
+/**
+ * Needs no birth data at all — a hexagram casting is about a question asked
+ * now, not a person born then (the same reasoning {@link TarotRequestInput}
+ * already follows).
+ */
+export interface IChingRequestInput {
+  method: IChingCastingMethod;
+  /** For THREE_COINS/YARROW: reproducibility seed, or null to let the backend generate one. */
+  seed: number | null;
+  /** For MAI_HOA_NUMBER: required together with lowerNumber. A single multi-digit number is not accepted. */
+  upperNumber: number | null;
+  lowerNumber: number | null;
+}
+
 export interface ScenarioRunRequestInput {
   numerology: NumerologyRequestInput | null;
   tarot: TarotRequestInput | null;
   bazi: BaziRequestInput | null;
   fengShui: FengShuiRequestInput | null;
   astrology: AstrologyRequestInput | null;
+  iching: IChingRequestInput | null;
 }
 
 /**
