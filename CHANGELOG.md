@@ -8,6 +8,47 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R12 đã qua xác minh Opus: `RESEARCH_REQUIRED` → `DECISION_REQUIRED`
+
+`docs/research_drafts/VERIFICATION_OPUS_R12.md`. **Không tìm thấy lỗi sai nào**
+trong bản draft — lần đầu tiên một draft của dự án qua xác minh sạch hoàn toàn
+(đối chiếu: xác minh R4b trước đây tìm ra 3 lỗi, 1 lỗi kết luận ngược hẳn). Lý
+do có lẽ mang tính cấu trúc: trong một hệ thống đóng thật, mọi tuyên bố đều tự
+kiểm chứng chéo được bằng số học.
+
+**Kiểm chứng độc lập thêm so với draft:** bảng 64 quẻ qua **3 phép kiểm độc
+lập** — song ánh (64/64), quy tắc cặp Văn Vương (32/32 cặp là 綜卦 hoặc 錯卦 của
+nhau), và quy ước đặt tên Hán (56/56 hàng). Kèm một điểm tinh tế: quy tắc cặp
+**không** phân xử được riêng cặp 63/64 (既濟/未濟 vừa là 綜 vừa là 錯 của nhau,
+cả hai chiều đều thoả) — chỉ quy ước đặt tên mới phân xử được, nên ai kiểm lại
+bảng sau này không được chỉ dựa vào quy tắc cấu trúc. Số Tiên Thiên **suy ra
+được bằng số học** (`8 − nhị phân, hào dưới là bit cao`, đúng 8/8); phương vị
+Hậu Thiên **suy ra được từ chính câu Thuyết Quái ch.5** (đọc theo chiều kim đồng
+hồ từ Đông, đúng 8/8) ⇒ nâng hạng từ nguồn thứ cấp lên cấp 1. Ba trích dẫn Mai
+Hoa đã fetch lại Wikisource, **khớp nguyên văn**.
+
+**Đóng thêm một mục draft để mở:** phân phối Thi Thảo 1:5:7:3 — trước chỉ có
+đồng thuận 3 nguồn thứ cấp kèm cảnh báo "đừng hardcode" — nay **đã tự suy ra
+được** bằng tổ hợp học từ chính quy trình (P(6)=1/16, P(7)=5/16, P(8)=7/16,
+P(9)=3/16). Nguồn thứ cấp đúng.
+
+**Bắt được một cái bẫy thật:** draft khuyến nghị test "hai phân phối phải khác
+nhau" — nhưng Tam Tiền và Thi Thảo có **cùng tỉ lệ hào động (1/4)** và **cùng
+tỉ lệ dương (1/2)**; khác biệt nằm hoàn toàn ở bất đối xứng Lão Dương/Lão Âm
+(1:1 so với **3:1**). Đo sai đại lượng thì test xanh mà không chứng minh gì. Cả
+hai phân phối còn **liệt kê vét cạn được** (8 và 64 đường đi) ⇒ không cần Monte
+Carlo, không dung sai, không `double` (hợp ADR D6).
+
+**Sửa mức ưu tiên:** mục "dư 0 khi chia hào động cho 6" bị draft xếp là lỗ hổng
+*nhỏ* — thực ra chiếm **~17% số lần gieo quẻ** ở phương pháp Thời, là quyết định
+**chặn**. Cần một quyết định có tuyên bố theo Rule D (khuyến nghị: hào 6, loại
+suy từ 「如得八數整，即坤卦」 tường minh trong cùng cặp quy tắc), ghi vào
+`DECISION_LOG.md` như R18 đã làm — không âm thầm code. Tin tốt: Tam Tiền và Thi
+Thảo xác định hào động trực tiếp từ giá trị 6/9 từng hào, **không dùng mod 6**,
+nên hai phương pháp đó không bị chặn.
+
+Chưa có thay đổi code.
+
 ### Nghiên cứu — R12 (Kinh Dịch/Mai Hoa): giả thuyết "hệ thống đóng" được xác nhận, chưa qua xác minh Opus
 
 `docs/research_drafts/R12_iching_maihoa.md`. Khác với Bát Tự (Dụng Thần
