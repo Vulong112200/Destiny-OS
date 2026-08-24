@@ -8,6 +8,49 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R3 đã qua xác minh Opus: `RESEARCH_REQUIRED` → `DECISION_REQUIRED`
+
+`docs/research_drafts/VERIFICATION_OPUS_R3.md`. Thuật toán tính điểm độ
+vượng/suy Nhật Chủ của Thiệu Vĩ Hoa **là thật và implement được** cho lá số
+thường. Nhưng xác minh **bác bỏ golden test mà draft đề xuất**.
+
+**Phát hiện quan trọng nhất:** draft chọn Ví dụ 1 làm golden test, đồng thời
+tự thừa nhận chưa kiểm chứng nó. Tính lại cột địa chi từ chính danh sách
+tàng can sách nêu ở trang trước cho ra Hỏa **27** và Kim **57**, trong khi
+bảng in **18** và **27** — thiếu đúng 39 độ, phân tách chính xác thành *Dậu
+Tân Kim 30 biến mất hoàn toàn* + *Mùi Đinh Hỏa 9 biến mất*, không giải thích
+được bằng khử bì (sách nói rõ Mùi không bị xung hợp). Ví dụ 1 còn một lỗi
+thứ ba: phạt Nhâm Thủy 18 độ vì *"bị địa chi dậu kim khắc"* — nhưng **Kim
+sinh Thủy, không khắc Thủy**. **Kết luận vượng/yếu vẫn đúng** (48,4% so với
+50,8%, đều ≥40%) — và đó chính là chỗ nguy hiểm: một golden test ghim theo
+số này sẽ **PASS** trong khi ghim luôn hai lỗi số học vào spec. Dùng **Ví dụ
+5, 6, 7** thay thế — cả ba tái tạo chính xác từng độ.
+
+**Đóng được 2 câu hỏi draft để mở:**
+- **Đối chiếu `HiddenStems`** (draft đề xuất, chưa làm): tập tàng can **giống
+  hệt cho cả 12 chi** giữa sách và 2 nguồn web độc lập của dự án — đối chứng
+  ba chiều cho một bảng đã golden-test. Sách còn **giải quyết được cả 2 tranh
+  chấp** mà `HiddenStems` đang đánh dấu `roleOrderingDisputed` (Sửu, Tỵ — đều
+  nghiêng về nguồn tiếng Anh), và **lộ ra tranh chấp thứ ba dự án chưa biết**
+  (Thân: sách ghi Mậu 9 / Nhâm 3, ngược với thứ tự mà *cả hai* nguồn web
+  đồng ý — chênh 6 độ giữa Thổ và Thủy).
+- **Quy tắc làm tròn** (draft không nêu): bước ±1/5 **làm tròn tới số gần
+  nhất**, không cắt cụt (chứng minh bằng 136,8 → 137 và 33,6 → 34), kiểm
+  chứng trên 9/11 ô ±1/5 trong sách.
+
+**Toàn bộ quy trình an toàn với ADR D6** — không cần `double` ở đâu cả:
+`(12·base+5)/10` và `(8·base+5)/10` cho bước nắm lệnh, `5M ≥ 2T` cho ngưỡng
+40%.
+
+**Phát hiện mới, chặn cho tới khi có quyết định:** sách **tự mâu thuẫn** về
+mức phạt địa chi (quy tắc ghi −8, Ví dụ 5 cần −8, Ví dụ 6 cần −6 — nêu rõ
+trong cả lời văn lẫn bảng); **độ chặn sàn ở 0** (Ví dụ 3 ghi 9 − 12 = 0,
+không phải −3) mà draft bỏ sót; và **ngưỡng ≥18 độ "trực đỉnh" áp dụng không
+nhất quán**. Lá số **cách cục đặc biệt vẫn ngoài phạm vi** — chính sách loại
+trừ chúng khỏi công thức này.
+
+Chưa có thay đổi code.
+
 ### Added — Phase (mới): Kinh Dịch / Mai Hoa Dịch Số — gieo quẻ (`destiny-engine-iching`)
 
 Module mới `destiny-engine-iching`, hoàn thành R12 cho tầng gieo quẻ/xác định
