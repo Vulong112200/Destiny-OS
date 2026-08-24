@@ -19,6 +19,8 @@ import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engines.astrology.AstrologicalHouse;
 import io.destinyos.engines.astrology.ZodiacSign;
+import io.destinyos.engines.iching.IChingTrigram;
+import io.destinyos.engines.iching.LineValue;
 import io.destinyos.engines.bazi.BaziYearBoundary;
 import io.destinyos.engines.bazi.LuckCycleDirection;
 import io.destinyos.engines.bazi.PillarPosition;
@@ -495,6 +497,31 @@ public final class VietnameseLabels {
         }
     });
 
+    /**
+     * The 8 trigrams as Kinh Dịch/Mai Hoa uses them (Phase — R12). A second,
+     * deliberately separate registry from {@code Trigram} (Bát Trạch,
+     * destiny-engine-fengshui) — see {@code IChingTrigram}'s own Javadoc for
+     * why the two engines each keep their own copy of this concept.
+     */
+    private static final Map<IChingTrigram, String> ICHING_TRIGRAM = ordered(map -> {
+        map.put(IChingTrigram.HEAVEN, "Càn");
+        map.put(IChingTrigram.LAKE, "Đoài");
+        map.put(IChingTrigram.FIRE, "Ly");
+        map.put(IChingTrigram.THUNDER, "Chấn");
+        map.put(IChingTrigram.WIND, "Tốn");
+        map.put(IChingTrigram.WATER, "Khảm");
+        map.put(IChingTrigram.MOUNTAIN, "Cấn");
+        map.put(IChingTrigram.EARTH, "Khôn");
+    });
+
+    /** The four line values a cast I Ching line can take (R12). */
+    private static final Map<LineValue, String> LINE_VALUE = ordered(map -> {
+        map.put(LineValue.OLD_YIN, "Lão Âm (động)");
+        map.put(LineValue.YOUNG_YANG, "Thiếu Dương");
+        map.put(LineValue.YOUNG_YIN, "Thiếu Âm");
+        map.put(LineValue.OLD_YANG, "Lão Dương (động)");
+    });
+
     public static String of(EngineStatus value) {
         return require(ENGINE_STATUS, value);
     }
@@ -619,6 +646,14 @@ public final class VietnameseLabels {
         return require(ASTROLOGICAL_HOUSE, value);
     }
 
+    public static String of(IChingTrigram value) {
+        return require(ICHING_TRIGRAM, value);
+    }
+
+    public static String of(LineValue value) {
+        return require(LINE_VALUE, value);
+    }
+
     /** One pillar rendered the way a reader expects it, e.g. "Giap Ty". */
     public static String pillar(HeavenlyStem stem, EarthlyBranch branch) {
         return of(stem) + " " + of(branch);
@@ -647,7 +682,8 @@ public final class VietnameseLabels {
                 TEN_GOD, PILLAR_POSITION, BAZI_YEAR_BOUNDARY, LUCK_CYCLE_DIRECTION,
                 RETENTION_CLASS,
                 TRIGRAM, COMPASS_DIRECTION, TRIGRAM_GROUP, BAT_TRACH_RELATION,
-                KUA_YEAR_BOUNDARY, GENDER, ZODIAC_SIGN, ASTROLOGICAL_HOUSE);
+                KUA_YEAR_BOUNDARY, GENDER, ZODIAC_SIGN, ASTROLOGICAL_HOUSE,
+                ICHING_TRIGRAM, LINE_VALUE);
     }
 
     /**

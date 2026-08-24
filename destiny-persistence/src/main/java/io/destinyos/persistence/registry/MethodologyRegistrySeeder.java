@@ -312,6 +312,33 @@ public class MethodologyRegistrySeeder {
                             + "blocked rather than narrowing what DECISION_REQUIRED used "
                             + "to cover."),
 
+            new Entry("ICHING_HEXAGRAM_CASTING",
+                    "Kinh Dịch - Gieo quẻ và xác định quẻ (Tam Tiền, Thi Thảo, Mai Hoa)",
+                    "EASTERN",
+                    "1.0",
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Kinh Dịch - Tam Tiền (三錢起卦), Thi Thảo (蓍草筮法/大衍筮法), "
+                            + "Mai Hoa Dịch Số (梅花易數 - Số, Năm Tháng Ngày Giờ)",
+                    "說卦傳 ch.3/5 cho 8 quẻ đơn và hai cách sắp xếp Tiên Thiên/Hậu Thiên; "
+                            + "bảng 64 quẻ Văn Vương kiểm chứng bằng 3 phép độc lập (song ánh, "
+                            + "quy tắc cặp 綜卦/錯卦, quy ước đặt tên); 繫辭上傳 cho quy trình "
+                            + "Thi Thảo 18 biến, phân phối 1:5:7:3 tự suy ra bằng tổ hợp học "
+                            + "(không chỉ trích dẫn thứ cấp); 梅花易數 卷一 trích nguyên văn "
+                            + "trực tiếp cho quy tắc chia-8 và năm-tháng-ngày-giờ.",
+                    Set.of("R12"),
+                    "Nghiên cứu bởi Claude Sonnet, xác minh độc lập bởi Claude Opus "
+                            + "2026-08-24 - bản draft đầu tiên của dự án qua xác minh không "
+                            + "tìm thấy lỗi sai nào. Bốn cách gieo quẻ, mỗi cách một quy trình "
+                            + "riêng, không trộn lẫn (Rule D): Tam Tiền và Thi Thảo xác định "
+                            + "hào động trực tiếp từ giá trị 6/9 của từng hào, hoàn toàn không "
+                            + "vướng mắc gì; hai phương pháp Mai Hoa cần thêm một quyết định "
+                            + "Rule D đã ghi vào DECISION_LOG.md (dư 0 khi chia hào động cho 6 "
+                            + "→ hào 6, loại suy từ quy tắc chia-8 tường minh trong cùng văn "
+                            + "bản). Emits chart evidence only (quẻ gốc, hào động, quẻ biến) - "
+                            + "không phát tín hiệu, vì lời đoán theo hào/quẻ (interpretation "
+                            + "layer) chưa được biên soạn, đúng tinh thần Rule B - xem "
+                            + "BlockedSection LINE_JUDGMENT_TEXT trên mỗi lá số."),
+
             new Entry("FENGSHUI_KUA", "Phong Thủy - Bát Trạch (Cung Phi)", "EASTERN",
                     "1.1",
                     MethodologyStatus.PRODUCTION_READY,
@@ -350,19 +377,38 @@ public class MethodologyRegistrySeeder {
                             + "number alone is a profile, not a judgement, so without a "
                             + "direction the engine returns the profile as evidence only."),
 
-            new Entry("ICHING", "Kinh Dịch", "EASTERN",
-                    "1.0",
+            new Entry("ICHING", "Kinh Dịch - Luận giải (đọc lời hào/lời quẻ)", "EASTERN",
+                    "1.1",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R12"),
-                    "Three Coins, Yarrow, Number and Time methods each need their "
-                            + "own algorithmVersion and changing-line specification."),
+                    "The casting/hexagram-identification half split off to "
+                            + "ICHING_HEXAGRAM_CASTING (CONTENT_REQUIRED) on 2026-08-24, the "
+                            + "same way BAZI split from BAZI_TUBINH_CHART - all four casting "
+                            + "methods (Three Coins, Yarrow, Mai Hoa Number, Mai Hoa Time) are "
+                            + "now implemented in destiny-engine-iching. What remains here is "
+                            + "the interpretive half only: which line's judgment text (爻辭) or "
+                            + "the hexagram's own text (卦辭) to read when several lines move at "
+                            + "once, and the line/hexagram meaning content itself, neither of "
+                            + "which has been authored (registered as the engine's "
+                            + "LINE_JUDGMENT_TEXT BlockedSection)."),
 
-            new Entry("MAIHOA", "Mai Hoa Dịch Số", "EASTERN",
-                    "1.0",
+            new Entry("MAIHOA", "Mai Hoa Dịch Số - Luận giải", "EASTERN",
+                    "1.1",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R12"),
-                    "Number extraction, timestamp conversion, and trigram/hexagram "
-                            + "derivation are not yet specified."),
+                    "Mai Hoa's own casting methods (Number, Year-Month-Day-Hour) are now "
+                            + "resolved and implemented under ICHING_HEXAGRAM_CASTING as of "
+                            + "2026-08-24 - the number-extraction, timestamp-conversion and "
+                            + "trigram/hexagram-derivation gaps this entry originally named are "
+                            + "closed. What remains open and specific to Mai Hoa: splitting a "
+                            + "single multi-digit number into upper/lower trigrams (secondary "
+                            + "sources only - two independent sources agree, but the primary "
+                            + "text does not contain this rule, confirmed by direct re-fetch) - "
+                            + "not shipped; the Number method requires two supplied numbers "
+                            + "instead. Mai Hoa's own interpretive layer (體用 body/use "
+                            + "analysis, five-element relationships between trigrams) is "
+                            + "entirely unresearched and distinct from plain Kinh Dịch line "
+                            + "text - not attempted this round."),
 
             new Entry("QIMEN", "Kỳ Môn Độn Giáp", "EASTERN",
                     "1.0",

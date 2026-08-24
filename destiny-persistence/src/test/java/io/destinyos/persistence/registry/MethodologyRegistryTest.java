@@ -143,6 +143,11 @@ class MethodologyRegistryTest {
             // year boundary) is represented per calculation rather than guessed -
             // the same model CALENDAR_VN_TRADITIONAL uses for R14b.
             assertStatus("FENGSHUI_KUA", MethodologyStatus.PRODUCTION_READY, "R7");
+            // R12 resolved 2026-08-24 for the casting/hexagram-identification
+            // half (Opus verification found no error) - split off the same
+            // way WESTERN_ASTROLOGY_CHART_ANGLES split from WESTERN_ASTROLOGY.
+            // ICHING and MAIHOA now cover the interpretive half only.
+            assertStatus("ICHING_HEXAGRAM_CASTING", MethodologyStatus.CONTENT_REQUIRED, "R12");
             assertStatus("ICHING", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("MAIHOA", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("QIMEN", MethodologyStatus.OUT_OF_SCOPE, "R13");
@@ -173,7 +178,7 @@ class MethodologyRegistryTest {
             // half) stays non-calculable, which is the point of the split.
             Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
                     "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART", "FENGSHUI_KUA",
-                    "WESTERN_ASTROLOGY_CHART_ANGLES");
+                    "WESTERN_ASTROLOGY_CHART_ANGLES", "ICHING_HEXAGRAM_CASTING");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();

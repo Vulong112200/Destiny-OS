@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.destinyos</groupId>
+    <artifactId>destiny-os</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>destiny-engine-iching</artifactId>
+  <name>Destiny OS :: Engine :: I Ching / Mai Hoa</name>
+  <description>
+    Kinh Dich (I Ching) hexagram casting and Mai Hoa Dich So - research item
+    R12, resolved 2026-08-24 for the mechanical (draw-and-identify) layer
+    after Opus verification found no error in the Sonnet-gathered research
+    and independently derived the Yarrow method's own probability
+    distribution from its procedure.
+
+    Ships four casting methods (Three Coins, Yarrow stalks, Mai Hoa Number,
+    Mai Hoa Year-Month-Day-Hour), the 64-hexagram Van Vuong lookup table,
+    moving-line determination and the changed hexagram - all primary-sourced
+    or, where only secondary consensus exists (the mod-6 remainder-zero
+    convention), a declared Rule D decision (DECISION_LOG.md, 2026-08-24).
+
+    Does NOT ship: which line's text to read when several lines move at once
+    (interpretation layer, Rule B - a later concern once judgement/line text
+    content is authored, the same split Tarot's R11 content already went
+    through), or the multi-digit single-number-to-trigrams splitting rule
+    (secondary sources only, the primary text does not contain it - the
+    Number method requires two supplied numbers instead).
+
+    Framework-free, like the other engines. Depends on destiny-calendar only
+    for the Year-Month-Day-Hour casting method's lunar date and hour-branch
+    conversion.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-calendar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+</project>

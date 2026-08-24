@@ -19,6 +19,8 @@ import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.MethodologyStatus;
 import io.destinyos.engines.astrology.AstrologicalHouse;
 import io.destinyos.engines.astrology.ZodiacSign;
+import io.destinyos.engines.iching.IChingTrigram;
+import io.destinyos.engines.iching.LineValue;
 import io.destinyos.engines.bazi.BaziYearBoundary;
 import io.destinyos.engines.bazi.LuckCycleDirection;
 import io.destinyos.engines.bazi.PillarPosition;
@@ -95,7 +97,9 @@ class LabelCoverageTest {
             // results page is exactly the bare technical enum section 1
             // forbids.
             ZodiacSign.class,
-            AstrologicalHouse.class);
+            AstrologicalHouse.class,
+            IChingTrigram.class,
+            LineValue.class);
 
     @Test
     @DisplayName("Every constant of every user-facing enum has a Vietnamese label")

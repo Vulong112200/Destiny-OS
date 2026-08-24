@@ -8,6 +8,58 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Phase (mới): Kinh Dịch / Mai Hoa Dịch Số — gieo quẻ (`destiny-engine-iching`)
+
+Module mới `destiny-engine-iching`, hoàn thành R12 cho tầng gieo quẻ/xác định
+quẻ sau khi Opus xác minh không tìm thấy lỗi sai nào trong nghiên cứu. Bốn
+cách gieo quẻ, mỗi cách một `algorithmVersion` riêng, không trộn lẫn (Rule D):
+
+- **Tam Tiền** (三錢起卦): tung 3 xu ×6 lần, tự tính phân phối 1:3:3:1 bằng
+  tổ hợp thay vì gieo trực tiếp từ bảng cứng — phân phối là hệ quả của code,
+  không phải một khẳng định về code.
+- **Thi Thảo** (蓍草筮法/大衍筮法): quy trình 18 biến từ chính Hệ Từ, phân
+  phối 1:5:7:3 **tự suy ra được** từ quy trình (không chỉ trích dẫn nguồn
+  thứ cấp) — implement bằng cách bốc lớp thặng dư mod 4 trực tiếp, đúng tinh
+  thần "phân phối là hệ quả, không phải giả định".
+- **Mai Hoa — Số**: cần 2 số cho trước (không nhận 1 số nhiều chữ số — quy
+  tắc tách số đó chỉ có nguồn thứ cấp, chính văn không có).
+- **Mai Hoa — Năm Tháng Ngày Giờ**: dùng `destiny-calendar` (âm lịch, Chi
+  giờ) để tính quẻ tại thời điểm gieo quẻ (mặc định là lúc tính toán).
+
+**Một quyết định Rule D mới** (`docs/DECISION_LOG.md`): dư 0 khi chia hào
+động cho 6 → hào 6, loại suy từ quy tắc chia-8 tường minh trong cùng văn
+bản (「如得八數整，即坤卦」) và một tiền lệ độc lập thứ hai (bước 揲之以四 của
+Thi Thảo). Tam Tiền và Thi Thảo không dùng mod 6 nên không vướng quyết định
+này — hai phương pháp đó gieo được ngay từ nguồn cấp 1 thuần túy.
+
+Bảng 64 quẻ Văn Vương kiểm chứng bằng 3 phép độc lập (song ánh, quy tắc cặp
+綜卦/錯卦, quy ước đặt tên) — có test riêng ghim cứng cặp #63/#64 vì quy tắc
+cấu trúc không tự phân xử được cặp này (chính là chỗ một bản Wikipedia từng
+sai trong lúc nghiên cứu). Registry tách theo đúng khuôn mẫu
+BAZI/BAZI_TUBINH_CHART: `ICHING_HEXAGRAM_CASTING` (`CONTENT_REQUIRED`, tính
+được) tách khỏi `ICHING`/`MAIHOA` (luận giải — đọc lời hào/lời quẻ, vẫn
+`RESEARCH_REQUIRED`). Engine phát sinh chart evidence (quẻ gốc, hào động,
+quẻ biến) và không phát tín hiệu nào, cùng lý do Bát Tự/Chiêm tinh chưa phát
+tín hiệu ở phần lập lá số.
+
+**Nối đủ API/wiring:** `IChingRequest` DTO, trường thứ sáu của
+`ScenarioRunRequest`, `IChingTaskFactory` (từ chối chạy thay vì đoán khi
+thiếu số hoặc phương pháp không hợp lệ), bean/registry trong
+`EngineWiringConfig` dưới engine id `ICHING`, thêm `ICHING` (Applicability
+HIGH) vào chính sách `GENERAL_DECISION` — scenario Kinh Dịch thật sự phù hợp
+nhất trong 9 scenario hiện có. Có test HTTP đầu-cuối trong
+`ScenarioApiIntegrationTest`.
+
+**Một lưu ý kiến trúc, ghi nhận chứ không sửa trong đợt này:** `destiny-engine-fengshui`
+đã có sẵn khái niệm `Trigram` riêng cho Bát Trạch, và Javadoc của nó từ
+trước đã dự đoán đúng thời điểm này ("nếu Kinh Dịch được implement, đây là
+lúc nên tách ra module dùng chung"). Module này vẫn giữ bản sao riêng
+(`IChingTrigram`, đổi tên để tránh trùng khóa trong registry nhãn tiếng
+Việt) thay vì làm refactor đó ngay, vì hai khái niệm không hoàn toàn giống
+nhau (Bát Trạch còn mang số Kua/phương vị/nhóm Đông-Tây) và refactor một
+engine ổn định, đã golden-test như một hệ quả phụ của việc thêm engine mới
+là rủi ro không cần thiết trong cùng một đợt.
+
 ### Nghiên cứu — R12 đã qua xác minh Opus: `RESEARCH_REQUIRED` → `DECISION_REQUIRED`
 
 `docs/research_drafts/VERIFICATION_OPUS_R12.md`. **Không tìm thấy lỗi sai nào**

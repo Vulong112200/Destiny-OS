@@ -188,6 +188,14 @@ public final class ScenarioRegistry {
                 ScenarioType.GENERAL_DECISION, "Quyết định chung", true,
                 Map.of(
                         "TAROT", Applicability.HIGH,
+                        // Kinh Dịch's own classical use case, arguably the
+                        // most direct traditional match to "a decision, not
+                        // tied to a birth chart" this registry has (R12,
+                        // resolved 2026-08-24) - added when the engine was
+                        // implemented, not before, matching this file's own
+                        // rule of never declaring applicability for an engine
+                        // that cannot yet run.
+                        "ICHING", Applicability.HIGH,
                         "BAZI", Applicability.LOW,
                         "WESTERN_ASTROLOGY", Applicability.LOW,
                         "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW

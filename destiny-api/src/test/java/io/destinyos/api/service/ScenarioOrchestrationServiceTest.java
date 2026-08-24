@@ -59,7 +59,7 @@ class ScenarioOrchestrationServiceTest {
                 .thenReturn(recordedCalculation);
 
         var service = new ScenarioOrchestrationService(scenarioEngine, recorder, registry);
-        ScenarioRunResponse response = service.run(ScenarioType.BUSINESS, new ScenarioRunRequest(null, null, null, null, null));
+        ScenarioRunResponse response = service.run(ScenarioType.BUSINESS, new ScenarioRunRequest(null, null, null, null, null, null));
 
         assertThat(response.calculationId()).isEqualTo("calc-fixture-1");
         assertThat(response.resultHash()).isEqualTo("deadbeef");
@@ -95,7 +95,7 @@ class ScenarioOrchestrationServiceTest {
         var service = new ScenarioOrchestrationService(scenarioEngine, recorder, registry);
         // COMPATIBILITY, not CAREER: CAREER gained a real policy on
         // 2026-08-23 (docs/DECISION_LOG.md).
-        ScenarioRunResponse response = service.run(ScenarioType.COMPATIBILITY, new ScenarioRunRequest(null, null, null, null, null));
+        ScenarioRunResponse response = service.run(ScenarioType.COMPATIBILITY, new ScenarioRunRequest(null, null, null, null, null, null));
 
         assertThat(response.policyDefined()).isFalse();
         assertThat(response.fusion()).isNull();

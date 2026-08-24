@@ -5,6 +5,7 @@ import io.destinyos.api.service.EngineTaskFactoryRegistry;
 import io.destinyos.engines.astrology.WesternAstrologyEngine;
 import io.destinyos.engines.bazi.BaziEngine;
 import io.destinyos.engines.fengshui.FengShuiKuaEngine;
+import io.destinyos.engines.iching.IChingEngine;
 import io.destinyos.engines.numerology.NumerologyEngine;
 import io.destinyos.engines.tarot.TarotEngine;
 import io.destinyos.execution.EngineExecutor;
@@ -75,6 +76,19 @@ public class EngineWiringConfig {
     }
 
     /**
+     * I Ching / Mai Hoa, research item R12, resolved 2026-08-24 for the
+     * mechanical (casting/hexagram-identification) layer. Registered under
+     * the engine id {@code ICHING}. Contributes chart evidence (the cast
+     * hexagram, moving lines, changed hexagram) and emits no signal (which
+     * line's judgment text to read is a still-blocked interpretation-layer
+     * question, the same shape Tarot was in before its R11 meaning corpus).
+     */
+    @Bean
+    public IChingEngine ichingEngine() {
+        return new IChingEngine();
+    }
+
+    /**
      * The harness, wired to real metrics (CLAUDE.md section 5, Phase 14).
      *
      * <p>{@code EngineExecutor.withDefaults()} still exists and still records
@@ -109,17 +123,20 @@ public class EngineWiringConfig {
                                                                BaziEngine baziEngine,
                                                                FengShuiKuaEngine fengShuiKuaEngine,
                                                                WesternAstrologyEngine westernAstrologyEngine,
+                                                               IChingEngine ichingEngine,
                                                                TarotTaskFactory tarotTaskFactory,
                                                                NumerologyTaskFactory numerologyTaskFactory,
                                                                BaziTaskFactory baziTaskFactory,
                                                                FengShuiTaskFactory fengShuiTaskFactory,
-                                                               AstrologyTaskFactory astrologyTaskFactory) {
+                                                               AstrologyTaskFactory astrologyTaskFactory,
+                                                               IChingTaskFactory ichingTaskFactory) {
         Map<String, EngineTaskFactory> factories = new LinkedHashMap<>();
         factories.put(tarotEngine.engineId(), tarotTaskFactory);
         factories.put(numerologyEngine.engineId(), numerologyTaskFactory);
         factories.put(baziEngine.engineId(), baziTaskFactory);
         factories.put(fengShuiKuaEngine.engineId(), fengShuiTaskFactory);
         factories.put(westernAstrologyEngine.engineId(), astrologyTaskFactory);
+        factories.put(ichingEngine.engineId(), ichingTaskFactory);
         return new EngineTaskFactoryRegistry(factories);
     }
 }

@@ -56,7 +56,7 @@ class ScenarioApiIntegrationTest {
         var request = new ScenarioRunRequest(
                 new NumerologyRequest("Nguyễn Văn A", LocalDate.of(1990, 5, 15)),
                 new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 42L, "Tôi có nên mở rộng kinh doanh không?"),
-                null, null, null);
+                null, null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -149,7 +149,7 @@ class ScenarioApiIntegrationTest {
         // 2026-08-23 (docs/DECISION_LOG.md). COMPATIBILITY stays undefined -
         // its strongest evidence (Bát Tự hợp hôn, Tử Vi xem tuổi, Chiêm tinh
         // synastry) is dual-chart, which this system cannot represent yet.
-        var request = new ScenarioRunRequest(null, null, null, null, null);
+        var request = new ScenarioRunRequest(null, null, null, null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/compatibility", request, ScenarioRunResponse.class);
@@ -187,7 +187,7 @@ class ScenarioApiIntegrationTest {
         // the published table, not just the engine in isolation.
         var request = new ScenarioRunRequest(null, null,
                 new BaziRequest(LocalDate.of(1984, 2, 5), LocalTime.of(12, 0), "UNKNOWN", null, null),
-                null, null);
+                null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -238,7 +238,7 @@ class ScenarioApiIntegrationTest {
         // omitted the time, so there is no Day Master and therefore no Thập
         // Thần anywhere - not a Thập Thần computed against something else.
         var request = new ScenarioRunRequest(null, null,
-                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null, null), null, null);
+                new BaziRequest(LocalDate.of(1990, 3, 15), null, null, null, null), null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -269,7 +269,7 @@ class ScenarioApiIntegrationTest {
         var request = new ScenarioRunRequest(null, null,
                 new BaziRequest(LocalDate.of(1990, 1, 1), LocalTime.of(10, 10), "UNKNOWN",
                         null, "MALE"),
-                null, null);
+                null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -308,7 +308,7 @@ class ScenarioApiIntegrationTest {
         var request = new ScenarioRunRequest(null, null,
                 new BaziRequest(LocalDate.of(1990, 1, 1), LocalTime.of(10, 10), "UNKNOWN",
                         null, null),
-                null, null);
+                null, null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -392,7 +392,7 @@ class ScenarioApiIntegrationTest {
         // about it, which is why this exercises all four steps rather than just
         // asserting the field is present.
         var request = new ScenarioRunRequest(
-                new NumerologyRequest("Nguyễn Văn B", LocalDate.of(1988, 7, 7)), null, null, null, null);
+                new NumerologyRequest("Nguyễn Văn B", LocalDate.of(1988, 7, 7)), null, null, null, null, null);
 
         ResponseEntity<ScenarioRunResponse> run = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -439,9 +439,9 @@ class ScenarioApiIntegrationTest {
         var tarot = new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 7L, null);
 
         var daily = rest.postForEntity("/api/v1/scenarios/daily_action",
-                new ScenarioRunRequest(null, tarot, null, null, null), ScenarioRunResponse.class);
+                new ScenarioRunRequest(null, tarot, null, null, null, null), ScenarioRunResponse.class);
         var business = rest.postForEntity("/api/v1/scenarios/business",
-                new ScenarioRunRequest(null, tarot, null, null, null), ScenarioRunResponse.class);
+                new ScenarioRunRequest(null, tarot, null, null, null, null), ScenarioRunResponse.class);
 
         assertThat(daily.getBody().retention().expiresAt())
                 .isBefore(business.getBody().retention().expiresAt());
@@ -456,7 +456,7 @@ class ScenarioApiIntegrationTest {
         // read off the tradition rather than assigned by this project.
         var request = new ScenarioRunRequest(null, null, null,
                 new FengShuiRequest(LocalDate.of(1990, 8, 20), null, "MALE", "UNKNOWN",
-                        null, "SOUTHEAST"), null);
+                        null, "SOUTHEAST"), null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -502,7 +502,7 @@ class ScenarioApiIntegrationTest {
         // is a profile but nothing to judge, and inventing a polarity for the
         // profile alone would be fabrication.
         var request = new ScenarioRunRequest(null, null, null,
-                new FengShuiRequest(LocalDate.of(1990, 8, 20), null, "MALE", null, null, null), null);
+                new FengShuiRequest(LocalDate.of(1990, 8, 20), null, "MALE", null, null, null), null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -530,7 +530,7 @@ class ScenarioApiIntegrationTest {
         // confident wrong answer rather than a degraded one.
         var request = new ScenarioRunRequest(null, null, null,
                 new FengShuiRequest(LocalDate.of(1990, 8, 20), null, null, null, null,
-                        "SOUTHEAST"), null);
+                        "SOUTHEAST"), null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -552,7 +552,7 @@ class ScenarioApiIntegrationTest {
         // as the answer.
         var request = new ScenarioRunRequest(null, null, null,
                 new FengShuiRequest(LocalDate.of(1984, 2, 3), null, "MALE", "UNKNOWN",
-                        null, "SOUTHEAST"), null);
+                        null, "SOUTHEAST"), null, null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -582,7 +582,7 @@ class ScenarioApiIntegrationTest {
         // UTC+7), so 01:00 local on 1994-06-17 is 18:00 UT on 1994-06-16.
         var request = new ScenarioRunRequest(null, null, null, null,
                 new io.destinyos.api.dto.AstrologyRequest(
-                        LocalDate.of(1994, 6, 17), LocalTime.of(1, 0), 0.0, 0.0));
+                        LocalDate.of(1994, 6, 17), LocalTime.of(1, 0), 0.0, 0.0), null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -620,7 +620,7 @@ class ScenarioApiIntegrationTest {
         // degraded one, so the task factory declines instead.
         var request = new ScenarioRunRequest(null, null, null, null,
                 new io.destinyos.api.dto.AstrologyRequest(
-                        LocalDate.of(1994, 6, 17), null, 0.0, 0.0));
+                        LocalDate.of(1994, 6, 17), null, 0.0, 0.0), null);
 
         ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
                 "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
@@ -629,6 +629,54 @@ class ScenarioApiIntegrationTest {
         assertThat(body).isNotNull();
         assertThat(body.engines()).noneMatch(e -> e.engine().equals("WESTERN_ASTROLOGY"));
         assertThat(body.unavailableEngines()).contains("WESTERN_ASTROLOGY");
+    }
+
+    @Test
+    @DisplayName("A GENERAL_DECISION run with I Ching returns a real hexagram as evidence and no signal")
+    void ichingContributesHexagramEvidenceButNoSignals() {
+        var request = new ScenarioRunRequest(null, null, null, null, null,
+                new io.destinyos.api.dto.IChingRequest("THREE_COINS", 42L, null, null));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/general_decision", request, ScenarioRunResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+
+        assertThat(body.engines())
+                .as("ICHING must actually have run, not be reported unavailable")
+                .anySatisfy(engine -> {
+                    assertThat(engine.engine()).isEqualTo("ICHING");
+                    assertThat(engine.status().technical()).isEqualTo("PARTIAL");
+                });
+        assertThat(body.unavailableEngines()).doesNotContain("ICHING");
+
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .contains("ICHING_CAST", "ICHING_ORIGINAL_HEXAGRAM", "ICHING_MOVING_LINES",
+                        "ICHING_DRAWN_LINES", "ICHING_BLOCKED_LINE_JUDGMENT_TEXT");
+
+        assertThat(pillar(body.evidence(), "ICHING_CAST"))
+                .containsEntry("method", "THREE_COINS")
+                .containsEntry("seed", 42);
+
+        // Chart evidence only, same as Bát Tự's chart half - no vote yet.
+        assertThat(body.signals()).noneMatch(signal -> signal.engine().equals("ICHING"));
+    }
+
+    @Test
+    @DisplayName("I Ching Mai Hoa Number method without both numbers does not run at all, rather than guessing")
+    void ichingMaiHoaWithoutBothNumbersDoesNotRun() {
+        var request = new ScenarioRunRequest(null, null, null, null, null,
+                new io.destinyos.api.dto.IChingRequest("MAI_HOA_NUMBER", null, 3, null));
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/general_decision", request, ScenarioRunResponse.class);
+
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.engines()).noneMatch(e -> e.engine().equals("ICHING"));
+        assertThat(body.unavailableEngines()).contains("ICHING");
     }
 
     @Test

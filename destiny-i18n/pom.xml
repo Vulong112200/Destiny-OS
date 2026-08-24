@@ -69,5 +69,11 @@
       <artifactId>destiny-engine-astrology</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Trigram and line-value labels for I Ching / Mai Hoa. Same precedent. -->
+    <dependency>
+      <groupId>io.destinyos</groupId>
+      <artifactId>destiny-engine-iching</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

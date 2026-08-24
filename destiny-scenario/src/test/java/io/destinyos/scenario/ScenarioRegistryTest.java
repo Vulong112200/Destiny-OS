@@ -218,15 +218,17 @@ class ScenarioRegistryTest {
         void engineWeights() {
             assertThat(definition.applicableEngines()).containsExactlyInAnyOrderEntriesOf(java.util.Map.of(
                     "TAROT", Applicability.HIGH,
+                    "ICHING", Applicability.HIGH,
                     "BAZI", Applicability.LOW,
                     "WESTERN_ASTROLOGY", Applicability.LOW,
                     "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW));
         }
 
         @Test
-        @DisplayName("Only Tarot's classical open-question spread earns HIGH here")
-        void onlyTarotIsHigh() {
+        @DisplayName("Tarot's classical open-question spread and Kinh Dịch's own decision-oracle use case earn HIGH here")
+        void tarotAndIChingAreHigh() {
             assertThat(definition.applicabilityFor("TAROT")).isEqualTo(Applicability.HIGH);
+            assertThat(definition.applicabilityFor("ICHING")).isEqualTo(Applicability.HIGH);
             for (String other : java.util.List.of("BAZI", "WESTERN_ASTROLOGY", "NUMEROLOGY_PYTHAGOREAN")) {
                 assertThat(definition.applicabilityFor(other))
                         .as(other).isEqualTo(Applicability.LOW);

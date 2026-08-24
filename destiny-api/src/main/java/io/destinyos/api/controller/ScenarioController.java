@@ -34,7 +34,7 @@ public class ScenarioController {
     public ResponseEntity<ScenarioRunResponse> run(@PathVariable String scenarioType,
                                                     @RequestBody(required = false) ScenarioRunRequest request) {
         ScenarioType type = ScenarioType.valueOf(scenarioType.toUpperCase(java.util.Locale.ROOT));
-        ScenarioRunRequest body = request == null ? new ScenarioRunRequest(null, null, null, null, null) : request;
+        ScenarioRunRequest body = request == null ? new ScenarioRunRequest(null, null, null, null, null, null) : request;
         return ResponseEntity.ok(orchestration.run(type, body));
     }
 }
