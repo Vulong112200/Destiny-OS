@@ -340,11 +340,15 @@ export function DecisionCenterForm() {
           <div className="space-y-3">
             <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
               Hiện chỉ <span className="font-medium">lập lá số</span>: Tứ Trụ, Ngũ Hành, Tàng Can,
-              Thập Thần, số đếm Ngũ Hành, và <span className="font-medium">Đại Vận</span> nếu bạn
-              nhập giới tính — tất cả là dữ liệu tính toán tất định. Phần luận giải (Dụng Thần,
-              cường độ Nhật Chủ) chưa được cung cấp vì các trường phái chưa thống nhất và hệ thống
-              không tự chọn giúp bạn. Vì vậy Bát Tự chưa góp tín hiệu nào vào kết luận tổng hợp —
-              kể cả Đại Vận, vì một vận chỉ tốt hay xấu khi đã có Dụng Thần.
+              Thập Thần, số đếm Ngũ Hành, <span className="font-medium">Đại Vận</span> nếu bạn nhập
+              giới tính, và (khi có giờ sinh chính xác) <span className="font-medium">cường độ
+              Nhật Chủ theo Thiệu Vĩ Hoa</span> — tất cả là dữ liệu tính toán tất định. Dụng Thần
+              vẫn <span className="font-medium">chưa được cung cấp</span> vì các trường phái chưa
+              thống nhất và hệ thống không tự chọn giúp bạn; cường độ Nhật Chủ theo Thiệu Vĩ Hoa
+              cũng chỉ là kết quả của một trường phái cụ thể, không phải sự đồng thuận chung. Vì
+              vậy Bát Tự chưa góp tín hiệu nào vào kết luận tổng hợp — kể cả Đại Vận và cường độ
+              Nhật Chủ, vì một vận hay một mức cường độ chỉ có ý nghĩa quyết định khi đã có Dụng
+              Thần.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
