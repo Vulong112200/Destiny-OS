@@ -111,3 +111,15 @@ jobs:
         working-directory: destiny-web
         run: npm run build
 
+  # Render deploys destiny-app from the root Dockerfile (no native Java
+  # runtime on Render). Building it here on every push catches a broken
+  # Dockerfile/reactor build before Render's own deploy attempt does.
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t destiny-app:ci .
+

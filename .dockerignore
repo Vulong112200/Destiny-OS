@@ -1,0 +1,18 @@
+# Frontend is a separate deployable (Vercel), not part of the Maven reactor.
+destiny-web
+
+.git
+.github
+.vscode
+.claude
+docs
+
+**/target
+**/node_modules
+**/.next
+**/*.tsbuildinfo
+
+.env
+.env.example
+
+*.md
