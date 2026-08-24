@@ -228,6 +228,43 @@ public class MethodologyRegistrySeeder {
                             + "the set and the principal stem are recorded, the disputed "
                             + "ordering is flagged and never used."),
 
+            // R3 resolved 2026-08-24 (docs/DECISION_LOG.md, six decisions):
+            // Thieu Vi Hoa's own point-scoring method for Day Master
+            // strength, implemented and golden-tested against Vi du 5/6/7.
+            // A separate entry from BAZI_TUBINH_CHART for the same reason
+            // WESTERN_ASTROLOGY_CHART_ANGLES is separate from the chart
+            // engine's own school - this is a NAMED school's verdict, not
+            // this engine's own construction fact, and does not resolve
+            // R1's "no consensus" gap (most schools still need this or an
+            // equivalent before Dung Than can be chosen).
+            new Entry("BAZI_DAY_MASTER_STRENGTH_TVH",
+                    "Bát Tự - Cường độ Nhật Chủ (Thiệu Vĩ Hoa)", "EASTERN",
+                    "1.0",
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Thiệu Vĩ Hoa & Trần Viên - phương pháp tính điểm độ vượng Ngũ Hành "
+                            + "(\"Dự đoán theo Tứ Trụ\", Chương 11)",
+                    "Dự đoán theo Tứ trụ, Thiệu Vĩ Hoa & Trần Viên, Chương 11 muc II "
+                            + "(tr.331-356). Xác minh bởi Claude Opus "
+                            + "(docs/research_drafts/VERIFICATION_OPUS_R3.md): phương pháp có "
+                            + "thật, 5/7 vi du tinh dung chinh xac; Vi du 1 va mot vi du khac "
+                            + "bi loai vi loi tinh toan trong sach. Vi du 5, 6, 7 dung lam "
+                            + "golden test.",
+                    Set.of("R3"),
+                    "destiny-engine-bazi: DayMasterStrengthResolver, golden-tested chính xác "
+                            + "từng độ Ngũ Hành đối với Ví dụ 5, 6 và 7. Sáu quyết định Rule D "
+                            + "được ghi trong DECISION_LOG.md: bốn quyết định trước khi implement "
+                            + "(−6 độ thay vì −8; ngưỡng 18 độ không chặn điều chỉnh địa chi; "
+                            + "thứ tự tàng can của Thân theo sách; ship riêng không gộp vào "
+                            + "BAZI_TUBINH_CHART) cộng hai quyết định phát hiện khi chạy golden "
+                            + "test (điều kiện 'không gặp hợp' cho boost chỉ áp dụng cho Lục "
+                            + "Hợp, không áp dụng cho Tam Hội/Tam Hợp/Bán Tam Hợp; 'kẹp khắc' — "
+                            + "một can bị cả hai bên cạnh khắc chế thì hủy bỏ hoàn toàn việc thử "
+                            + "ngũ hợp). Không tính cho cách cục đặc biệt (chưa nhận diện được) "
+                            + "và từ chối (không đoán) khi có Lục Xung không hóa giải vì bảng "
+                            + "tra tổn thất chính xác chưa được số hóa. Không giải quyết R1 — "
+                            + "đa số trường phái vẫn cần kết quả này (hoặc tương đương) trước "
+                            + "khi chọn Dụng Thần."),
+
             new Entry("BAZI", "Bát Tự - Luận giải (Dụng Thần, cường độ Nhật Chủ)",
                     "EASTERN",
                     "1.3",

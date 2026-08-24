@@ -8,6 +8,49 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — R3 implement xong: Cường độ Nhật Chủ theo Thiệu Vĩ Hoa (`destiny-engine-bazi`)
+
+Sau khi Opus xác minh (mục dưới), sáu quyết định Rule D được ghi vào
+`docs/DECISION_LOG.md` và thuật toán được implement trong
+`DayMasterStrengthResolver` — golden-tested **chính xác từng độ Ngũ Hành**
+đối với Ví dụ 5, 6 và 7 (Ví dụ 5 lệch đúng phần phụ thuộc quyết định −6/−8 đã
+biết trước, không phải sai số mới).
+
+Bốn quyết định trước khi code (−6 độ thay vì −8; ngưỡng ≥18 độ không chặn
+điều chỉnh địa chi; thứ tự tàng can của Thân theo sách chứ không theo
+`HiddenStems`; ship riêng thành `BAZI_DAY_MASTER_STRENGTH_TVH` thay vì gộp
+vào `BAZI_TUBINH_CHART`) **không đủ** để ba golden test khớp chính xác — chạy
+thật lộ ra hai điều mơ hồ nữa mà chỉ đọc quy tắc không thấy:
+
+- **Boost trực đỉnh chỉ áp dụng khi thiên can cùng trụ CÙNG NGŨ HÀNH** với
+  bản khí của chi (tỷ hòa), không áp dụng khi can chỉ *sinh* chi — Đinh Mùi
+  của Ví dụ 6 (Đinh Hỏa sinh Mùi Thổ, cùng trụ) không được cộng 6 độ theo
+  đúng các bước sách liệt kê.
+- Điều kiện "**bản thân địa chi không gặp hợp**" cho boost đó chỉ tính
+  **Lục Hợp**, không tính Tam Hội/Tam Hợp/Bán Tam Hợp — Ví dụ 5 có Tuất (Lục
+  Hợp với Mão, thất bại) giữ nguyên bản khí, còn Mùi (Bán Tam Hợp với cùng
+  Mão, cũng thất bại) vẫn được cộng 6 độ; tổng Thổ 137 của sách chỉ tái tạo
+  được với đúng cách phân biệt này.
+- **"Kẹp khắc"**: một can vừa hư phù vừa bị **cả hai** can liền kề khắc chế
+  (kể cả can vốn là đối tác ngũ hợp của nó) thì hủy bỏ hoàn toàn việc thử ngũ
+  hợp, rơi về tính khắc thường — Quý của Ví dụ 5 (kẹp giữa Mậu và Kỷ) về
+  đúng 0 độ như sách, thay vì áp dụng "hợp không hóa, bên thua mất 1/3".
+
+Một lỗi hạ tầng thật cũng lộ ra trong lúc debug: `BranchDegreeTable.principal()`
+dựa vào thứ tự lặp của `Map.copyOf(LinkedHashMap)` — thứ tự này **không được
+đảm bảo** theo Javadoc của `Map.copyOf`, nên với chi có ≥2 tàng can, "can chủ
+khí" đôi khi trả về sai. Sửa bằng `Collections.unmodifiableMap` để giữ đúng
+thứ tự chèn.
+
+Đã nối vào `BaziEngine` (chỉ tính khi có giờ sinh chính xác), phát ra evidence
+với `school` ghi rõ Thiệu Vĩ Hoa (khác `school` của chính `BaziEngine`) và
+đăng ký methodology mới `BAZI_DAY_MASTER_STRENGTH_TVH` (`CONTENT_REQUIRED`).
+Lá số có Lục Xung chưa hóa giải thì từ chối tính (không đoán) vì bảng tra tổn
+thất chính xác chưa được số hóa. UI: `BaziChartCard.tsx` thêm mục "Cường độ
+Nhật Chủ" hiển thị Vượng/Yếu, tỉ lệ phe mình/tổng, và độ từng Ngũ Hành, kèm
+ghi chú đây là một trường phái cụ thể, không phải sự đồng thuận chung
+(R1 vẫn mở).
+
 ### Nghiên cứu — R3 đã qua xác minh Opus: `RESEARCH_REQUIRED` → `DECISION_REQUIRED`
 
 `docs/research_drafts/VERIFICATION_OPUS_R3.md`. Thuật toán tính điểm độ

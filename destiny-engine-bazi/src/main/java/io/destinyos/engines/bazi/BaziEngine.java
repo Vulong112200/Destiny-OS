@@ -36,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -74,6 +75,12 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
     public static final String RULE_VERSION = "1.0";
     public static final String SCHOOL =
             "Tử Bình / Tứ Trụ — ranh giới năm tại Lập Xuân, tháng theo Tiết Khí";
+
+    /** R3's own methodology (Rule D decision #4, {@code docs/DECISION_LOG.md}) — a named school, not this engine's. */
+    public static final String DAY_MASTER_STRENGTH_METHODOLOGY_ID = "BAZI_DAY_MASTER_STRENGTH_TVH";
+    public static final String DAY_MASTER_STRENGTH_SCHOOL =
+            "Thiệu Vĩ Hoa & Trần Viên — phương pháp tính điểm độ vượng Ngũ Hành "
+                    + "(\"Dự đoán theo Tứ Trụ\", Chương 11)";
 
     public static final String SOURCE =
             "Pillar arithmetic reused from destiny-calendar (Ngu Ho Don month stem, Ngu Thu "
@@ -281,6 +288,10 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
         LuckCycles luckCycles = resolveLuckCycles(input, yearCanChi, baziYear, solarMonthIndex,
                 julianDateUt, solarLocal, utcOffsetHours, uncertainties, warnings);
 
+        DayMasterStrength dayMasterStrength = dayPillar == null ? null
+                : resolveDayMasterStrength(yearPillar, monthPillar, dayPillar, hourPillar,
+                        uncertainties, warnings);
+
         BaziChart chart = new BaziChart(
                 yearPillar, monthPillar, dayPillar, hourPillar,
                 BaziYearBoundary.LAP_XUAN,
@@ -290,6 +301,7 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                 solarLocal,
                 tally(yearPillar, monthPillar, dayPillar, hourPillar),
                 luckCycles,
+                dayMasterStrength,
                 BLOCKED_SECTIONS,
                 uncertainties);
 
@@ -363,6 +375,40 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
 
         return LuckCycleResolver.resolve(yearCanChi, baziYear, solarMonthIndex,
                 input.gender(), julianDateUt, solarLocal, utcOffsetHours);
+    }
+
+    /**
+     * Thiệu Vĩ Hoa's Day Master strength verdict (R3), or {@code null} for a
+     * chart {@link DayMasterStrengthResolver} declines rather than guesses at
+     * (an unmitigated Lục Xung with no fractional-loss table sourced — see
+     * its Javadoc). A named school's own computed answer, independent of and
+     * not a resolution of the "no consensus" gap {@code BLOCKED_SECTIONS}'
+     * {@code NHAT_CHU_CUONG_DO} entry still reports (Rule D,
+     * {@code docs/DECISION_LOG.md}'s R3 decision #4).
+     */
+    private static DayMasterStrength resolveDayMasterStrength(BaziPillar year, BaziPillar month,
+                                                              BaziPillar day, BaziPillar hour,
+                                                              List<Uncertainty> uncertainties,
+                                                              List<EngineWarning> warnings) {
+        Optional<DayMasterStrength> result = DayMasterStrengthResolver.resolve(year, month, day, hour);
+        if (result.isEmpty()) {
+            uncertainties.add(Uncertainty.of(UncertaintyKind.METHODOLOGY_UNRESOLVED,
+                    "Lá số có một cặp Địa Chi Lục Xung không được hóa giải bởi bất kỳ tổ hợp "
+                            + "nào khác, và bảng tra tổn thất chính xác cho trường hợp này (theo "
+                            + "Thiệu Vĩ Hoa) chưa được số hóa. Không có cường độ Nhật Chủ theo "
+                            + "phương pháp này cho lá số này.",
+                    "R3"));
+            warnings.add(EngineWarning.critical("BAZI_DAY_MASTER_STRENGTH_UNAVAILABLE",
+                    "Không tính được cường độ Nhật Chủ (Thiệu Vĩ Hoa) vì lá số có Lục Xung "
+                            + "chưa hóa giải."));
+            return null;
+        }
+        uncertainties.add(Uncertainty.informational(UncertaintyKind.METHODOLOGY_UNRESOLVED,
+                "Cường độ Nhật Chủ dưới đây theo phương pháp tính điểm của Thiệu Vĩ Hoa — một "
+                        + "trường phái cụ thể, không phải sự đồng thuận chung. Phương pháp giả "
+                        + "định lá số thuộc dạng bình thường; các cách cục đặc biệt (tòng cách…) "
+                        + "chưa được hệ thống này nhận diện."));
+        return result.get();
     }
 
     /**
@@ -534,6 +580,27 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
             evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
                     "BAZI_LUCK_CYCLES", RULE_VERSION, Dimension.TIMING, fact,
                     "dai-van-construction", groupId, null));
+        }
+
+        if (chart.dayMasterStrength() != null) {
+            DayMasterStrength strength = chart.dayMasterStrength();
+            Map<String, Object> fact = new LinkedHashMap<>();
+            fact.put("vuong", strength.vuong());
+            fact.put("elementDegrees", nameKeyed(strength.elementDegrees()));
+            fact.put("ownSideDegrees", strength.ownSideDegrees());
+            fact.put("totalDegrees", strength.totalDegrees());
+            fact.put("seasonalElement", strength.seasonalElement().name());
+            fact.put("note", "Kết quả theo phương pháp tính điểm của Thiệu Vĩ Hoa — một "
+                    + "trường phái cụ thể, giả định lá số thuộc dạng bình thường (không phải "
+                    + "cách cục đặc biệt). Không phải sự đồng thuận chung giữa các trường phái "
+                    + "Bát Tự (xem mục Cường độ Nhật Chủ trong danh sách bị chặn).");
+            // A DIFFERENT school string than ENGINE_ID's SCHOOL, on purpose - this
+            // is Thieu Vi Hoa's own named method, not a Tu Binh chart-construction
+            // fact (Rule D decision #4, DECISION_LOG.md).
+            evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID,
+                    DAY_MASTER_STRENGTH_SCHOOL, "BAZI_DAY_MASTER_STRENGTH",
+                    DayMasterStrengthResolver.RULE_VERSION, Dimension.OTHER, fact,
+                    "day-master-strength-tvh", groupId, null));
         }
 
         for (BlockedSection blocked : chart.blockedSections()) {

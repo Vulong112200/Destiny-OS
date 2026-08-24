@@ -121,6 +121,11 @@ class MethodologyRegistryTest {
             assertStatus("TAROT_RWS", MethodologyStatus.PRODUCTION_READY, "R11");
             // Phase 8 is two entries with genuinely different statuses.
             assertStatus("BAZI_TUBINH_CHART", MethodologyStatus.CONTENT_REQUIRED, "R18", "R19");
+            // R3 resolved 2026-08-24 (DECISION_LOG.md, six decisions): Thieu
+            // Vi Hoa's own point-scoring method, a named school separate
+            // from BAZI_TUBINH_CHART's own school, the same split reasoning
+            // as WESTERN_ASTROLOGY_CHART_ANGLES vs WESTERN_ASTROLOGY.
+            assertStatus("BAZI_DAY_MASTER_STRENGTH_TVH", MethodologyStatus.CONTENT_REQUIRED, "R3");
             // R2 (Đại Vận) left this entry on 2026-08-22 when its direction
             // rule and day-to-year conversion were verified against published
             // worked examples; the sequence moved to BAZI_TUBINH_CHART. R20,
@@ -177,7 +182,8 @@ class MethodologyRegistryTest {
             // its meaning corpus was authored. BAZI itself (the interpretive
             // half) stays non-calculable, which is the point of the split.
             Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
-                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART", "FENGSHUI_KUA",
+                    "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART",
+                    "BAZI_DAY_MASTER_STRENGTH_TVH", "FENGSHUI_KUA",
                     "WESTERN_ASTROLOGY_CHART_ANGLES", "ICHING_HEXAGRAM_CASTING");
 
             for (String id : calculable) {

@@ -91,6 +91,10 @@ export function BaziChartCard({
   const blocked = baziEvidence.filter((e) => e.ruleId.startsWith("BAZI_BLOCKED_"));
   const hasHourPrecision = boundary?.hasHourPrecision === true;
   const luck = factOf(baziEvidence, "BAZI_LUCK_CYCLES");
+  const dayMasterStrength = factOf(baziEvidence, "BAZI_DAY_MASTER_STRENGTH");
+  const dayMasterStrengthSchool = baziEvidence.find(
+    (e) => e.ruleId === "BAZI_DAY_MASTER_STRENGTH",
+  )?.school;
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -352,6 +356,69 @@ export function BaziChartCard({
                     <td className="py-1.5 tabular-nums text-slate-600">{pillar.startDate}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {dayMasterStrength && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Cường độ Nhật Chủ</h3>
+          <p className="mb-2 text-xs text-slate-500">
+            Theo <span className="font-medium">{dayMasterStrengthSchool ?? "một trường phái"}</span>{" "}
+            — kết quả của <span className="font-medium">một trường phái cụ thể</span>, không phải
+            sự đồng thuận chung giữa các trường phái Bát Tự (xem mục &ldquo;Cường độ Nhật Chủ&rdquo;
+            trong phần luận giải chưa cung cấp bên dưới). Giả định lá số thuộc dạng bình thường —
+            các cách cục đặc biệt (tòng cách…) chưa được hệ thống này nhận diện.
+          </p>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                dayMasterStrength.vuong === true
+                  ? "bg-emerald-100 text-emerald-900"
+                  : "bg-slate-200 text-slate-800"
+              }`}
+            >
+              {dayMasterStrength.vuong === true ? "Vượng (thân cường)" : "Yếu (thân nhược)"}
+            </span>
+            <span className="text-xs text-slate-500">
+              Phe mình {String(dayMasterStrength.ownSideDegrees)} /{" "}
+              {String(dayMasterStrength.totalDegrees)} độ ({" "}
+              {dayMasterStrength.totalDegrees
+                ? Math.round(
+                    (Number(dayMasterStrength.ownSideDegrees) /
+                      Number(dayMasterStrength.totalDegrees)) *
+                      1000,
+                  ) / 10
+                : 0}
+              % · ngưỡng 40%)
+            </span>
+            <span className="text-xs text-slate-500">
+              Nắm lệnh: {label(labels, "FiveElement", dayMasterStrength.seasonalElement)}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[28rem] border-collapse text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                  {ELEMENT_ORDER.map((element) => (
+                    <th key={element} scope="col" className="py-1.5 font-medium">
+                      {label(labels, "FiveElement", element)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr>
+                  {ELEMENT_ORDER.map((element) => (
+                    <td key={element} className="py-1.5 tabular-nums text-slate-800">
+                      {asCounts(dayMasterStrength.elementDegrees)[element] ?? 0}°
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>

@@ -36,6 +36,16 @@ import java.util.Optional;
  * @param luckCycles        the Đại Vận sequence (R2), or {@code null} when no
  *                          gender was supplied — the direction depends on it
  *                          and there is no defensible default
+ * @param dayMasterStrength Thiệu Vĩ Hoa's own point-scoring verdict (R3,
+ *                          methodology {@code BAZI_DAY_MASTER_STRENGTH_TVH}),
+ *                          or {@code null} without an exact hour, for a chart
+ *                          this method's own scope excludes (an unmitigated
+ *                          Lục Xung — see {@link DayMasterStrengthResolver}),
+ *                          or if this were ever a detected special-pattern
+ *                          chart (not currently detected at all). This is one
+ *                          named school's answer, not a resolution of R1's
+ *                          "no consensus" gap in {@code blockedSections} —
+ *                          the two are deliberately independent (Rule D)
  * @param blockedSections   the reading sections this engine refuses to
  *                          approximate (R1, R3)
  * @param uncertainties     conditions that must reach the user (ADR D3)
@@ -52,6 +62,7 @@ public record BaziChart(
         LocalDateTime localSolarDateTime,
         ElementTally elementTally,
         LuckCycles luckCycles,
+        DayMasterStrength dayMasterStrength,
         List<BlockedSection> blockedSections,
         List<Uncertainty> uncertainties
 ) {
@@ -97,5 +108,10 @@ public record BaziChart(
     /** The Đại Vận sequence, absent when no gender was supplied (R2). */
     public Optional<LuckCycles> luckCyclesIfPresent() {
         return Optional.ofNullable(luckCycles);
+    }
+
+    /** Thiệu Vĩ Hoa's Day Master strength verdict (R3), absent per this record's own Javadoc. */
+    public Optional<DayMasterStrength> dayMasterStrengthIfPresent() {
+        return Optional.ofNullable(dayMasterStrength);
     }
 }
