@@ -1,10 +1,11 @@
-import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
+import type { LabelRegistries, NarrativeResponseDto, ScenarioRunResponse } from "@/lib/types";
 import { AstrologyChartCard } from "./AstrologyChartCard";
 import { BaziChartCard } from "./BaziChartCard";
 import { BatTrachCard } from "./BatTrachCard";
 import { IChingChartCard } from "./IChingChartCard";
 import { LabeledBadge } from "./LabeledBadge";
 import { RetentionNotice } from "./RetentionNotice";
+import { TarotResultCard } from "./TarotResultCard";
 
 /**
  * Renders one calculation's full explainability record, in the order
@@ -19,9 +20,11 @@ import { RetentionNotice } from "./RetentionNotice";
 export function ResultView({
   result,
   labels = {},
+  narrative = null,
 }: {
   result: ScenarioRunResponse;
   labels?: LabelRegistries;
+  narrative?: NarrativeResponseDto | null;
 }) {
   return (
     <div className="space-y-8">
@@ -46,10 +49,85 @@ export function ResultView({
 
       {result.fusion && (
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-2 text-sm font-medium text-slate-500">Kết luận tổng hợp</h2>
+          <h2 className="mb-2 text-sm font-medium text-slate-500">🎯 Kết luận tổng hợp</h2>
           <div className="text-2xl">
             <LabeledBadge value={result.fusion.overallOutcome} />
           </div>
+        </section>
+      )}
+
+      {/*
+        Commentary on the hard data above, never a replacement for it
+        (CLAUDE.md section 9) - a visually distinct panel (indigo, not the
+        slate/white hard-data cards) so it never reads as another fact.
+        `source`/`fallbackReason` are shown, not hidden: a deterministic
+        fallback is a legitimate, honestly-labeled answer (ADR D8), not a
+        degraded one to apologize for.
+      */}
+      {narrative && (
+        <section className="rounded-xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-medium text-indigo-700">📝 Tổng kết bằng lời văn</h2>
+            <span className="text-xs text-indigo-500" title={narrative.fallbackReason.technical}>
+              Nguồn diễn giải: <LabeledBadge value={narrative.source} />
+            </span>
+          </div>
+          <p className="text-slate-800">{narrative.summary}</p>
+
+          {narrative.keySignals.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                Tín hiệu chính
+              </h3>
+              <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700">
+                {narrative.keySignals.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {narrative.conflicts.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                Mâu thuẫn cần lưu ý
+              </h3>
+              <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700">
+                {narrative.conflicts.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {narrative.cautions.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Cảnh báo</h3>
+              <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700">
+                {narrative.cautions.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {narrative.reflectionQuestions.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                Câu hỏi để tự suy ngẫm
+              </h3>
+              <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-slate-700">
+                {narrative.reflectionQuestions.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="mt-4 text-xs text-indigo-500">
+            Phần này là diễn giải, không phải dữ liệu tính toán — mọi số liệu/lá số/quẻ ở các mục
+            dưới đây mới là dữ liệu thật, không đổi theo lời văn này.
+          </p>
         </section>
       )}
 
@@ -69,6 +147,9 @@ export function ResultView({
 
       {/* Same contract: renders nothing when I Ching did not take part. */}
       <IChingChartCard evidence={result.evidence} labels={labels} />
+
+      {/* Same contract: renders nothing when Tarot did not take part. */}
+      <TarotResultCard evidence={result.evidence} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Nguồn đóng góp</h2>

@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { ApiError, runScenario } from "@/lib/api";
+import { findVnProvince, VN_PROVINCES } from "@/lib/vnProvinces";
 import type {
   CompassDirectionName,
   IChingCastingMethod,
@@ -30,6 +31,12 @@ const SPREAD_OPTIONS: { value: TarotSpreadName; label: string; cardCount: number
  * that window with an unknown region comes back unresolvable — which is the
  * honest result, and better than making the user pick a side to get a number.
  */
+const REGION_OPTIONS: { value: string; label: string }[] = [
+  { value: "UNKNOWN", label: "Chưa rõ / không áp dụng" },
+  { value: "NORTH", label: "Miền Bắc" },
+  { value: "SOUTH", label: "Miền Nam" },
+];
+
 /**
  * Compass order, not best-to-worst: which direction is favourable depends on the
  * person's Kua, so any fixed ordering by desirability would be wrong for most
@@ -46,12 +53,6 @@ const DIRECTION_OPTIONS: { value: CompassDirectionName; label: string }[] = [
   { value: "NORTHWEST", label: "Tây Bắc" },
 ];
 
-const REGION_OPTIONS: { value: string; label: string }[] = [
-  { value: "UNKNOWN", label: "Chưa rõ / không áp dụng" },
-  { value: "NORTH", label: "Miền Bắc" },
-  { value: "SOUTH", label: "Miền Nam" },
-];
-
 /**
  * The Decision Center intake form (UI_UX_VIETNAMESE_SPEC section 3, first
  * three steps: chọn chủ đề -> nhập câu hỏi/context -> hệ thống áp dụng).
@@ -61,6 +62,16 @@ const REGION_OPTIONS: { value: string; label: string }[] = [
  * takes one. Presenting COMPATIBILITY here would mean a request that always
  * comes back "policyDefined: false", which does not belong on the primary
  * intake form.
+ *
+ * Birth info (name/date/time/place/gender/region) is entered ONCE in a
+ * shared "Thông tin cá nhân" section and reused to build every engine's
+ * request payload below — Thần số học, Bát Tự, Phong Thủy and Chiêm tinh
+ * all describe the same person, so asking for the same four fields four
+ * times was pure friction, not a real difference in what each engine needs.
+ * Latitude/longitude (only Chiêm tinh and Bát Tự's solar-time correction use
+ * them) come from a tỉnh/thành picker rather than raw numbers, since almost
+ * nobody knows the coordinates of the hospital they were born in — an
+ * "advanced" toggle still accepts exact coordinates for anyone who has them.
  */
 export function DecisionCenterForm() {
   const router = useRouter();
@@ -81,30 +92,34 @@ export function DecisionCenterForm() {
     PROJECT: "Dự án",
     GENERAL_DECISION: "Quyết định chung",
   };
+
+  // --- Thông tin cá nhân (dùng chung cho mọi hệ) ---
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [birthTime, setBirthTime] = useState("");
+  const [gender, setGender] = useState<"" | "MALE" | "FEMALE">("");
+  const [region, setRegion] = useState("UNKNOWN");
+  const [provinceId, setProvinceId] = useState("");
+  const [useCustomCoords, setUseCustomCoords] = useState(false);
+  const [customLatitude, setCustomLatitude] = useState("");
+  const [customLongitude, setCustomLongitude] = useState("");
+
+  const province = provinceId === "" ? null : findVnProvince(provinceId);
+  const effectiveLatitude = useCustomCoords
+    ? (customLatitude.trim() === "" ? null : Number(customLatitude))
+    : province?.latitude ?? null;
+  const effectiveLongitude = useCustomCoords
+    ? (customLongitude.trim() === "" ? null : Number(customLongitude))
+    : province?.longitude ?? null;
+
+  // --- Từng hệ: chỉ còn field đặc thù của hệ đó ---
   const [useTarot, setUseTarot] = useState(true);
   const [spread, setSpread] = useState<TarotSpreadName>("PAST_PRESENT_FUTURE");
   const [question, setQuestion] = useState("");
   const [useBazi, setUseBazi] = useState(false);
-  const [baziBirthDate, setBaziBirthDate] = useState("");
-  const [baziBirthTime, setBaziBirthTime] = useState("");
-  const [baziRegion, setBaziRegion] = useState("UNKNOWN");
-  const [baziLongitude, setBaziLongitude] = useState("");
-  // Empty on purpose, and never defaulted to a value: gender decides the Đại
-  // Vận direction, and a guessed direction produces a full sequence that is
-  // wrong from its first period while looking exactly like a correct one.
-  const [baziGender, setBaziGender] = useState<"" | "MALE" | "FEMALE">("");
   const [useFengShui, setUseFengShui] = useState(false);
-  const [fsBirthDate, setFsBirthDate] = useState("");
-  const [fsGender, setFsGender] = useState<"MALE" | "FEMALE">("MALE");
-  const [fsRegion, setFsRegion] = useState("UNKNOWN");
   const [fsFacing, setFsFacing] = useState<CompassDirectionName | "">("");
   const [useAstrology, setUseAstrology] = useState(false);
-  const [astroBirthDate, setAstroBirthDate] = useState("");
-  const [astroBirthTime, setAstroBirthTime] = useState("");
-  const [astroLatitude, setAstroLatitude] = useState("");
-  const [astroLongitude, setAstroLongitude] = useState("");
   const [useIChing, setUseIChing] = useState(false);
   const [ichingMethod, setIChingMethod] = useState<IChingCastingMethod>("THREE_COINS");
   const [ichingUpperNumber, setIChingUpperNumber] = useState("");
@@ -112,34 +127,39 @@ export function DecisionCenterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasNumerology = fullName.trim() !== "" && birthDate !== "";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    const hasNumerology = fullName.trim() !== "" && birthDate !== "";
-    const hasBazi = useBazi && baziBirthDate !== "";
-    const hasFengShui = useFengShui && fsBirthDate !== "";
+    const hasBazi = useBazi && birthDate !== "";
+    const hasFengShui = useFengShui && birthDate !== "" && gender !== "";
     const hasAstrology =
-      useAstrology &&
-      astroBirthDate !== "" &&
-      astroBirthTime !== "" &&
-      astroLatitude.trim() !== "" &&
-      astroLongitude.trim() !== "";
-    if (useBazi && baziBirthDate === "") {
-      setError("Bát Tự cần ngày sinh. Giờ sinh có thể để trống — khi đó chỉ lập được Trụ Năm và Trụ Tháng.");
+      useAstrology && birthDate !== "" && birthTime !== "" && effectiveLatitude !== null && effectiveLongitude !== null;
+
+    if (useBazi && birthDate === "") {
+      setError("Bát Tự cần ngày sinh (ở mục Thông tin cá nhân). Giờ sinh có thể để trống.");
       return;
     }
-    if (useFengShui && fsBirthDate === "") {
-      setError("Bát Trạch cần ngày sinh và giới tính để tính cung phi.");
+    if (useFengShui && (birthDate === "" || gender === "")) {
+      setError("Bát Trạch cần ngày sinh và giới tính (ở mục Thông tin cá nhân) để tính cung phi.");
       return;
     }
-    if (
-      useAstrology &&
-      (astroBirthDate === "" || astroBirthTime === "" || astroLatitude.trim() === "" || astroLongitude.trim() === "")
-    ) {
+    if (useAstrology && (birthDate === "" || birthTime === "")) {
       setError(
-        "Chiêm tinh phương Tây cần đủ ngày sinh, giờ sinh chính xác và tọa độ nơi sinh — không thể lập lá số nếu thiếu một trong các mục này.",
+        "Chiêm tinh phương Tây cần đủ ngày sinh và giờ sinh chính xác (ở mục Thông tin cá nhân) — không thể lập lá số nếu thiếu.",
       );
+      return;
+    }
+    if (useAstrology && (effectiveLatitude === null || effectiveLongitude === null)) {
+      setError(
+        "Chiêm tinh phương Tây cần nơi sinh — chọn tỉnh/thành ở mục Thông tin cá nhân, hoặc nhập tọa độ chính xác.",
+      );
+      return;
+    }
+    if (useAstrology && (!Number.isFinite(effectiveLatitude) || !Number.isFinite(effectiveLongitude))) {
+      setError("Tọa độ chính xác phải là số, ví dụ 10.8 và 106.7.");
       return;
     }
     const hasIChingNumbers = ichingUpperNumber.trim() !== "" && ichingLowerNumber.trim() !== "";
@@ -150,21 +170,8 @@ export function DecisionCenterForm() {
     const hasIChing = useIChing;
     if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui && !hasAstrology && !hasIChing) {
       setError(
-        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh, bật rút bài Tarot, bật Bát Tự, bật Bát Trạch, bật Chiêm tinh phương Tây, hoặc bật Kinh Dịch.",
+        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh (có Thần số học), bật rút bài Tarot, bật Bát Tự, bật Bát Trạch, bật Chiêm tinh phương Tây, hoặc bật Kinh Dịch.",
       );
-      return;
-    }
-
-    const longitude = baziLongitude.trim() === "" ? null : Number(baziLongitude);
-    if (longitude !== null && !Number.isFinite(longitude)) {
-      setError("Kinh độ phải là một số, ví dụ 106.7. Để trống nếu không biết.");
-      return;
-    }
-
-    const astroLat = hasAstrology ? Number(astroLatitude) : null;
-    const astroLon = hasAstrology ? Number(astroLongitude) : null;
-    if (hasAstrology && (!Number.isFinite(astroLat) || !Number.isFinite(astroLon))) {
-      setError("Vĩ độ và kinh độ nơi sinh (chiêm tinh) phải là số, ví dụ 10.8 và 106.7.");
       return;
     }
 
@@ -175,26 +182,26 @@ export function DecisionCenterForm() {
         tarot: useTarot ? { spread, seed: null, question: question.trim() || null } : null,
         bazi: hasBazi
           ? {
-              birthDate: baziBirthDate,
+              birthDate,
               // Empty means "not known", never a stand-in hour: the backend
               // returns two pillars and says so, rather than treating an
               // unknown time as exact (Master Spec section 2).
-              birthTime: baziBirthTime === "" ? null : baziBirthTime,
-              region: baziRegion,
-              longitude,
+              birthTime: birthTime === "" ? null : birthTime,
+              region,
+              longitude: effectiveLongitude,
               // Same rule as the hour: empty means "not supplied", and the
               // backend omits Đại Vận with a stated reason rather than
               // picking a direction.
-              gender: baziGender === "" ? null : baziGender,
+              gender: gender === "" ? null : gender,
             }
           : null,
         fengShui: hasFengShui
           ? {
-              birthDate: fsBirthDate,
+              birthDate,
               birthTime: null,
-              gender: fsGender,
-              region: fsRegion,
-              longitude: null,
+              gender: gender as "MALE" | "FEMALE",
+              region,
+              longitude: effectiveLongitude,
               // Empty means "no direction to assess" - the backend then returns
               // the eight-direction profile and no signal, rather than judging
               // a direction the user never gave.
@@ -203,10 +210,10 @@ export function DecisionCenterForm() {
           : null,
         astrology: hasAstrology
           ? {
-              birthDate: astroBirthDate,
-              birthTime: astroBirthTime,
-              latitudeDegrees: astroLat as number,
-              longitudeDegrees: astroLon as number,
+              birthDate,
+              birthTime,
+              latitudeDegrees: effectiveLatitude as number,
+              longitudeDegrees: effectiveLongitude as number,
             }
           : null,
         iching: hasIChing
@@ -225,6 +232,9 @@ export function DecisionCenterForm() {
       setSubmitting(false);
     }
   }
+
+  const showRegion = useMemo(() => useBazi || useFengShui, [useBazi, useFengShui]);
+  const needsPreciseLocation = useAstrology;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -260,7 +270,11 @@ export function DecisionCenterForm() {
       </fieldset>
 
       <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
-        <legend className="px-1 text-sm font-semibold text-slate-900">Thần số học (tùy chọn)</legend>
+        <legend className="px-1 text-sm font-semibold text-slate-900">2. Thông tin cá nhân</legend>
+        <p className="text-xs text-slate-500">
+          Nhập một lần — dùng cho mọi hệ bạn bật dưới đây (Thần số học, Bát Tự, Bát Trạch, Chiêm
+          tinh). Chỉ điền phần nào cần cho hệ bạn muốn xem; để trống những gì không biết.
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-slate-600">Họ tên đầy đủ</span>
@@ -273,7 +287,23 @@ export function DecisionCenterForm() {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">Ngày sinh</span>
+            <span className="mb-1 block text-slate-600">Giới tính</span>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value as "" | "MALE" | "FEMALE")}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+            >
+              <option value="">— chưa chọn —</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+            </select>
+            <span className="mt-1 block text-xs text-slate-500">
+              Bát Trạch bắt buộc có giới tính. Bát Tự vẫn chạy được nếu để trống, chỉ thiếu Đại
+              Vận — hệ thống không đoán giúp bạn.
+            </span>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Ngày sinh (dương lịch)</span>
             <input
               type="date"
               value={birthDate}
@@ -281,7 +311,107 @@ export function DecisionCenterForm() {
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
             />
           </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Giờ sinh (để trống nếu không biết)</span>
+            <input
+              type="time"
+              value={birthTime}
+              onChange={(e) => setBirthTime(e.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+            />
+            <span className="mt-1 block text-xs text-slate-500">
+              Bát Tự vẫn lập được lá số nếu để trống (chỉ thiếu Trụ Giờ). Chiêm tinh thì bắt buộc.
+            </span>
+          </label>
         </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Nơi sinh (tỉnh/thành hiện nay)</span>
+            <select
+              value={provinceId}
+              onChange={(e) => setProvinceId(e.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+            >
+              <option value="">— chưa chọn —</option>
+              {VN_PROVINCES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.formerProvinces.length > 0 ? ` (gồm ${p.formerProvinces.join(", ")} cũ)` : ""}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-slate-500">
+              Không biết bệnh viện/nơi sinh ở kinh độ, vĩ độ nào? Chỉ cần chọn tỉnh/thành theo tên
+              gọi hiện nay (tìm theo tên tỉnh cũ vẫn ra đúng tỉnh mới) — hệ thống tự điền tọa độ
+              trung tâm tỉnh, đủ chính xác cho việc hiệu chỉnh giờ (sai số nhỏ hơn sai số giờ sinh
+              thường gặp).
+            </span>
+          </label>
+          <div className="text-sm">
+            <label className="flex items-center gap-2 text-slate-600">
+              <input
+                type="checkbox"
+                checked={useCustomCoords}
+                onChange={(e) => setUseCustomCoords(e.target.checked)}
+              />
+              Tôi biết chính xác tọa độ nơi sinh
+            </label>
+            {useCustomCoords && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={customLatitude}
+                  onChange={(e) => setCustomLatitude(e.target.value)}
+                  placeholder="Vĩ độ, 10.8"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={customLongitude}
+                  onChange={(e) => setCustomLongitude(e.target.value)}
+                  placeholder="Kinh độ, 106.7"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                />
+              </div>
+            )}
+            {needsPreciseLocation && !useCustomCoords && province === null && (
+              <p className="mt-2 text-xs text-amber-700">
+                Chiêm tinh phương Tây cần nơi sinh — chọn tỉnh/thành ở trên, hoặc nhập tọa độ
+                chính xác.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {showRegion && (
+          <label className="block text-sm">
+            <span className="mb-1 block text-slate-600">Vùng sinh (chỉ ảnh hưởng người sinh 1955–1975)</span>
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+            >
+              {REGION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-slate-500">
+              Chỉ khác nhau khi sinh trong khoảng 1955–1975, lúc hai miền dùng múi giờ khác nhau.
+              Dùng cho Bát Tự và Bát Trạch.
+            </span>
+          </label>
+        )}
+
+        {hasNumerology && (
+          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            Đủ họ tên + ngày sinh — Thần số học sẽ tự động chạy cùng lần tính này.
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
@@ -312,7 +442,7 @@ export function DecisionCenterForm() {
               </select>
             </label>
             <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">2. Câu hỏi / bối cảnh (tùy chọn)</span>
+              <span className="mb-1 block text-slate-600">Câu hỏi / bối cảnh (tùy chọn)</span>
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
@@ -337,95 +467,15 @@ export function DecisionCenterForm() {
           </label>
         </legend>
         {useBazi && (
-          <div className="space-y-3">
-            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Hiện chỉ <span className="font-medium">lập lá số</span>: Tứ Trụ, Ngũ Hành, Tàng Can,
-              Thập Thần, số đếm Ngũ Hành, <span className="font-medium">Đại Vận</span> nếu bạn nhập
-              giới tính, và (khi có giờ sinh chính xác) <span className="font-medium">cường độ
-              Nhật Chủ theo Thiệu Vĩ Hoa</span> — tất cả là dữ liệu tính toán tất định. Dụng Thần
-              vẫn <span className="font-medium">chưa được cung cấp</span> vì các trường phái chưa
-              thống nhất và hệ thống không tự chọn giúp bạn; cường độ Nhật Chủ theo Thiệu Vĩ Hoa
-              cũng chỉ là kết quả của một trường phái cụ thể, không phải sự đồng thuận chung. Vì
-              vậy Bát Tự chưa góp tín hiệu nào vào kết luận tổng hợp — kể cả Đại Vận và cường độ
-              Nhật Chủ, vì một vận hay một mức cường độ chỉ có ý nghĩa quyết định khi đã có Dụng
-              Thần.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Ngày sinh (dương lịch)</span>
-                <input
-                  type="date"
-                  value={baziBirthDate}
-                  onChange={(e) => setBaziBirthDate(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Giờ sinh (để trống nếu không biết)</span>
-                <input
-                  type="time"
-                  value={baziBirthTime}
-                  onChange={(e) => setBaziBirthTime(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-                <span className="mt-1 block text-xs text-slate-500">
-                  Không biết giờ thì để trống — hệ thống sẽ chỉ lập Trụ Năm và Trụ Tháng, không
-                  đặt giờ giả.
-                </span>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Vùng sinh</span>
-                <select
-                  value={baziRegion}
-                  onChange={(e) => setBaziRegion(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                >
-                  {REGION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="mt-1 block text-xs text-slate-500">
-                  Chỉ ảnh hưởng với người sinh trong khoảng 1955–1975, khi hai miền dùng múi giờ
-                  khác nhau.
-                </span>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Kinh độ nơi sinh (tùy chọn)</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={baziLongitude}
-                  onChange={(e) => setBaziLongitude(e.target.value)}
-                  placeholder="106.7"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-                <span className="mt-1 block text-xs text-slate-500">
-                  Có kinh độ thì giờ sinh được hiệu chỉnh về giờ mặt trời — chỉ quan trọng khi giờ
-                  sinh sát ranh giới canh giờ.
-                </span>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Giới tính (để có Đại Vận)</span>
-                <select
-                  value={baziGender}
-                  onChange={(e) => setBaziGender(e.target.value as "" | "MALE" | "FEMALE")}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                >
-                  {/* No preselected value: see the state declaration. */}
-                  <option value="">— chưa chọn —</option>
-                  <option value="MALE">Nam</option>
-                  <option value="FEMALE">Nữ</option>
-                </select>
-                <span className="mt-1 block text-xs text-slate-500">
-                  Chiều Đại Vận (thuận hay nghịch) phụ thuộc giới tính kết hợp âm dương can năm.
-                  Để trống thì lá số Tứ Trụ vẫn đầy đủ, chỉ không có phần Đại Vận — hệ thống
-                  không đoán giúp bạn.
-                </span>
-              </label>
-            </div>
-          </div>
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Dùng ngày/giờ sinh, giới tính và vùng sinh ở mục Thông tin cá nhân. Hiện chỉ{" "}
+            <span className="font-medium">lập lá số</span>: Tứ Trụ, Ngũ Hành, Tàng Can, Thập
+            Thần, số đếm Ngũ Hành, Đại Vận nếu bạn nhập giới tính, và (khi có giờ sinh chính xác)
+            cường độ Nhật Chủ theo Thiệu Vĩ Hoa — tất cả là dữ liệu tính toán tất định. Dụng Thần
+            vẫn chưa được cung cấp vì các trường phái chưa thống nhất; cường độ Nhật Chủ theo
+            Thiệu Vĩ Hoa cũng chỉ là kết quả của một trường phái cụ thể, không phải sự đồng thuận
+            chung. Vì vậy Bát Tự chưa góp tín hiệu nào vào kết luận tổng hợp.
+          </p>
         )}
       </fieldset>
 
@@ -443,67 +493,25 @@ export function DecisionCenterForm() {
         {useFengShui && (
           <div className="space-y-3">
             <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              Tính cung phi và tám hướng theo Bát Biến Du Niên. Nhập thêm{" "}
-              <span className="font-medium">hướng nhà/phòng</span> thì hệ thống mới đánh giá được
-              hướng đó và góp tín hiệu vào kết luận tổng hợp — Bát Trạch xét{" "}
-              <span className="font-medium">quan hệ giữa người và một hướng</span>, nên không có
-              hướng thì không có gì để đánh giá.
+              Dùng ngày sinh, giới tính và vùng sinh ở mục Thông tin cá nhân để tính cung phi.
+              Nhập thêm <span className="font-medium">hướng nhà/phòng</span> dưới đây thì hệ
+              thống mới đánh giá được hướng đó và góp tín hiệu vào kết luận tổng hợp.
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Ngày sinh (dương lịch)</span>
-                <input
-                  type="date"
-                  value={fsBirthDate}
-                  onChange={(e) => setFsBirthDate(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Giới tính</span>
-                <select
-                  value={fsGender}
-                  onChange={(e) => setFsGender(e.target.value as "MALE" | "FEMALE")}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                >
-                  <option value="MALE">Nam</option>
-                  <option value="FEMALE">Nữ</option>
-                </select>
-                <span className="mt-1 block text-xs text-slate-500">
-                  Bắt buộc: công thức cung phi cho nam và nữ khác nhau và không đối xứng, nên
-                  không có giá trị mặc định nào trung lập.
-                </span>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Hướng nhà / phòng (tùy chọn)</span>
-                <select
-                  value={fsFacing}
-                  onChange={(e) => setFsFacing(e.target.value as CompassDirectionName | "")}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                >
-                  <option value="">Chưa xác định</option>
-                  {DIRECTION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Vùng sinh</span>
-                <select
-                  value={fsRegion}
-                  onChange={(e) => setFsRegion(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                >
-                  {REGION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <label className="block text-sm">
+              <span className="mb-1 block text-slate-600">Hướng nhà / phòng (tùy chọn)</span>
+              <select
+                value={fsFacing}
+                onChange={(e) => setFsFacing(e.target.value as CompassDirectionName | "")}
+                className="w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+              >
+                <option value="">Chưa xác định</option>
+                {DIRECTION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         )}
       </fieldset>
@@ -522,55 +530,14 @@ export function DecisionCenterForm() {
         {useAstrology && (
           <div className="space-y-3">
             <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Cần <span className="font-medium">đủ cả bốn mục</span> dưới đây — không thể lập lá số
-              với giờ sinh hoặc tọa độ đoán chừng: Cung Mọc dịch chuyển khoảng 1° mỗi 4 phút, nên
-              một giờ sinh đoán sai sẽ cho ra kết quả sai một cách tự tin, không phải một kết quả
-              rút gọn. Hiện chỉ lập được vị trí Mặt Trời, Thiên Đỉnh, Cung Mọc và 12 nhà (Whole
-              Sign) — Mặt Trăng, các hành tinh khác và góc chiếu chưa được cung cấp, nên mục này
-              chưa góp tín hiệu nào vào kết luận tổng hợp.
+              Dùng ngày sinh, giờ sinh và nơi sinh ở mục Thông tin cá nhân — cần{" "}
+              <span className="font-medium">đủ cả ba</span>, không thể lập lá số với giờ sinh
+              hoặc nơi sinh đoán chừng: Cung Mọc dịch chuyển khoảng 1° mỗi 4 phút, nên một giờ
+              sinh đoán sai sẽ cho ra kết quả sai một cách tự tin, không phải một kết quả rút
+              gọn. Hiện chỉ lập được vị trí Mặt Trời, Thiên Đỉnh, Cung Mọc và 12 nhà (Whole
+              Sign) — Mặt Trăng, các hành tinh khác và góc chiếu chưa được cung cấp, nên mục
+              này chưa góp tín hiệu nào vào kết luận tổng hợp.
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Ngày sinh</span>
-                <input
-                  type="date"
-                  value={astroBirthDate}
-                  onChange={(e) => setAstroBirthDate(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Giờ sinh (bắt buộc, càng chính xác càng tốt)</span>
-                <input
-                  type="time"
-                  value={astroBirthTime}
-                  onChange={(e) => setAstroBirthTime(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Vĩ độ nơi sinh</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={astroLatitude}
-                  onChange={(e) => setAstroLatitude(e.target.value)}
-                  placeholder="10.8 (Bắc dương)"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block text-slate-600">Kinh độ nơi sinh</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={astroLongitude}
-                  onChange={(e) => setAstroLongitude(e.target.value)}
-                  placeholder="106.7 (Đông dương)"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-                />
-              </label>
-            </div>
             <p className="text-xs text-slate-500">
               Ngày và giờ sinh được đọc theo giờ dân sự Việt Nam. Nếu nơi sinh thực tế ở múi giờ
               khác, kết quả sẽ không chính xác — hệ thống hiện chưa có bộ chọn múi giờ riêng.
@@ -656,7 +623,7 @@ export function DecisionCenterForm() {
         disabled={submitting}
         className="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
       >
-        {submitting ? "Đang tính toán…" : "3. Tính toán"}
+        {submitting ? "Đang tính toán…" : "Tính toán"}
       </button>
     </form>
   );

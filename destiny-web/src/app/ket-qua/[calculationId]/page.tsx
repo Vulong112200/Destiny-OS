@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchLabels, findCalculation } from "@/lib/api";
+import { fetchLabels, findCalculation, getOrGenerateNarrative } from "@/lib/api";
 import { ResultView } from "@/components/ResultView";
 
 export default async function ResultPage({
@@ -8,10 +8,11 @@ export default async function ResultPage({
   params: Promise<{ calculationId: string }>;
 }) {
   const { calculationId } = await params;
-  // Both fetches are independent, so pay for one round trip, not two.
-  const [result, labels] = await Promise.all([
+  // All three are independent, so pay for one round trip, not three.
+  const [result, labels, narrative] = await Promise.all([
     findCalculation(calculationId),
     fetchLabels(),
+    getOrGenerateNarrative(calculationId),
   ]);
 
   if (!result) {
@@ -34,7 +35,7 @@ export default async function ResultPage({
       <div>
         <h1 className="text-2xl font-bold">Kết quả — {result.scenarioId}</h1>
       </div>
-      <ResultView result={result} labels={labels} />
+      <ResultView result={result} labels={labels} narrative={narrative} />
     </div>
   );
 }

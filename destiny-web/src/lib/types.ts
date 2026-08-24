@@ -107,6 +107,25 @@ export interface MethodologyDto {
   notes: string | null;
 }
 
+/**
+ * Response body for `POST`/`GET /api/v1/calculations/{id}/narrative`
+ * (mirrors `NarrativeResponseDto`). `providerName`/`model` are null when
+ * `source` is the deterministic fallback rather than a real AI call.
+ */
+export interface NarrativeResponseDto {
+  calculationId: string;
+  source: LabeledValue;
+  fallbackReason: LabeledValue;
+  summary: string;
+  keySignals: string[];
+  conflicts: string[];
+  cautions: string[];
+  reflectionQuestions: string[];
+  providerName: string | null;
+  model: string | null;
+  generatedAt: string | null;
+}
+
 export interface ErrorResponse {
   code: string;
   message: string;

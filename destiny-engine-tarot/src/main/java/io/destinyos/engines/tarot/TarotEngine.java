@@ -172,7 +172,34 @@ public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, Tar
         fact.put("position", position);
         fact.put("cardId", card.id());
         fact.put("cardName", card.name());
+        fact.put("arcana", card.arcana().name());
+        if (card.suit() != null) {
+            fact.put("suit", card.suit().name());
+        }
         fact.put("orientation", orientation.name());
+        // The authored meaning text itself (TarotCardMeaningsMajor/Wands/Cups/
+        // Swords/Pentacles) was previously only consumed internally to derive
+        // Signal polarity/strength, then discarded - never reaching the API
+        // response, so the frontend had nothing to render beyond the bare card
+        // name. Exposing the already-authored, already research-gated (R11)
+        // text here is not new content, just no longer throwing away content
+        // that exists. Evidence.fact goes through Map.copyOf (disallows null
+        // values), so a card with no authored meaning yet omits the "meaning"
+        // key entirely rather than mapping it to null - the nested map below
+        // is never copyOf'd, so its own per-dimension nulls (a real, honest
+        // "not authored for this dimension") are fine.
+        TarotCardMeaning meaning = card.meaning();
+        if (!meaning.isEmpty()) {
+            Map<String, Object> meaningFact = new LinkedHashMap<>();
+            meaningFact.put("uprightKeywords", meaning.uprightKeywords());
+            meaningFact.put("reversedKeywords", meaning.reversedKeywords());
+            meaningFact.put("career", meaning.careerMeaning());
+            meaningFact.put("finance", meaning.financeMeaning());
+            meaningFact.put("relationship", meaning.relationshipMeaning());
+            meaningFact.put("decision", meaning.decisionMeaning());
+            meaningFact.put("general", meaning.generalMeaning());
+            fact.put("meaning", meaningFact);
+        }
 
         return new Evidence(
                 evidenceId,

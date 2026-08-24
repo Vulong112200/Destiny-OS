@@ -8,6 +8,28 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Added — Nâng cấp UX Trung tâm quyết định (`destiny-web`, không đổi methodology)
+
+Phản hồi người dùng thật (giao diện đơn điệu, thiếu hình ảnh Tarot/Kinh Dịch,
+kết quả không có lời giải thích, phải nhập lại ngày/giờ/nơi sinh cho từng mục,
+kinh độ/vĩ độ khó nhập) được xử lý hoàn toàn ở tầng trình bày — không thuật
+toán/methodology nào đổi:
+
+- Kết nối `POST /api/v1/calculations/{id}/narrative` (đã có sẵn ở backend,
+  chưa từng được frontend gọi) vào trang kết quả — luôn có ít nhất bản diễn
+  giải tất định (không cần AI key), tách biệt rõ với dữ liệu tính toán
+  (CLAUDE.md §9).
+- `TarotEngine.buildEvidence` giờ đưa nội dung `TarotCardMeaning` đã được
+  R11 xác minh vào `Evidence.fact` (trước đây chỉ dùng nội bộ để suy ra
+  polarity rồi bỏ đi, chưa từng lộ ra API). `destiny-web` thêm ảnh scan công
+  khai (1909, Wikimedia Commons) và một bước "rút bài" lật từng lá.
+- Kinh Dịch: vẽ hào Dương/Âm/động bằng SVG (`HexagramSvg.tsx`) thay danh sách
+  chữ — không thêm lời đoán quẻ, R12 vẫn bị chặn như cũ.
+- `DecisionCenterForm.tsx`: một khối "Thông tin cá nhân" dùng chung cho Thần
+  số học/Bát Tự/Bát Trạch/Chiêm tinh thay vì hỏi lại ngày/giờ/nơi sinh ở mỗi
+  mục; nơi sinh chọn theo tỉnh/thành (`vnProvinces.ts`, 34 đơn vị sau sáp
+  nhập 2025) tự điền kinh/vĩ độ gần đúng, thay ô nhập số tọa độ.
+
 ### Added — R3 implement xong: Cường độ Nhật Chủ theo Thiệu Vĩ Hoa (`destiny-engine-bazi`)
 
 Sau khi Opus xác minh (mục dưới), sáu quyết định Rule D được ghi vào

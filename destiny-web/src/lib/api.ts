@@ -2,6 +2,7 @@ import type {
   ErrorResponse,
   LabelRegistries,
   MethodologyDto,
+  NarrativeResponseDto,
   RetentionDto,
   ScenarioRunRequestInput,
   ScenarioRunResponse,
@@ -97,5 +98,31 @@ export async function findCalculation(calculationId: string): Promise<ScenarioRu
       return null;
     }
     throw error;
+  }
+}
+
+/**
+ * Fetches the already-generated narrative for a calculation if one exists,
+ * generating it once (`POST .../narrative`) otherwise, so a normal page
+ * reload never re-triggers an AI call. Returns `null` on any failure
+ * (missing calculation, API down) rather than throwing - the narrative is
+ * commentary on the hard data (CLAUDE.md section 9), never a reason to blank
+ * the result page a user is waiting on.
+ */
+export async function getOrGenerateNarrative(
+  calculationId: string,
+): Promise<NarrativeResponseDto | null> {
+  const path = `/api/v1/calculations/${encodeURIComponent(calculationId)}/narrative`;
+  try {
+    return await request<NarrativeResponseDto>(path);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) {
+      return null;
+    }
+  }
+  try {
+    return await request<NarrativeResponseDto>(path, { method: "POST" });
+  } catch {
+    return null;
   }
 }

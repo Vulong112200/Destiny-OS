@@ -1,4 +1,5 @@
 import type { EvidenceDto, LabelRegistries } from "@/lib/types";
+import { changedLineValues, HexagramSvg } from "./HexagramSvg";
 
 /**
  * Renders an I Ching / Mai Hoa hexagram casting as hard data, reconstructed
@@ -55,11 +56,14 @@ export function IChingChartCard({
   const movingPositions = Array.isArray(moving?.positions)
     ? (moving!.positions as unknown[]).filter((p): p is number => typeof p === "number")
     : [];
+  const drawnLinesAsStrings = Array.isArray(drawnLines?.lines)
+    ? (drawnLines!.lines as unknown[]).filter((l): l is string => typeof l === "string")
+    : [];
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Kinh Dịch — Quẻ gieo được</h2>
+        <h2 className="text-lg font-semibold text-slate-900">☰ Kinh Dịch — Quẻ gieo được</h2>
         <p className="mt-1 text-xs text-slate-500">
           Dữ liệu gieo quẻ tất định. Đây là <span className="font-medium">quẻ</span>, chưa phải
           lời đoán — phần luận giải xem ở cuối mục này.
@@ -77,6 +81,25 @@ export function IChingChartCard({
             </>
           )}
         </p>
+      )}
+
+      {drawnLines && Array.isArray(drawnLines.lines) && (
+        <div className="flex flex-wrap items-start gap-8">
+          <div className="flex flex-col items-center gap-2">
+            <HexagramSvg lines={drawnLinesAsStrings} />
+            <span className="text-xs font-medium text-slate-600">Quẻ gốc (bản quái)</span>
+          </div>
+          {changed && (
+            <div className="flex flex-col items-center gap-2">
+              <HexagramSvg lines={changedLineValues(drawnLinesAsStrings)} />
+              <span className="text-xs font-medium text-slate-600">Quẻ biến (chi quái)</span>
+            </div>
+          )}
+          <p className="max-w-xs text-xs text-slate-500">
+            Nét liền = Dương, nét đứt = Âm. Hào màu nâu có chấm giữa là hào động — hào đó đổi
+            cực (Dương↔Âm) để tạo thành quẻ biến bên cạnh.
+          </p>
+        </div>
       )}
 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -100,20 +123,6 @@ export function IChingChartCard({
           <span className="text-slate-500">không có hào nào động</span>
         )}
       </p>
-
-      {drawnLines && Array.isArray(drawnLines.lines) && (
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">6 hào (dưới lên trên)</h3>
-          <ol className="mt-1 flex flex-col-reverse gap-1 text-sm text-slate-700">
-            {(drawnLines.lines as unknown[]).map((line, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="w-6 text-xs text-slate-400">#{i + 1}</span>
-                <span>{label(labels, "LineValue", line)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
 
       {blocked.length > 0 && (
         <div>

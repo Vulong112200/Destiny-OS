@@ -57,7 +57,7 @@ export function BatTrachCard({
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Phong Thủy — Bát Trạch</h2>
+        <h2 className="text-lg font-semibold text-slate-900">🧭 Phong Thủy — Bát Trạch</h2>
         <p className="mt-1 text-xs text-slate-500">
           Cung phi và tám hướng theo Bát Biến Du Niên. Chỉ dùng phái{" "}
           <span className="font-medium">Bát Trạch</span> — không trộn Phi Tinh hay Huyền Không.

@@ -51,10 +51,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col bg-slate-50 text-slate-900">
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-            <Link href="/" className="text-lg font-bold">
+            <Link href="/" className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-sm font-bold text-white">
+                洛
+              </span>
               Destiny OS
             </Link>
-            <nav className="flex flex-wrap items-center gap-1">
+            <nav className="flex items-center gap-1">
               {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
@@ -64,15 +67,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   {item.label}
                 </Link>
               ))}
-              {COMING_SOON_ITEMS.map((label) => (
-                <span
-                  key={label}
-                  title="Chưa có hệ thống hỗ trợ phía sau — chưa xây dựng để tránh giao diện trông như hoạt động nhưng thực chất không có gì"
-                  className="rounded-md px-3 py-2 text-sm text-slate-400"
-                >
-                  {label} <span className="text-xs">(sắp ra mắt)</span>
-                </span>
-              ))}
+              <details className="relative">
+                <summary className="list-none rounded-md px-3 py-2 text-sm font-medium text-slate-400 marker:content-none [&::-webkit-details-marker]:hidden">
+                  Sắp ra mắt ({COMING_SOON_ITEMS.length})
+                </summary>
+                <div className="absolute right-0 z-10 mt-1 w-48 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
+                  <p className="mb-1 px-2 text-xs text-slate-400">
+                    Chưa có hệ thống hỗ trợ phía sau
+                  </p>
+                  {COMING_SOON_ITEMS.map((label) => (
+                    <span key={label} className="block rounded-md px-2 py-1.5 text-sm text-slate-400">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </details>
             </nav>
           </div>
         </header>

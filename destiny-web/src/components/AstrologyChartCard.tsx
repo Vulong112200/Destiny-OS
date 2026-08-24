@@ -63,7 +63,7 @@ export function AstrologyChartCard({
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Lá số Chiêm tinh phương Tây</h2>
+        <h2 className="text-lg font-semibold text-slate-900">✨ Lá số Chiêm tinh phương Tây</h2>
         <p className="mt-1 text-xs text-slate-500">
           Dữ liệu tính toán tất định (Mặt Trời, góc chiếu, hệ nhà). Đây là{" "}
           <span className="font-medium">lá số</span>, chưa phải lời luận giải — phần luận giải xem

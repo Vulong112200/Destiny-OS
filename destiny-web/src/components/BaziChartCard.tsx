@@ -99,7 +99,7 @@ export function BaziChartCard({
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Lá số Tứ Trụ (Bát Tự)</h2>
+        <h2 className="text-lg font-semibold text-slate-900">☯ Lá số Tứ Trụ (Bát Tự)</h2>
         <p className="mt-1 text-xs text-slate-500">
           Dữ liệu tính toán tất định. Đây là <span className="font-medium">lá số</span>, chưa phải
           lời luận giải — phần luận giải xem ở cuối mục này.
