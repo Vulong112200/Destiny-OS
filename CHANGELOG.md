@@ -8,6 +8,36 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — R1/R3: nguồn sơ cấp thật do chủ dự án mua và cung cấp, chưa qua xác minh Opus
+
+Chủ dự án mua sách `Dự đoán theo Tứ trụ` (Thiệu Vĩ Hoa & Trần Viên, NXB Văn
+Hóa Thông Tin 2008) — đúng cuốn sách bản cập nhật R1 ngày 2026-08-22 đã nêu
+tên là ứng viên tốt nhất nhưng không lấy được. File PDF quét 681 trang,
+không có lớp text (xác nhận qua `pdftotext`), nên đọc trực tiếp từng trang
+dưới dạng hình ảnh (dựng bằng PyMuPDF, không qua OCR hay model tóm tắt).
+
+**R3 (độ vượng suy Nhật Chủ): đọc trọn vẹn** chương 11 mục II (tr.331-356)
+— `docs/research_drafts/R3_thieuvyhoa_point_scoring.md`. Thuật toán tính
+điểm đầy đủ: mỗi Thiên Can gốc 36 độ (360/10), mỗi Địa Chi gốc 30 độ
+(360/12, có bảng tàng can chi tiết), qua các phép chỉnh (chỗ dựa, hợp hóa,
+khắc theo khoảng cách, ảnh hưởng can-chi cùng trụ, nắm lệnh ±1/5), kết thúc
+bằng công thức: tổng độ vượng phe mình (sinh + cùng hành với Nhật Chủ) chia
+tổng toàn bộ ngũ hành ≥ 40% → vượng, < 40% → yếu. Có ví dụ tính mẫu đầy đủ
+4 trụ tái tạo đúng kết luận (Kỷ Thổ, 90/186 > 74.4 → vượng) — ứng viên
+golden test đầu tiên có nguồn cho R3.
+
+**R1 (Dụng Thần): mới đọc một phần nhỏ** chương 11 mục IV (tr.376-397/432)
+— `docs/research_drafts/R1_thieuvyhoa_dung_than.md`. Xác nhận đây là một hệ
+quy tắc lớn, có cấu trúc (theo từng "cách" — Chính Tài/Chính Quan/Chính
+Ấn/..., mỗi cách có chuỗi điều kiện ưu tiên phụ thuộc vượng/yếu từ R3), theo
+khung "bệnh dược". Mới trích được đầy đủ trường hợp Chính Tài và mở đầu
+Chính Quan/Chính Ấn; phần ví dụ có giải (mục V, tr.397-432, và Chương 23,
+tr.583-629) — phần có giá trị nhất để golden-test — **chưa đọc**.
+
+**Không đổi status R1/R3** — cả hai vẫn `RESEARCH_REQUIRED`, đánh dấu DRAFT
+chờ Opus xác minh, đúng quy trình hai-model đã dùng cho R4/R5/R20. Không có
+thay đổi code trong đợt này.
+
 ### Nghiên cứu — R20 (Hợp/Xung/Hình/Hại), vòng ba: cổ thư thứ hai, chưa qua xác minh Opus
 
 `docs/research_drafts/R20_ziping_zhenquan_chapter7.md`. Tìm được chương thứ
