@@ -1,26 +1,22 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*
+ * No dark-mode variant: every component here (white cards, slate-50 page
+ * background, amber/indigo/rose accent panels) is colored for a light
+ * background only. This used to also set `background`/`color` from
+ * `prefers-color-scheme: dark`-switched CSS variables - an unlayered rule,
+ * so it always beat layout.tsx's `bg-slate-50 text-slate-900` on <body>
+ * (Tailwind utilities live in a cascade layer, which loses to any
+ * unlayered rule regardless of specificity) - flipping the whole page to a
+ * near-black background on a visitor's dark-mode OS while every card
+ * stayed light. Removed rather than fixed to stay light-only: fine, since
+ * <body> already carries the real colors as Tailwind classes.
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
