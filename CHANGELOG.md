@@ -8,6 +8,346 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Nghiên cứu — Chương 8 (Thai Nguyên/Cung Mệnh) qua xác minh Opus: thuật toán đứng vững, 4/4 ví dụ tái tạo được; blocker §B3 của R22 gỡ được thật nhưng **không đều**
+
+`docs/research_drafts/VERIFICATION_OPUS_R22.md`, mục *"Addendum Opus
+(2026-08-25): Chương 8 — Thai Nguyên/Cung Mệnh"*. Đây là phần bù cho đúng món nợ
+mà `VERIFICATION_OPUS_R21.md` tự ghi nhận: mục addendum này từng được trỏ tới
+nhưng **chưa từng được viết**. Đọc lại tr.290-292 ở **300dpi** (hai câu công thức
+ở **600dpi**), độc lập với draft, tái tạo bằng tay mọi ví dụ — không lấy một con
+số nào của draft.
+
+**Không có kết luận nào bị đảo ngược.** Lần thứ hai trong dự án (sau R12) phần
+lõi của một bản draft sống sót nguyên vẹn. Đáng nói là **đúng hai mẫu lỗi của hai
+vòng liền trước đều đã bị soi riêng và đều vắng mặt**: không off-by-N ở chi tiết
+"tháng **thứ ba** sau" của Thai Nguyên (ghim bằng ba mỏ neo độc lập — quy tắc +2
+phá cả hai ví dụ), và không sai chiều đếm ở Cung Mệnh (**8/8** chi tiết cơ học —
+chiều mỗi bước, điểm neo, điều kiện dừng, nguồn của Can — khớp nguyên văn). Dạng
+chuẩn tắc, mỗi cái kiểm bằng **hai** vector golden: **Thai Nguyên = Can trụ tháng
++1, Chi trụ tháng +3**; **Cung Mệnh Chi = (5 − ChiTrụTháng − ChiGiờ) mod 12**
+(Tý=0), Can lấy từ Ngũ Hổ Độn của **năm sinh**.
+
+**Bốn lỗi, không lỗi nào phá kết quả:**
+
+- ⚠ **Chú thích lịch sai theo đúng hướng sinh off-by-one.** *"đếm theo tháng
+  dương lịch của Ngũ Hổ Độn"* — "tháng 2 – 1992" của sách là **chỉ số tháng theo
+  tiết lệnh** (tháng 1 = Dần), tức tháng Mão; đọc là tháng 2 dương lịch thì rơi
+  vào tháng **Dần** và ra **Tân Dần**, không phải Tân Mão. Chú thích của draft
+  phá chính ví dụ mà draft dẫn ra để chứng minh nó. Cách sửa xoá hẳn vấn đề: Thai
+  Nguyên **không cần lịch nào cả**, nó là số học trên trụ tháng dự án đã
+  golden-test.
+- ⛔ **"năm Bính Tân 1991"** — chép nhầm một **nhóm Ngũ Hổ Độn** thành trụ năm.
+  1991 là **Tân Mùi**; "Bính Tân" không phải Can Chi (cả hai đều là Thiên Can).
+  Cùng khuôn mẫu §B6 (*"lục thân"*): sai đường đi, đúng đích đến — Mậu Tuất vẫn
+  đúng.
+- ⚠ **"Bằng chứng nội bộ nhất quán giữa hai chương" nói quá:** ví dụ Chương 8
+  dùng **đúng trụ tháng và đúng năm** của VD2 Chương 9, mà Thai Nguyên chỉ phụ
+  thuộc trụ tháng — *cùng một ca*, không phải hai nhân chứng.
+- ⚠ **Sai trang mục III** (tr.292, không phải tr.291-292) — và chỗ trang bị
+  "mượn" chính là bảng bị bỏ sót ngay dưới đây.
+
+**Sáu phát hiện mới:**
+
+- **Cả một bảng 12 sao theo Chi Cung Mệnh nằm ngay trên tr.291-292**, draft
+  không nhắc một chữ. Đó là **mục dễ implement nhất trong toàn vùng R22** (ánh xạ
+  tất định 1-1, không phụ thuộc R1/R20) — **và nó va tên với sao số một của
+  R22**: Cung Tuất mang "**Sao thiên ất**", khác hẳn **Thiên Ất Quý Nhân** (9.I),
+  trong khi ví dụ mẫu của chính Chương 8 lại rơi đúng vào Cung Tuất.
+- **Một ví dụ Thai Nguyên thứ hai** (tr.290-291, trụ tháng Canh Dần → **Tân
+  Tỵ**). Vì dùng tháng khác, đây mới là vector thật sự ghim được quy tắc +3.
+- **Cung Mệnh của VD2 Chương 9 cũng tái tạo được** → **Giáp Ngọ**, khớp con số
+  sách in ở tr.296. Giờ sinh khác với ví dụ Chương 8 nên đây **mới là** xác nhận
+  chéo hai chương thật sự. Mỗi đại lượng nay có **hai** vector golden.
+- **Va chạm thuật ngữ chạm CLAUDE.md §2:** "Cung Mệnh" Bát Tự **≠** 命宮 Tử Vi.
+  Cách của 紫微斗數全書 (đã trích ở mục R4 của chính `RESEARCH_BLOCKERS.md`) khởi
+  ở **Dần**, đếm **thuận**, rồi đếm **nghịch** theo giờ; Chương 8 khởi ở **Tý**,
+  đếm **nghịch**, rồi **thuận** tới Mão. Cùng đầu vào cho **Tỵ** vs **Tuất**.
+  Phải là hai type tách bạch.
+- **Bảng Nạp Âm 60 Giáp Tý có hộ tiêu thụ thứ ba.** Sách luận Thai Nguyên bằng
+  cách so Nạp Âm của nó với Nạp Âm trụ **năm** ("mệnh"), hai quy gán mẫu đều
+  đúng. Khuyến nghị ở `VERIFICATION_OPUS_R21.md` §C4 (nâng thành mục dữ liệu dùng
+  chung) nay có ba engine cần, không nên để trôi.
+- **Nền Rule D ở đây MẠNH hơn nền của chính tập sao mà nó phục vụ.** tr.290 tác
+  giả loại bỏ bốn trong sáu cung truyền thống, dẫn *Tam mệnh thông hội*, rồi cam
+  kết dứt khoát: *"hai cung mệnh và thai nguyên trong khi dự đoán **nhất thiết
+  phải có**"* — ngược hẳn với việc ông **từ chối áp đặt** bảng Thần Sát (§B4).
+
+**Đóng thêm một mục ở §F:** trụ **ngày** của cả hai ví dụ mẫu tr.296 (trước ghi
+là "chưa kiểm được, cần chạy `destiny-calendar`") nay đã kiểm bằng tay theo vòng
+60 — VD1 → **Giáp Tuất**, VD2 → **Nhâm Thân**, cả hai khớp. Cả bốn trụ của cả hai
+ví dụ nay đều đã kiểm độc lập; vẫn phải chạy `destiny-calendar` xác nhận trước
+khi ghim golden test.
+
+**Blocker §B3 gỡ được thật, nhưng gỡ KHÔNG đều — đây là điểm vận hành:**
+**Thai Nguyên sạch** (số học thuần trên trụ tháng, không thêm phụ thuộc lịch
+nào, sẵn sàng implement). **Cung Mệnh đủ về cơ học nhưng còn nợ một quyết định
+Rule D chưa ai nêu:** bước 1 ăn vào một **số thứ tự tháng (1-12)** mà sách
+**không nói** là tháng âm lịch hay tháng tiết lệnh; cả hai ví dụ đều sinh tháng
+11/1991, đúng chỗ hai cách trùng nhau, nên **nguồn không phân xử được**. Lệch 1
+tháng ⇒ lệch 1 Chi ⇒ sai hẳn kết quả. Đây là quyết định **của dự án**, phải khai
+báo là của dự án, và nó chạm **R16** (chính sách tháng nhuận).
+
+**R22 giữ nguyên `RESEARCH_REQUIRED`** — xác minh này chỉ đụng tới lý do (a)
+trong ba lý do ở §E; (b) nền Rule D yếu của tập 33 sao và (c) 31/33 bảng chỉ một
+nguồn đều không đổi. Cũng chưa đối chiếu nguồn thứ hai cho cả hai đại lượng, và
+chưa có ví dụ biên (sát tiết khí / tháng nhuận). Không thay đổi code.
+
+### Nghiên cứu — mở mã R23 (Tiểu Vận), tách khỏi R21 theo quyết định chủ dự án
+
+R21's Chapter 7 reading (2026-08-25) surfaced Tiểu Vận (小運, a per-year luck
+cycle for children before Đại Vận starts) with no research id at all and
+recommended, but did not decide, whether it needed its own code. Chủ dự án
+chọn mở mã riêng **R23** (`docs/research_drafts/R23_tieu_van.md`, split out
+of `R21_chuong7_luu_nien.md` §6, no new findings beyond that section) rather
+than folding it into R21 — same precedent as R20/R21/R22 staying separate
+despite sharing a source chapter cluster. Registered in
+`docs/RESEARCH_BLOCKERS.md` as `RESEARCH_REQUIRED`. Chưa qua xác minh Opus,
+chưa có thay đổi code.
+
+### Nghiên cứu — R21 (Lưu Niên/Đại Vận): đọc trọn Chương 7 sách nguồn R1/R3/R22, cộng gỡ blocker Thai Nguyên/Cung Mệnh của R22
+
+Sau khi xác minh R22 chỉ ra Chương 7 "Bàn về Vận" (tr.274-289, cùng cuốn sách
+đã dùng cho R1/R3/R22) bàn gần trọn nội dung R21, đọc toàn bộ 16 trang
+(`docs/research_drafts/R21_chuong7_luu_nien.md`, DRAFT, chưa qua xác minh
+Opus).
+
+**Xác nhận chéo độc lập:** một cổ thư thứ hai (*Tam Mệnh Thông Luận*, "Thái
+tuế là quân, đại vận là thần") xác nhận cùng kết luận đã tìm ở 滴天髓 rằng
+Lưu Niên/Thái Tuế quan trọng hơn Đại Vận.
+
+**Trả lời một câu hỏi 滴天髓 chưa từng hỏi:** Thái Tuế là Can hay Chi của Lưu
+Niên? Tác giả trình bày cả hai lập luận cổ điển rồi tự chọn **Chi** — lập
+trường cá nhân, không phải đồng thuận, ghi rõ như vậy.
+
+**Một phản ví dụ cụ thể bác bỏ luật "Can quản 5 năm đầu, Chi quản 5 năm sau"
+của Đại Vận** — tác giả chứng minh bằng ví dụ thực tế rằng cả Can lẫn Chi tác
+dụng suốt cả 10 năm. Không cần sửa code (R2 đã đóng, `LuckPillar` không mang
+verdict) nhưng cần ghi nhớ để không lặp giả định 5/5 sau này.
+
+**Bộ 17 quy tắc đánh giá tốt/xấu** cho tương tác Đại Vận/Lưu Niên/Mệnh Cục,
+tự nhận là đơn giản hóa của riêng tác giả, mọi quy tắc đều cần Hỉ/Kị Thần
+(R1) hoặc Hợp/Xung/Hình/Hại (R20) làm đầu vào — chưa implement được, nhưng đã
+transcribe đầy đủ làm nguyên liệu cho sau này.
+
+**Hai khái niệm hoàn toàn chưa có mã nghiên cứu**, cùng dạng phát hiện với
+đợt rà soát mở R20-R22 ngày 2026-08-23:
+- **Tiểu Vận (小運)** — chu kỳ vận theo từng năm cho trẻ em trước tuổi Đại
+  Vận. Hai trường phái cạnh tranh, tác giả bác bỏ một (Uyên Hải Tử Bình,
+  điểm khởi cố định) và chọn một (Mệnh Lý Thám Nguyên, theo giờ sinh) — cùng
+  dạng lựa chọn trường phái cá nhân như R22. Đề xuất mã R23 hoặc gộp vào
+  R21, chưa tự quyết ở đây.
+- **Khung "tứ hạn theo 4 trụ"** (mỗi trụ quản một giai đoạn tuổi) — chỉ có
+  một chú thích ngắn, chưa rõ nguồn, cần điều tra thêm.
+
+**Gỡ một điều kiện chặn của R22:** `VERIFICATION_OPUS_R22.md` chỉ ra dự án
+chưa hề tính Thai Nguyên/Cung Mệnh dù sao đầu tiên đã cần chúng. Đọc trọn
+Chương 8 (tr.290-292, cùng sách) xác nhận cả hai đại lượng đặc tả đầy đủ, có
+ví dụ mẫu tự nhất quán và khớp chéo với ví dụ đã dùng ở Chương 9 — cập nhật
+vào `R22_shen_sha.md`.
+
+Trạng thái R21 và R22 không đổi (`RESEARCH_REQUIRED`), chưa qua xác minh
+Opus, chưa có thay đổi code.
+
+### Nghiên cứu — R21 + R23 qua xác minh Opus: mọi trích dẫn đúng nguyên văn, nhưng cấu trúc quanh chúng thì không; R23 lên `DECISION_REQUIRED`, R21 giữ nguyên
+
+`docs/research_drafts/VERIFICATION_OPUS_R21.md`. Đọc lại **trọn Chương 7
+(tr.274-289) ở 300dpi**, hai đoạn quyết định ở 600dpi, độc lập với hai bản
+draft, tái tạo bằng tay mọi ví dụ bằng vòng 60 Giáp Tý / Ngũ Hổ Độn / Ngũ Thử
+Độn.
+
+**Xác nhận đúng:** **mọi câu đặt trong dấu nháy đều có thật, đúng từng chữ,
+đúng ngữ cảnh — không có một câu bịa nào** (ở hạng mục này hai draft vượt cả
+R22). Câu *Tam Mệnh Thông Luận* có thật, và luận điểm "Thái Tuế quan trọng hơn
+Đại Vận" nay có **bốn** chỗ chống đỡ chứ không phải một. Mục IV đúng **8/8 ca**,
+7/8 đúng nội dung. Chu kỳ tái diễn ở §IV.5 **tái tạo chính xác từng con số**.
+
+**Mẫu lỗi vòng này khác hẳn R22** (R22: *dừng đọc giữa chừng một đoạn dài*):
+đây là **"đọc đúng từng câu, sai ở cấu trúc giữa các câu"**, và nó hỏng đúng
+những chỗ implementer chạm vào trước tiên:
+
+- **"Bộ 17 quy tắc" không phải một danh sách của sách.** Sách có **ba** danh
+  sách rời dưới ba tiêu đề in đậm khác nhau (**3 + 2 + 17**, tr.281-283).
+  Draft ghép B+C nên **bỏ hẳn danh sách A** — trường hợp cơ sở, tức nhánh
+  `else` của cả tầng đánh giá — **đánh rơi hai quy tắc cuối của C** (quy tắc
+  16 "phạm tuế quân"; quy tắc 17, quy tắc dương tính duy nhất **và** là mục
+  duy nhất không phụ thuộc R1) và **lệch số hiệu −2** từ mục 3 trở đi. Vì cả
+  hai con số đều là 17, không có tín hiệu nào báo chúng khác nhau.
+- **Xuất xứ bị gán sai:** bộ quy tắc **không phải của tác giả** — sách ghi rõ
+  chép lại từ *Bát Tự Tinh Giải* và *Khán Lưu Niên Đại Vận* "để độc giả tham
+  khảo"; câu *"Tôi căn cứ thực tiễn của bản thân"* thuộc về quy tắc **thứ tự
+  ưu tiên**, không thuộc về danh sách nào. Đúng khuôn mẫu Rule D đã bắt ở R22:
+  không thể biện minh bằng "theo trường phái đã chọn cho R1/R3". Bù lại, nay
+  có **hai tên sách cụ thể** để đi tìm bản gốc.
+- **Quy tắc 1 của draft bị chính tác giả bác bỏ ba trang sau** (*"Điều này rõ
+  ràng không đúng"*), và nó mâu thuẫn trực tiếp với phát hiện số 1 của chính
+  draft — mâu thuẫn nằm trong cùng một file mà draft không nêu.
+- **"Tác giả bác bỏ luật 5/5" chỉ đúng một nửa:** cùng cuốn sách nêu luật ấy
+  **hai lần** như tiền đề vận hành, một lần kèm **trọng số 70/30 code được**
+  (tr.281). Lập trường thật là "phân chia 5/5 **không độc quyền**", không phải
+  "không có phân chia" — 70/30 và 50/50-suốt-10-năm là hai công thức khác nhau.
+- **Phản ví dụ bị chép ngược hai vế:** bản của sách nhất quán, **bản của draft
+  tự mâu thuẫn** — cùng loại lỗi `VERIFICATION_OPUS_R3.md` đã bắt ở Ví dụ 1
+  của R3.
+- **Bản đồ vị trí→quan hệ** sai trang (tr.287, không phải tr.282-283), sai
+  phạm vi, và **sách có HAI bản đồ không tương thích** cách nhau bốn trang.
+  Đây vốn là mục *duy nhất* draft đánh giá "sẵn sàng tách ra dùng ngay".
+- **Khung "tứ hạn"**: bốn con số đúng nhưng ở tr.284 và **sai hẳn vai trò** —
+  ba chữ "Trong vận hạn này" cho thấy nó **định nghĩa** chữ "vận hạn" mà quy
+  tắc 7/8/15 dùng. Nó không sinh ra mã R mới; nó là phần đặc tả còn thiếu của
+  chính R21.
+- **R23 — chiều đếm:** *"đối xứng ngược với hướng Đại Vận"* **sai hẳn**. tr.279
+  nói **giống hệt** Đại Vận và nói chính điều đó như **lý do để chọn** phương
+  pháp; cái khác là **điểm neo** (trụ giờ thay vì trụ tháng). 4/4 ví dụ xác
+  nhận bằng số học.
+- **R23 — điểm khởi sai cả hai vế:** không phải "Chi của giờ sinh" mà là **trọn
+  Can Chi trụ giờ, dịch MỘT bước** trong vòng 60. Code theo draft sẽ lệch
+  **đúng một tuổi trên toàn chuỗi, cho mọi người**.
+- **R23 — ví dụ mẫu:** không phải 2 ví dụ ở tr.278-279 mà là **BỐN, tất cả ở
+  tr.279**; hai ví dụ tr.278 là ví dụ **Đại Vận**, thuộc **R2**. Draft cũ chỉ
+  xác nhận chúng *tồn tại*; nay đã **chép trọn cả bốn, kiểm từng ô bằng tay**,
+  gồm một vector biên vòng 60.
+
+**Đóng được một câu hỏi để mở và sửa một phạm vi:** Tiểu Vận **có** mang
+cát/hung (*"đại vận là sự cát hung trong 10 năm, tiểu vận là hoạ phúc trong
+một năm"*) — không phải marker trần như `LuckPillar` — và nó chạy **suốt đời**,
+không chỉ trước Đại Vận như cả hai draft lẫn `RESEARCH_BLOCKERS.md` mô tả.
+
+**Bổ sung mới không draft nào có:** **thứ tự ưu tiên ba tầng** do chính tác giả
+nêu (Lưu Niên > Đại Vận > Tiểu Vận, Tiểu Vận là tín hiệu *hỗ trợ* — ràng buộc
+thật cho tầng fusion), và Dụng Thần được xét **sau** tầng hình/xung/khắc/hợp,
+chống lưng trực tiếp cho tách "cơ học vs đánh giá" của R20/R21; **thang severity
+thật của mục IV** mà draft bỏ sót — bất đối xứng theo **chiều khắc** ("thái tuế
+khắc tôi" nhẹ, "tôi khắc thái tuế" nặng), tất định và là mảnh codable nhất của
+cả mục; Tiểu Vận đánh chỉ số theo **tuổi hư**, mốc tăng tuổi phải dùng cùng
+ranh giới năm với Bát Tự (R18) nếu không sẽ lệch pha với Lưu Niên; và một **tầng
+đánh giá thứ hai chạy trên Nạp Âm** (tr.280) cạnh tranh với tầng Dụng Thần, cần
+**bảng Nạp Âm 60 Giáp Tý** dự án chưa có — nay chặn mục thứ hai ở một engine
+khác, nên phải coi là **dữ liệu dùng chung**, không phải chi tiết riêng của R4a.
+
+**Hai phụ thuộc được sửa:** mục IV ca 6 ("kiếp, sát, thương, kiêu") là bốn hung
+thần của **Thập Thần** — thứ dự án **đã tính được** — **không** phải Thần Sát,
+nên ca này **không phụ thuộc R22** chút nào; ngược lại ca 7 có thêm một điều
+kiện vận hành mà draft bỏ sót, và điều kiện đó *thì* cần R22 (Kình Dương).
+
+**Hai lỗi in mới** (nâng tổng đã xác nhận trong cuốn sách này lên 6, và cho thấy
+mật độ lỗi in **không** giới hạn ở Chương 9-10 như R22 draft phỏng đoán): tr.286
+("canh thìn" không thể xung "giáp tí" — gần như chắc chắn là Canh Ngọ; **không
+dùng làm test vector**) và tr.279 ("ngày kỉ tị" phải là "giờ kỉ tị"). Không tự
+sửa, ghi nguyên trạng theo Rule C.
+
+**Nâng hạng nguồn cho R2 đã đóng:** tr.277-278 in **nguyên văn** chuỗi quy đổi
+Kiểu A (3 ngày = 1 năm, 1 ngày = 4 tháng, 1 canh giờ = 10 ngày) và gọi thẳng
+đó là cách **"chính xác hơn"**, kèm ví dụ tái tạo được từng vế. Quyết định của
+R2 chuyển từ "suy ra từ thực hành" sang "**được nguồn sơ cấp phát biểu trực
+tiếp**". Đồng thời thu hẹp cách diễn đạt của R2 (*"rounding descriptions appear
+only in prose, never in a worked example"* — Chương 7 có **ba** ví dụ có đáp án
+áp dụng làm tròn) mà **không** đổi kết luận: sách vận hành **hai tầng chính
+sách**, đúng như R2 đã chọn.
+
+**Trạng thái:** **R21 giữ nguyên `RESEARCH_REQUIRED`** — cố ý *không* nâng như
+R3/R12, vì xuất xứ bộ quy tắc vừa đổi sang hai cuốn chưa từng đọc, nguồn tự mâu
+thuẫn ở hai chỗ vận hành, hai bản đồ không tương thích, và Lưu Nguyệt/Lưu Nhật
+vẫn hoàn toàn trắng. **R23 chuyển `RESEARCH_REQUIRED` → `DECISION_REQUIRED`,
+chỉ tầng cơ học** — công thức điểm khởi, quy tắc chiều, chỉ số tuổi, vị trí
+trong thứ tự ưu tiên và 4 golden vector đều đã chốt; còn **đúng một** quyết
+định Rule D (*Mệnh Lý Thám Nguyên* vs *Uyên Hải Tử Bình*). Tầng cát/hung vẫn
+gated trên R1, và vẫn chỉ một nguồn. Chưa có thay đổi code.
+
+**Còn nợ:** phần **Chương 8 (Thai Nguyên/Cung Mệnh, tr.290-292)** mà
+`R22_shen_sha.md` bổ sung để gỡ blocker §B3 của R22 **chưa được Opus xác
+minh** — `VERIFICATION_OPUS_R21.md` trỏ sang một mục *"Addendum Opus
+(2026-08-25)"* trong `VERIFICATION_OPUS_R22.md` mà mục đó chưa từng được viết.
+Đừng coi blocker Thai Nguyên/Cung Mệnh là đã gỡ.
+
+### Nghiên cứu — R22 (Thần Sát): câu hỏi trường phái có câu trả lời, không phải `NOT_APPLICABLE`; đọc trực tiếp PDF gốc sau khi chủ dự án bổ sung file
+
+Mục R22 (chưa điều tra vòng nào, có thể đóng bằng `NOT_APPLICABLE`) được mở
+theo yêu cầu chủ dự án. Vòng đầu (web research) tìm ra một phân kỳ trường phái
+thật giữa ba cổ thư tham chiếu của dự án: 滴天髓 xác nhận từ toàn văn **không**
+dùng Thần Sát; 子平真詮 không có chương riêng và có lập trường phê phán; 淵海子平
+dùng rất nhiều. Một ấn bản khác cùng tác giả Thiệu Vĩ Hoa (lấy qua web) cho
+thấy trường phái đã chọn cho R1/R3 **có** dùng — nghĩa là `NOT_APPLICABLE`
+không phải một lựa chọn trung thực cho mục này.
+
+Giữa phiên, chủ dự án copy trực tiếp file PDF gốc
+(`Dự-đóan-theo-tứ-trụ-thiệu-vỹ-hoa-bản-đẹp.pdf`, đúng cuốn đã dùng cho
+R1/R3) vào thư mục dự án. Đọc trực tiếp (ảnh từng trang qua PyMuPDF, không
+OCR/tóm tắt, cùng phương pháp R1/R3) xác nhận và làm mạnh thêm phát hiện
+trên: sách dành **Chương 9 "Bàn về Cát Thần"** (19 mục, tr.293-311) và
+**Chương 10 "Bàn về Hung Sát"** (14 mục, tr.313-326) — 33 sao được đặt tên,
+ngay trước Chương 11 (nguồn R1/R3). Tác giả tự nêu lập trường rõ ràng ở đầu
+Chương 9 (không phải quyết định vận mệnh, cũng không bịp bợm — một lớp bổ trợ
+có điều kiện) và tự ghi nhận ít nhất hai tranh chấp cách tính giữa các sách
+ngay trong chính văn (Thiên Ất Quý Nhân, Thiên La Địa Võng).
+
+**Một bảng đối chiếu qua ≥3 nguồn web độc lập ở vòng đầu bị chính sách gốc bác
+bỏ:** bảng Thiên Ất Quý Nhân phổ biến trên web gộp Canh vào nhóm Giáp/Mậu,
+nhưng sách (theo Uyên Hải Tử Bình) gộp Canh với Tân thay vào đó, và tự ghi
+nhận đây là điểm các sách nói khác nhau. Nhiều nguồn web khớp nhau không đủ để
+thay thế việc đọc trực tiếp nguồn đã chọn — chúng có thể cùng chép theo dị bản
+mà chính nguồn đó đã biết và không dùng. (Trạch Mã/Dịch Mã thì khớp đúng giữa
+web và sách — không phải mọi đối chiếu web đều sai, chỉ riêng trường hợp này.)
+
+Đọc tiếp trong cùng phiên cho tới hết cả 33/33 mục (`docs/research_drafts/R22_shen_sha.md`).
+**Hai bảng tra (Hàm Trì, Tứ Phế)** có ký tự phá vỡ đúng quy luật mà các dòng
+khác trong chính bảng đó tuân theo — đã xác nhận ở ảnh 300dpi (không phải lỗi
+đọc ảnh), không tự sửa theo suy luận cấu trúc (Rule C), cần đối chiếu nguồn
+khác ở vòng sau. Tìm được 2 ví dụ tính mẫu đầy đủ tứ trụ cho Thiên Ất Quý
+Nhân (sinh 1985, 1991) và ví dụ Nhạc Phi cho Kình Dương — ứng viên golden
+test. Trạng thái không đổi: `RESEARCH_REQUIRED`, DRAFT.
+
+### Nghiên cứu — R22 qua xác minh Opus: cấu trúc đúng 33/33, ví dụ mẫu đứng vững, nhưng hai lỗi nghiêm trọng
+
+`docs/research_drafts/VERIFICATION_OPUS_R22.md`. Đọc lại nguồn sơ cấp ở
+**300dpi** độc lập với bản draft, cộng toàn bộ mục lục sách (tr.674-675).
+
+**Xác nhận đúng:** cấu trúc 33 mục và **từng số trang** khớp chính xác mục lục
+gốc; các trích dẫn lập trường tác giả đúng nguyên văn; và — khác hẳn R3, nơi
+golden test đề xuất bị bác bỏ — **cả hai ví dụ mẫu đều tái tạo được**: trụ
+tháng suy đúng từ trụ năm qua Ngũ Hổ Độn và trụ giờ suy đúng từ trụ ngày qua
+Ngũ Thử Độn, cho cả hai lá số. Lá số Nhạc Phi cũng nhất quán, trụ năm khớp
+1103 CE = Quý Mùi từ sử liệu độc lập.
+
+**Hai lỗi nghiêm trọng, cùng một nguyên nhân — dừng đọc giữa chừng một đoạn
+dài:**
+- **Mục Kình Dương là kết luận NGƯỢC HẲN.** Đọc hết tr.315 cho thấy tác giả
+  **bảo vệ** cuốn sách trước của mình chứ không sửa nó: *độc giả* nói ông sai,
+  ông dẫn ba cổ thư rồi kết luận cách cũ **là đúng**. Hai cuốn nói giống nhau —
+  không có "tự nhận sai", không có "hai phiên bản". Cùng loại lỗi mà
+  `VERIFICATION_OPUS.md` từng bắt ở hàng Nhâm bảng Tứ Hóa (R4b). Bảng tra thì
+  không sai; và xác minh phát hiện sách nêu **một** quy tắc thống nhất (Kình
+  Dương = ngôi Đế Vượng của Can ngày, can âm chạy nghịch) thay vì hai bảng rời.
+- **Ví dụ 2 bị ghi kết quả trung gian thay vì kết luận của sách.** Sách đi
+  tiếp: tứ trụ không có quý nhân thì xét **Thai Nguyên** và **Cung Mệnh**, và
+  kết luận lá số này **CÓ** quý nhân. Golden test ghim theo draft sẽ ghim
+  **ngược verdict của nguồn** — đúng cái bẫy `VERIFICATION_OPUS_R3.md` đã bắt
+  ở Ví dụ 1 của R3, chỉ khác chiều.
+
+**Một điều kiện chặn chưa từng được báo:** `grep` toàn bộ mã nguồn không có
+`ThaiNguyen`/`CungMenh` nào — dự án chưa hề tính hai đại lượng này, trong khi
+chúng nằm ngay **Chương 8, tr.290-292**, ba trang trước chương đã đọc.
+Implement trung thực chỉ riêng sao đầu tiên đã cần chúng.
+
+**Hai bỏ sót làm đổi khung Rule D (phát hiện quan trọng nhất):** tác giả
+**từ chối áp đặt** bảng của mình ("không cưỡng gán phải thống nhất với nhau…
+tự do lựa chọn cho thích hợp") và mô tả tập 33 sao là **bản tổng hợp của chính
+ông** từ sách hiện đại + sách cổ + kinh nghiệm, "xin giới thiệu để tham khảo".
+Do đó **không thể** biện minh việc dùng bảng này bằng lý do "theo trường phái
+đã chọn cho R1/R3" — chính tác giả của trường phái đó không coi nó là bắt
+buộc. Nếu dùng, đó là lựa chọn **của dự án** và phải khai báo như vậy. Nền
+tảng yếu hơn R3 một bậc.
+
+**Mật độ lỗi in có ý nghĩa vận hành:** bốn lỗi in đã xác nhận trong 34 trang,
+hai trong số đó nằm ngay trong đoạn được đề xuất làm golden test.
+
+**Trạng thái giữ nguyên `RESEARCH_REQUIRED`** — cố ý *không* nâng lên
+`DECISION_REQUIRED` như R3/R12 sau xác minh, vì điều kiện chặn Thai Nguyên/Cung
+Mệnh, vì nền Rule D yếu hơn tưởng, và vì 31/33 bảng vẫn chỉ có một nguồn.
+Xác minh này là kiểm có trọng điểm các khẳng định rủi ro cao nhất
+(27/33 bảng chưa đọc lại ở 300dpi), **không phải** một cuộc rà từng ô. Chưa có
+thay đổi code. Việc giá trị nhất kế tiếp: đọc Chương 8 (3 trang, gỡ điều kiện
+chặn) rồi Chương 23 tìm lá số có tính Thần Sát đầy đủ.
+
 ### Added — Nâng cấp UX Trung tâm quyết định (`destiny-web`, không đổi methodology)
 
 Phản hồi người dùng thật (giao diện đơn điệu, thiếu hình ảnh Tarot/Kinh Dịch,

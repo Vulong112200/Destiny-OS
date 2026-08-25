@@ -102,6 +102,33 @@ class NumerologyEngineTest {
     }
 
     @Test
+    @DisplayName("Every number's evidence carries the authored meaning content, not just its value")
+    void evidenceIncludesAuthoredMeaning() {
+        var input = new NumerologyInput("Lê Văn Bình", LocalDate.of(2000, 1, 1));
+        var result = engine.calculate(input, context());
+
+        // Every (type, value) pair the engine can produce is authored in
+        // NumerologyNumberMeanings (see its own class javadoc), so all 5
+        // pieces of evidence must carry a non-empty "meaning" fact - this is
+        // the wiring NumerologyEngine.buildEvidence was previously missing.
+        assertThat(result.evidence()).hasSize(5);
+        assertThat(result.evidence()).allSatisfy(ev -> {
+            assertThat(ev.fact()).containsKey("value");
+            assertThat(ev.fact()).containsKey("isMasterNumber");
+            assertThat(ev.fact()).containsKey("meaning");
+
+            @SuppressWarnings("unchecked")
+            var meaning = (java.util.Map<String, Object>) ev.fact().get("meaning");
+            assertThat(meaning).containsKey("keywords");
+            assertThat(meaning).containsKey("text");
+            assertThat(meaning).containsKey("polarity");
+            assertThat((List<?>) meaning.get("keywords")).isNotEmpty();
+            assertThat((String) meaning.get("text")).isNotBlank();
+            assertThat((String) meaning.get("polarity")).isNotBlank();
+        });
+    }
+
+    @Test
     @DisplayName("Metadata names a real school and source, matching the registry seed")
     void metadataNamesSchoolAndSource() {
         var metadata = engine.metadata();

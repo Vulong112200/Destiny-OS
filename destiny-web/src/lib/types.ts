@@ -156,6 +156,36 @@ export interface NumerologyRequestInput {
   birthDate: string;
 }
 
+export type NumerologyNumberTypeName =
+  | "LIFE_PATH"
+  | "EXPRESSION"
+  | "SOUL_URGE"
+  | "PERSONALITY"
+  | "BIRTHDAY";
+
+/**
+ * The authored Vietnamese content for one computed number
+ * (`NumerologyNumberMeanings.java`), as it arrives inside
+ * `EvidenceDto.fact.meaning`. Absent from the fact entirely — not present
+ * with empty fields — for the rare (type, value) pair with no authored entry,
+ * matching how `TarotCardMeaning` handles the same case.
+ */
+export interface NumerologyMeaningFact {
+  keywords: string[];
+  text: string;
+  /** `Polarity` technical name, e.g. "SUPPORT" — pair with `labels.Polarity` for the Vietnamese label. */
+  polarity: string;
+}
+
+/** Shape of `EvidenceDto.fact` for ruleId `NUMEROLOGY_*` (`NumerologyEngine.buildEvidence`). */
+export interface NumerologyNumberFact {
+  value: number;
+  isMasterNumber: boolean;
+  /** Only present for EXPRESSION/SOUL_URGE/PERSONALITY, which are derived from the name. */
+  normalizedName?: string;
+  meaning?: NumerologyMeaningFact;
+}
+
 export type TarotSpreadName = "PAST_PRESENT_FUTURE" | "CHOICE_A_B" | "SITUATION_CHALLENGE_ADVICE";
 
 export interface TarotRequestInput {

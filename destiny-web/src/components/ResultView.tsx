@@ -4,6 +4,7 @@ import { BaziChartCard } from "./BaziChartCard";
 import { BatTrachCard } from "./BatTrachCard";
 import { IChingChartCard } from "./IChingChartCard";
 import { LabeledBadge } from "./LabeledBadge";
+import { NumerologyResultCard } from "./NumerologyResultCard";
 import { RetentionNotice } from "./RetentionNotice";
 import { TarotResultCard } from "./TarotResultCard";
 
@@ -150,6 +151,9 @@ export function ResultView({
 
       {/* Same contract: renders nothing when Tarot did not take part. */}
       <TarotResultCard evidence={result.evidence} />
+
+      {/* Same contract: renders nothing when Numerology did not take part. */}
+      <NumerologyResultCard evidence={result.evidence} labels={labels} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Nguồn đóng góp</h2>

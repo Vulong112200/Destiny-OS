@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -92,16 +93,18 @@ public final class NumerologyEngine implements MetaphysicalEngine<NumerologyInpu
     private static void addNumber(List<Evidence> evidence, List<Signal> signals, String ruleId,
                                   NumerologyResult result, NumerologyProfile profile) {
         String evidenceId = UUID.randomUUID().toString();
-        evidence.add(buildEvidence(evidenceId, ruleId, result, profile));
+        Optional<NumerologyNumberMeaning> meaning =
+                NumerologyNumberMeanings.of(result.type(), result.value());
+        evidence.add(buildEvidence(evidenceId, ruleId, result, profile, meaning));
 
-        NumerologyNumberMeanings.of(result.type(), result.value()).ifPresent(meaning ->
+        meaning.ifPresent(m ->
                 signals.add(new Signal(
                         UUID.randomUUID().toString(),
                         ENGINE_ID,
                         METADATA.school(),
                         Dimension.OTHER,
                         ruleId,
-                        meaning.polarity(),
+                        m.polarity(),
                         Strength.MEDIUM,
                         Applicability.HIGH,
                         false,
@@ -111,7 +114,7 @@ public final class NumerologyEngine implements MetaphysicalEngine<NumerologyInpu
     }
 
     private static Evidence buildEvidence(String evidenceId, String ruleId, NumerologyResult result,
-                                          NumerologyProfile profile) {
+                                          NumerologyProfile profile, Optional<NumerologyNumberMeaning> meaning) {
         Map<String, Object> fact = new LinkedHashMap<>();
         fact.put("value", result.value());
         fact.put("isMasterNumber", result.isMasterNumber());
@@ -119,6 +122,22 @@ public final class NumerologyEngine implements MetaphysicalEngine<NumerologyInpu
                 && result.type() != NumerologyNumberType.BIRTHDAY) {
             fact.put("normalizedName", profile.normalizedName().displayForm());
         }
+        // The authored Vietnamese content itself (NumerologyNumberMeanings) was
+        // previously only consumed internally to derive Signal polarity, then
+        // discarded - never reaching the API response, so the frontend had
+        // nothing to render beyond the bare number. Exposing it here is not new
+        // content, just no longer throwing away content that already exists -
+        // the same fix TarotEngine.buildEvidence applies to TarotCardMeaning.
+        // Evidence.fact goes through Map.copyOf (disallows null values), so a
+        // (type, value) pair with no authored meaning omits the "meaning" key
+        // entirely rather than mapping it to null.
+        meaning.ifPresent(m -> {
+            Map<String, Object> meaningFact = new LinkedHashMap<>();
+            meaningFact.put("keywords", m.keywords());
+            meaningFact.put("text", m.meaning());
+            meaningFact.put("polarity", m.polarity().name());
+            fact.put("meaning", meaningFact);
+        });
 
         return new Evidence(
                 evidenceId,
