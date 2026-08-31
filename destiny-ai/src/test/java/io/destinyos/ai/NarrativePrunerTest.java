@@ -18,12 +18,15 @@ class NarrativePrunerTest {
 
     private static NarrativeSignalItem signal(String engine, Dimension dimension, Polarity polarity,
             Strength strength, boolean critical, String tag) {
+        // No authored title/meaning: pruning ranks by critical/strength/
+        // dimension only, and must keep doing so for a signal from an engine
+        // that authored no interpretive text at all.
         return new NarrativeSignalItem(engine, dimension, dimension.name(), polarity, polarity.name(),
-                strength, strength.name(), critical, tag);
+                strength, strength.name(), critical, tag, null, null);
     }
 
     private static NarrativeInput inputWith(List<NarrativeSignalItem> signals, Set<Dimension> relevantDimensions) {
-        return new NarrativeInput("Kich ban thu", relevantDimensions, Map.of(), signals, List.of(), List.of(),
+        return new NarrativeInput("Kich ban thu", null, null, relevantDimensions, Map.of(), signals, List.of(), List.of(),
                 List.of(), Map.of());
     }
 
@@ -161,7 +164,7 @@ class NarrativePrunerTest {
     @DisplayName("Conflicts, warnings and limitations pass through untouched - never pruned")
     void passesThroughNonSignalFields() {
         var conflict = new NarrativeConflictItem("Xung dot truc tiep", "CAREER", List.of("A", "B"), "mo ta");
-        NarrativeInput input = new NarrativeInput("Kich ban", Set.of(), Map.of(), List.of(), List.of(conflict),
+        NarrativeInput input = new NarrativeInput("Kich ban", null, null, Set.of(), Map.of(), List.of(), List.of(conflict),
                 List.of("canh bao 1"), List.of("gioi han 1"), Map.of("id", "calc-1"));
 
         NarrativeInput result = NarrativePruner.prune(input);

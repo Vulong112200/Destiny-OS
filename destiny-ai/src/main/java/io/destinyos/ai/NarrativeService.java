@@ -43,13 +43,25 @@ public class NarrativeService {
 
         AiNarrativeProvider activeProvider = provider.get();
         NarrativePrompt prompt = NarrativePromptBuilder.build(pruned);
-        ProviderCallResult callResult = activeProvider.call(prompt);
+
+        // The provider is handed this service's own acceptance test so that a
+        // model returning unusable content counts as a failed model rather than
+        // a finished call. A provider with a fallback chain can then move on to
+        // the next model, which is the only place that decision can be made -
+        // by the time a result reaches the code below, the chain is over.
+        ProviderCallResult callResult = activeProvider.call(prompt, raw -> parser.parse(raw).isPresent());
 
         if (!callResult.success()) {
             return NarrativeResult.fallback(
                     HardDataNarrativeFallback.build(pruned, callResult.failureReason()), callResult.failureReason());
         }
 
+        // Re-parsed rather than trusting the predicate's verdict. Honouring
+        // usableContent is optional for a provider (see AiNarrativeProvider),
+        // so this stays the real gate; a provider that ignored the hook, or a
+        // future one with no chain to walk, is still validated here exactly as
+        // before. The cost is one repeat parse of a small JSON object on the
+        // success path only.
         Optional<NarrativeResponse> parsed = parser.parse(callResult.rawContent());
         if (parsed.isEmpty()) {
             return NarrativeResult.fallback(

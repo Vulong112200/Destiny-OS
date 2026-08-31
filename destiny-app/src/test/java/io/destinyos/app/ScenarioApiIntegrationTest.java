@@ -130,6 +130,94 @@ class ScenarioApiIntegrationTest {
     }
 
     @Test
+    @DisplayName("The user's question survives the whole round trip and reaches the narrative it produced")
+    void theUsersQuestionSurvivesFromRequestToNarrative() {
+        // The gap this closes end to end. Before this, the question was
+        // accepted by the API, handed to TarotDrawInput, read by no engine,
+        // persisted nowhere, returned in no response, and absent from
+        // NarrativeInput - so a user asking something specific got a generic
+        // reading and no trace that they had asked at all. Every hop is
+        // asserted here because the value was being lost at a different hop
+        // than anyone assumed.
+        var request = new ScenarioRunRequest(
+                new io.destinyos.api.dto.ScenarioContextRequest(
+                        "  Tôi có nên đổi việc trong năm nay không?  ", "doi-viec", "Đổi việc / nhảy việc"),
+                new NumerologyRequest("Nguyễn Văn C", LocalDate.of(1991, 3, 3)),
+                new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 42L, null),
+                null, null, null, null);
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/career", request, ScenarioRunResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ScenarioRunResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.context().question())
+                .as("trimmed once, at the API boundary")
+                .isEqualTo("Tôi có nên đổi việc trong năm nay không?");
+        assertThat(body.context().focusId()).isEqualTo("doi-viec");
+        assertThat(body.context().focusLabel()).isEqualTo("Đổi việc / nhảy việc");
+
+        // The scenario's declared scope, now actually reachable by a client.
+        assertThat(body.dimensions()).extracting(io.destinyos.api.dto.LabeledValue::labelVi)
+                .containsExactly("Sự nghiệp", "Quyết định");
+
+        // Read back from the database, not from memory: this is the hop that
+        // did not exist before V9.
+        ResponseEntity<ScenarioRunResponse> readBack = rest.getForEntity(
+                "/api/v1/calculations/" + body.calculationId(), ScenarioRunResponse.class);
+        assertThat(readBack.getBody().context().question())
+                .isEqualTo("Tôi có nên đổi việc trong năm nay không?");
+        assertThat(readBack.getBody().context().focusLabel()).isEqualTo("Đổi việc / nhảy việc");
+
+        // And into the narrative. destiny.ai.enabled is false in this profile,
+        // so this is the deterministic fallback - the text real users actually
+        // get today.
+        ResponseEntity<io.destinyos.api.dto.NarrativeResponseDto> narrative = rest.postForEntity(
+                "/api/v1/calculations/" + body.calculationId() + "/narrative", null,
+                io.destinyos.api.dto.NarrativeResponseDto.class);
+        assertThat(narrative.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        var narrativeBody = narrative.getBody();
+        assertThat(narrativeBody).isNotNull();
+        assertThat(narrativeBody.source().technical()).isEqualTo("FALLBACK");
+        assertThat(narrativeBody.summary())
+                .as("the reading must acknowledge what was asked")
+                .contains("Tôi có nên đổi việc trong năm nay không?")
+                .contains("Đổi việc / nhảy việc");
+
+        // The authored Vietnamese content the engines already produce (R11/R8)
+        // now reaches the narrative instead of being discarded at the signal
+        // boundary. Asserted through the real TarotEngine rather than a
+        // fixture: the card name and its meaning have to survive Evidence
+        // persistence, the JSON fact converter, and the signal/evidence join.
+        assertThat(narrativeBody.keySignals()).isNotEmpty();
+        assertThat(narrativeBody.keySignals())
+                .as("at least one key signal names the card it came from and what it means")
+                .anySatisfy(text -> assertThat(text).contains(" — "));
+    }
+
+    @Test
+    @DisplayName("A legacy caller that puts its question on TarotRequest still has it recorded and narrated")
+    void aLegacyTarotQuestionIsStillCarriedEndToEnd() {
+        // Backward compatibility, exercised through real HTTP because that is
+        // where an existing deployed client lives. TarotRequest.question was
+        // the only place a question could be sent before the request context
+        // existed; removing it would have broken those callers silently.
+        var request = new ScenarioRunRequest(null,
+                new io.destinyos.api.dto.TarotRequest("PAST_PRESENT_FUTURE", 42L,
+                        "Tôi có nên mở rộng kinh doanh không?"),
+                null, null, null, null);
+
+        ResponseEntity<ScenarioRunResponse> response = rest.postForEntity(
+                "/api/v1/scenarios/business", request, ScenarioRunResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().context().question())
+                .isEqualTo("Tôi có nên mở rộng kinh doanh không?");
+    }
+
+    @Test
     @DisplayName("Requesting a narrative for an unknown calculation is a 404, and reading one before it's generated is too")
     void narrativeEndpointsAre404ForUnknownOrUngeneratedCalculations() {
         ResponseEntity<io.destinyos.api.dto.NarrativeResponseDto> generate = rest.postForEntity(

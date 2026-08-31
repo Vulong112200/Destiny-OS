@@ -13,6 +13,7 @@ import io.destinyos.ai.NarrativeResponse;
 import io.destinyos.ai.NarrativeResult;
 import io.destinyos.ai.NarrativeService;
 import io.destinyos.api.dto.NarrativeResponseDto;
+import io.destinyos.core.evidence.Evidence;
 import io.destinyos.core.signal.Dimension;
 import io.destinyos.core.signal.Polarity;
 import io.destinyos.core.signal.Strength;
@@ -20,8 +21,11 @@ import io.destinyos.fusion.ConflictType;
 import io.destinyos.fusion.FusionOutcome;
 import io.destinyos.persistence.calculation.CalculationEntity;
 import io.destinyos.persistence.calculation.CalculationRepository;
+import io.destinyos.persistence.calculation.CalculationRequestContext;
 import io.destinyos.persistence.calculation.ConflictEntity;
 import io.destinyos.persistence.calculation.ConflictRepository;
+import io.destinyos.persistence.calculation.EvidenceEntity;
+import io.destinyos.persistence.calculation.EvidenceRepository;
 import io.destinyos.persistence.calculation.FusionResultEntity;
 import io.destinyos.persistence.calculation.FusionResultRepository;
 import io.destinyos.persistence.calculation.SignalEntity;
@@ -33,6 +37,7 @@ import io.destinyos.fusion.Conflict;
 import io.destinyos.fusion.FusionResult;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -48,13 +53,15 @@ class NarrativeOrchestrationServiceTest {
 
     private final CalculationRepository calculations = mock(CalculationRepository.class);
     private final SignalRepository signalRepo = mock(SignalRepository.class);
+    private final EvidenceRepository evidenceRepo = mock(EvidenceRepository.class);
     private final FusionResultRepository fusionResultRepo = mock(FusionResultRepository.class);
     private final ConflictRepository conflictRepo = mock(ConflictRepository.class);
     private final NarrativeService narrativeService = mock(NarrativeService.class);
     private final NarrativeRecorder narrativeRecorder = mock(NarrativeRecorder.class);
 
     private final NarrativeOrchestrationService service = new NarrativeOrchestrationService(
-            calculations, signalRepo, fusionResultRepo, conflictRepo, narrativeService, narrativeRecorder);
+            calculations, signalRepo, evidenceRepo, fusionResultRepo, conflictRepo,
+            narrativeService, narrativeRecorder);
 
     private static CalculationEntity calculation(String id, String scenarioId) {
         var entity = new CalculationEntity(id, "hash", "1.0", "1.0", "1.0", "Asia/Ho_Chi_Minh", Instant.now());
@@ -112,6 +119,183 @@ class NarrativeOrchestrationServiceTest {
         assertThat(input.signals()).hasSize(1);
         assertThat(input.signals().get(0).critical()).isTrue();
         assertThat(input.conflicts()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("The user's question and focus reach the narrative layer")
+    void passesTheUsersQuestionAndFocusToTheNarrativeStage() {
+        // The end of the chain the question was being lost in: accepted by the
+        // API, dropped before persistence, and therefore invisible here - which
+        // is why every narrative, AI or fallback, was written generically.
+        String calculationId = "calc-question";
+        var calculation = calculation(calculationId, "CAREER");
+        calculation.applyRequestContext(new CalculationRequestContext(
+                "Tôi có nên đổi việc không?", "doi-viec", "Đổi việc / nhảy việc"));
+        when(calculations.findById(calculationId)).thenReturn(Optional.of(calculation));
+        stubEmptyResultRows(calculationId);
+        stubFallbackNarrative();
+
+        service.generate(calculationId);
+
+        NarrativeInput input = captureNarrativeInput();
+        assertThat(input.question()).isEqualTo("Tôi có nên đổi việc không?");
+        assertThat(input.focusLabel()).isEqualTo("Đổi việc / nhảy việc");
+    }
+
+    @Test
+    @DisplayName("A signal carries the authored meaning for its own dimension, and the card that produced it")
+    void resolvesAuthoredTitleAndPerDimensionMeaningFromTheCitedEvidence() {
+        // A Signal records that a finding was favourable; the authored text
+        // lives on the Evidence it cites. Without this join the AI prompt and
+        // the fallback only ever saw "TAROT / Sự nghiệp / Thuận lợi / Mạnh".
+        //
+        // The per-dimension pick matters as much as the join: TarotEngine emits
+        // one signal per authored meaning field, so a CAREER signal must carry
+        // the card's career reading, not its general one.
+        String calculationId = "calc-meaning";
+        when(calculations.findById(calculationId)).thenReturn(Optional.of(calculation(calculationId, "CAREER")));
+
+        Map<String, Object> meaning = new java.util.LinkedHashMap<>();
+        meaning.put("career", "Nên chuẩn bị kỹ trước khi đổi hướng.");
+        meaning.put("general", "Một khởi đầu mới.");
+        Map<String, Object> fact = new java.util.LinkedHashMap<>();
+        fact.put("cardName", "The Fool");
+        fact.put("orientation", "REVERSED");
+        fact.put("meaning", meaning);
+        var evidence = new EvidenceEntity("ev-1", calculationId,
+                new Evidence("ev-1", "TAROT", "TAROT_RWS", "TAROT_SEEDED_DRAW", "1.0",
+                        Dimension.OTHER, fact, "seeded-draw", null, null));
+        when(evidenceRepo.findByCalculationId(calculationId)).thenReturn(List.of(evidence));
+
+        var signal = new SignalEntity(calculationId, new Signal("s1", "TAROT", "TAROT_RWS", Dimension.CAREER,
+                "MAJOR_00_the-fool_CAREER", Polarity.SUPPORT, Strength.STRONG,
+                io.destinyos.core.signal.Applicability.HIGH, false, List.of("ev-1"), null));
+        when(signalRepo.findByCalculationId(calculationId)).thenReturn(List.of(signal));
+        when(conflictRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(fusionResultRepo.findByCalculationId(calculationId)).thenReturn(Optional.empty());
+        stubFallbackNarrative();
+
+        service.generate(calculationId);
+
+        assertThat(captureNarrativeInput().signals()).singleElement().satisfies(item -> {
+            assertThat(item.title()).isEqualTo("The Fool (ngược)");
+            assertThat(item.meaning()).isEqualTo("Nên chuẩn bị kỹ trước khi đổi hướng.");
+        });
+    }
+
+    @Test
+    @DisplayName("A dimension with no authored meaning yields null, never a neighbouring dimension's text")
+    void anUnauthoredDimensionIsNullRatherThanSubstituted() {
+        // Rule C. Substituting the general reading for a missing finance one
+        // would present content as being about something it is not - a
+        // fabrication with a real-looking source, which is worse than a gap.
+        String calculationId = "calc-unauthored";
+        when(calculations.findById(calculationId)).thenReturn(Optional.of(calculation(calculationId, "FINANCE")));
+
+        Map<String, Object> meaning = new java.util.LinkedHashMap<>();
+        meaning.put("career", "Chỉ có nội dung cho sự nghiệp.");
+        Map<String, Object> fact = new java.util.LinkedHashMap<>();
+        fact.put("cardName", "The Fool");
+        fact.put("meaning", meaning);
+        when(evidenceRepo.findByCalculationId(calculationId)).thenReturn(List.of(
+                new EvidenceEntity("ev-1", calculationId,
+                        new Evidence("ev-1", "TAROT", "TAROT_RWS", "TAROT_SEEDED_DRAW", "1.0",
+                                Dimension.OTHER, fact, "seeded-draw", null, null))));
+
+        var signal = new SignalEntity(calculationId, new Signal("s1", "TAROT", "TAROT_RWS", Dimension.FINANCE,
+                "tag", Polarity.SUPPORT, Strength.STRONG, io.destinyos.core.signal.Applicability.HIGH,
+                false, List.of("ev-1"), null));
+        when(signalRepo.findByCalculationId(calculationId)).thenReturn(List.of(signal));
+        when(conflictRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(fusionResultRepo.findByCalculationId(calculationId)).thenReturn(Optional.empty());
+        stubFallbackNarrative();
+
+        service.generate(calculationId);
+
+        assertThat(captureNarrativeInput().signals()).singleElement().satisfies(item -> {
+            assertThat(item.title()).isEqualTo("The Fool");
+            assertThat(item.meaning()).isNull();
+        });
+    }
+
+    @Test
+    @DisplayName("Numerology's single authored paragraph is found under meaning.text")
+    void resolvesNumerologyAuthoredText() {
+        // NumerologyEngine authors one paragraph per number with no
+        // per-dimension split, and emits its signals on Dimension.OTHER. The
+        // resolution convention has to reach it without branching on engine id.
+        String calculationId = "calc-numerology";
+        when(calculations.findById(calculationId)).thenReturn(Optional.of(calculation(calculationId, "CAREER")));
+
+        Map<String, Object> meaning = new java.util.LinkedHashMap<>();
+        meaning.put("keywords", List.of("độc lập"));
+        meaning.put("text", "Số 7 thiên về phân tích và chiều sâu.");
+        Map<String, Object> fact = new java.util.LinkedHashMap<>();
+        fact.put("value", 7);
+        fact.put("meaning", meaning);
+        when(evidenceRepo.findByCalculationId(calculationId)).thenReturn(List.of(
+                new EvidenceEntity("ev-n", calculationId,
+                        new Evidence("ev-n", "NUMEROLOGY_PYTHAGOREAN", "PYTHAGOREAN",
+                                "NUMEROLOGY_LIFE_PATH", "1.0", Dimension.OTHER, fact,
+                                "pythagorean-calculation", null, null))));
+
+        var signal = new SignalEntity(calculationId, new Signal("s1", "NUMEROLOGY_PYTHAGOREAN", "PYTHAGOREAN",
+                Dimension.OTHER, "NUMEROLOGY_LIFE_PATH", Polarity.SUPPORT, Strength.MEDIUM,
+                io.destinyos.core.signal.Applicability.HIGH, false, List.of("ev-n"), null));
+        when(signalRepo.findByCalculationId(calculationId)).thenReturn(List.of(signal));
+        when(conflictRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(fusionResultRepo.findByCalculationId(calculationId)).thenReturn(Optional.empty());
+        stubFallbackNarrative();
+
+        service.generate(calculationId);
+
+        assertThat(captureNarrativeInput().signals()).singleElement().satisfies(item -> {
+            assertThat(item.title()).isEqualTo("Số 7");
+            assertThat(item.meaning()).isEqualTo("Số 7 thiên về phân tích và chiều sâu.");
+        });
+    }
+
+    @Test
+    @DisplayName("A signal whose cited evidence is gone keeps the signal and loses only the text")
+    void aMissingEvidenceRowDoesNotCostTheSignal() {
+        String calculationId = "calc-orphan";
+        when(calculations.findById(calculationId)).thenReturn(Optional.of(calculation(calculationId, "CAREER")));
+        when(evidenceRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+
+        var signal = new SignalEntity(calculationId, new Signal("s1", "TAROT", "TAROT_RWS", Dimension.CAREER,
+                "tag", Polarity.SUPPORT, Strength.STRONG, io.destinyos.core.signal.Applicability.HIGH,
+                false, List.of("ev-gone"), null));
+        when(signalRepo.findByCalculationId(calculationId)).thenReturn(List.of(signal));
+        when(conflictRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(fusionResultRepo.findByCalculationId(calculationId)).thenReturn(Optional.empty());
+        stubFallbackNarrative();
+
+        service.generate(calculationId);
+
+        assertThat(captureNarrativeInput().signals()).singleElement().satisfies(item -> {
+            assertThat(item.engine()).isEqualTo("TAROT");
+            assertThat(item.title()).isNull();
+            assertThat(item.meaning()).isNull();
+        });
+    }
+
+    private void stubEmptyResultRows(String calculationId) {
+        when(signalRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(evidenceRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(conflictRepo.findByCalculationId(calculationId)).thenReturn(List.of());
+        when(fusionResultRepo.findByCalculationId(calculationId)).thenReturn(Optional.empty());
+    }
+
+    private void stubFallbackNarrative() {
+        var response = new NarrativeResponse("x", List.of(), List.of(), List.of(), List.of());
+        when(narrativeService.generate(any()))
+                .thenReturn(NarrativeResult.fallback(response, FallbackReason.AI_DISABLED));
+    }
+
+    private NarrativeInput captureNarrativeInput() {
+        org.mockito.ArgumentCaptor<NarrativeInput> captor = org.mockito.ArgumentCaptor.forClass(NarrativeInput.class);
+        verify(narrativeService).generate(captor.capture());
+        return captor.getValue();
     }
 
     @Test

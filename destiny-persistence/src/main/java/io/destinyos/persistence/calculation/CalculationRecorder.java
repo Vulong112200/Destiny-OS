@@ -73,6 +73,21 @@ public class CalculationRecorder {
     }
 
     /**
+     * Records a full run for a scenario, with no user question attached — the
+     * pre-V9 signature, kept for callers that genuinely have nothing to record
+     * (a bare engine run, a replay, a test fixture).
+     *
+     * <p>Delegates with {@link CalculationRequestContext#NONE} rather than
+     * {@code null} so the entity's own setter can keep rejecting null and the
+     * "asked nothing" case stays an explicit value instead of an absence.
+     */
+    @Transactional
+    public CalculationEntity record(CalculationContext context, String scenarioId,
+                                    ExecutionOutcome execution, FusionResult fusion) {
+        return record(context, scenarioId, CalculationRequestContext.NONE, execution, fusion);
+    }
+
+    /**
      * Records a full run. {@code fusion} may be {@code null} — a scenario
      * with no defined applicability policy (see {@code destiny-scenario}'s
      * {@code ScenarioDefinition#policyDefined()}) legitimately never reaches
@@ -85,11 +100,19 @@ public class CalculationRecorder {
      * several different schools, so a scenario orchestrator has nothing
      * correct to put there. {@code scenarioId} is this table's own way of
      * recording which scenario the run was for.
+     *
+     * <p>{@code requestContext} is what the <em>user</em> asked (V9). It is
+     * written to the calculation row and read back by the API and the
+     * narrative layer; it is never passed to an engine and never consulted by
+     * anything that computes. See {@link CalculationRequestContext} for why it
+     * arrives here rather than on {@link CalculationContext}.
      */
     @Transactional
     public CalculationEntity record(CalculationContext context, String scenarioId,
+                                    CalculationRequestContext requestContext,
                                     ExecutionOutcome execution, FusionResult fusion) {
         Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(requestContext, "requestContext");
         Objects.requireNonNull(execution, "execution");
 
         var calculation = new CalculationEntity(
@@ -102,6 +125,7 @@ public class CalculationRecorder {
                 context.calculatedAt());
         calculation.setCalendarVersion(context.versions().calendarVersion());
         calculation.setScenarioId(scenarioId);
+        calculation.applyRequestContext(requestContext);
         context.seedIfPresent().ifPresent(calculation::setSeed);
         calculations.save(calculation);
 

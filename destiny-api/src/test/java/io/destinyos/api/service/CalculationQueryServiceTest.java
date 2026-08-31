@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.destinyos.api.dto.LabeledValue;
 import io.destinyos.api.dto.ScenarioRunResponse;
 import io.destinyos.core.evidence.Evidence;
 import io.destinyos.core.result.EngineStatus;
@@ -22,6 +23,7 @@ import io.destinyos.persistence.calculation.CalculationEngineResultEntity;
 import io.destinyos.persistence.calculation.CalculationEngineResultRepository;
 import io.destinyos.persistence.calculation.CalculationEntity;
 import io.destinyos.persistence.calculation.CalculationRepository;
+import io.destinyos.persistence.calculation.CalculationRequestContext;
 import io.destinyos.persistence.calculation.ConflictEntity;
 import io.destinyos.persistence.calculation.ConflictRepository;
 import io.destinyos.persistence.calculation.EvidenceEntity;
@@ -124,5 +126,64 @@ class CalculationQueryServiceTest {
         assertThat(response.fusion().conflicts()).hasSize(1);
         assertThat(response.fusion().conflicts().get(0).type().labelVi())
                 .isEqualTo("Khác biệt giữa các trường phái");
+
+        // The scenario's declared scope travels with a result read back, the
+        // same as it does on the run that produced it - a client reading a
+        // saved calculation must not have to look the scenario up separately.
+        assertThat(response.dimensions()).extracting(LabeledValue::technical)
+                .containsExactly("FINANCE", "CAREER", "DECISION");
+    }
+
+    @Test
+    @DisplayName("Reading a calculation back returns the question it was recorded against")
+    void rebuildsTheUsersQuestionAndFocus() {
+        // CLAUDE.md section 6 applied to the read path: a saved reading whose
+        // question was not returned could not be shown next to what was asked,
+        // which is the state this used to be in - the answer was durable and
+        // the question was not.
+        CalculationEntity calculation = new CalculationEntity(CALC_ID, "input-hash",
+                "1.0", "1.0", "1.0", "Asia/Ho_Chi_Minh", Instant.now());
+        calculation.setScenarioId("CAREER");
+        calculation.applyRequestContext(new CalculationRequestContext(
+                "Tôi có nên đổi việc không?", "doi-viec", "Đổi việc / nhảy việc"));
+        calculation.markCompleted(EngineStatus.SUCCESS, "deadbeef", Instant.now());
+        when(calculations.findById(CALC_ID)).thenReturn(Optional.of(calculation));
+        stubEmptyResultRows();
+
+        ScenarioRunResponse response = service.find(CALC_ID).orElseThrow();
+
+        assertThat(response.context().question()).isEqualTo("Tôi có nên đổi việc không?");
+        assertThat(response.context().focusId()).isEqualTo("doi-viec");
+        assertThat(response.context().focusLabel()).isEqualTo("Đổi việc / nhảy việc");
+    }
+
+    @Test
+    @DisplayName("A calculation recorded before V9 reads back with an empty context, not an error")
+    void aPreV9CalculationHasAnEmptyContextRatherThanNoContextObject() {
+        // Rows written before the question was persisted have NULL in all three
+        // columns and are still perfectly valid results. The context object is
+        // still present so a client can read context.question unconditionally.
+        CalculationEntity calculation = new CalculationEntity(CALC_ID, "input-hash",
+                "1.0", "1.0", "1.0", "Asia/Ho_Chi_Minh", Instant.now());
+        calculation.setScenarioId("CAREER");
+        calculation.markCompleted(EngineStatus.SUCCESS, "deadbeef", Instant.now());
+        when(calculations.findById(CALC_ID)).thenReturn(Optional.of(calculation));
+        stubEmptyResultRows();
+
+        ScenarioRunResponse response = service.find(CALC_ID).orElseThrow();
+
+        assertThat(response.context()).isNotNull();
+        assertThat(response.context().question()).isNull();
+        assertThat(response.context().focusId()).isNull();
+        assertThat(response.context().focusLabel()).isNull();
+    }
+
+    /** No engine results, evidence, signals, fusion or conflicts - only the calculation row matters here. */
+    private void stubEmptyResultRows() {
+        when(engineResults.findByCalculationId(CALC_ID)).thenReturn(List.of());
+        when(evidenceRepo.findByCalculationId(CALC_ID)).thenReturn(List.of());
+        when(signalRepo.findByCalculationId(CALC_ID)).thenReturn(List.of());
+        when(fusionResultRepo.findByCalculationId(CALC_ID)).thenReturn(Optional.empty());
+        when(conflictRepo.findByCalculationId(CALC_ID)).thenReturn(List.of());
     }
 }

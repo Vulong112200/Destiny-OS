@@ -34,6 +34,9 @@ class DestinyOsApplicationTest {
     @Autowired
     private MethodologyRegistryService registry;
 
+    @Autowired
+    private org.springframework.core.env.Environment environment;
+
     @Test
     @DisplayName("The full application context loads with the persistence module wired in")
     void contextLoads() {
@@ -56,5 +59,24 @@ class DestinyOsApplicationTest {
         var tarot = registry.latestVersion("TAROT_RWS").orElseThrow();
         assertThat(tarot.status()).isEqualTo(MethodologyStatus.PRODUCTION_READY);
         assertThat(registry.isCalculable("TAROT_RWS")).isTrue();
+    }
+
+    @Test
+    @DisplayName("application.yml declares the OpenRouter model-chain keys the code actually binds")
+    void openRouterChainKeysResolveFromApplicationYml() {
+        // OpenRouterPropertiesBindingTest proves the property NAMES bind to
+        // the fields. This proves application.yml spells those same names and
+        // supplies the intended defaults - the other half of the same
+        // guarantee, and the half that lives in a file no compiler checks.
+        //
+        // Worth pinning because both failure modes are silent: a typo'd key
+        // here binds nothing and leaves the field default, and ADR D8 then
+        // hides the consequence by rendering a perfectly good deterministic
+        // report instead of failing.
+        assertThat(environment.getProperty("destiny.ai.openrouter.fallback-models"))
+                .as("DESTINY_AI_OPENROUTER_FALLBACK_MODELS must land on this key")
+                .isEqualTo("openrouter/free");
+        assertThat(environment.getProperty("destiny.ai.openrouter.max-tokens"))
+                .isEqualTo("2000");
     }
 }

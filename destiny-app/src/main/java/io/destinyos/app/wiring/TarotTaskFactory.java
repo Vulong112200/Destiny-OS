@@ -40,7 +40,18 @@ public class TarotTaskFactory implements EngineTaskFactory {
                     + "'. Valid values: " + java.util.Arrays.toString(TarotSpread.values()));
         }
 
-        var input = new TarotDrawInput(spread, tarot.question(), tarot.seed(), null);
+        // request.effectiveQuestion(), not tarot.question(): the question now
+        // belongs to the run, and a caller that sends it in the request context
+        // must not end up with a TarotDrawInput that records a different
+        // question (or none) from the one persisted and narrated. The two can
+        // only disagree if this reads the raw field, so it does not.
+        //
+        // TarotEngine does not currently read TarotDrawInput.question() at all -
+        // the draw is a function of the seed and the spread, and a question
+        // cannot be allowed to change which cards come up (Rule A). It is
+        // carried on the input as the record of what was asked, which is
+        // precisely why it has to be the same question everything else recorded.
+        var input = new TarotDrawInput(spread, request.effectiveQuestion(), tarot.seed(), null);
         return Optional.of(EngineTask.of(engine, input));
     }
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { EvidenceDto } from "@/lib/types";
 import { tarotCardNameVi, tarotPositionLabelVi } from "@/lib/tarotCards";
+import { asSupportedScenario, tarotMeaningKeyFor } from "@/lib/scenarioMeta";
 import { TarotCard } from "./TarotCard";
 
 interface TarotMeaning {
@@ -24,6 +25,32 @@ const MEANING_LABELS: { key: keyof TarotMeaning; label: string }[] = [
 ];
 
 /**
+ * Orders a card's authored meanings so the one matching the question comes
+ * first and is marked as the one that applies.
+ *
+ * `TarotCardMeaning` authors five dimension-specific texts and `TarotEngine`
+ * ships all five; nothing server-side picks one, so this card used to print
+ * all five in a fixed order. For someone who asked about sự nghiệp that meant
+ * the career reading appeared third, in the same styling as the relationship
+ * reading they did not ask for - which is most of why the page read as
+ * generic. The pick is presentation only: no meaning is hidden, and the
+ * others stay visible below.
+ */
+function orderedMeanings(meaning: TarotMeaning, scenarioId: string) {
+  const primaryKey = tarotMeaningKeyFor(asSupportedScenario(scenarioId));
+  const entries = MEANING_LABELS.map(({ key, label }) => ({
+    key,
+    label,
+    text: meaning[key],
+    primary: key === primaryKey,
+  })).filter(
+    (e): e is { key: keyof TarotMeaning; label: string; text: string; primary: boolean } =>
+      typeof e.text === "string" && e.text.trim() !== "",
+  );
+  return [...entries].sort((a, b) => Number(b.primary) - Number(a.primary));
+}
+
+/**
  * Renders a Tarot draw as an actual "rút bài": every card starts face-down
  * and the user clicks (or uses "Lật tất cả") to reveal it, rather than the
  * spread appearing already face-up the instant the page loads. The draw
@@ -34,7 +61,14 @@ const MEANING_LABELS: { key: keyof TarotMeaning; label: string }[] = [
  * Renders nothing when Tarot did not take part in this run, matching every
  * other engine card in `ResultView`.
  */
-export function TarotResultCard({ evidence }: { evidence: EvidenceDto[] }) {
+export function TarotResultCard({
+  evidence,
+  scenarioId = "",
+}: {
+  evidence: EvidenceDto[];
+  /** Chosen scenario, so the matching authored meaning leads. Empty = unfocused. */
+  scenarioId?: string;
+}) {
   const draws = evidence.filter((e) => e.engine === "TAROT" && e.ruleId === "TAROT_SEEDED_DRAW");
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
@@ -107,10 +141,7 @@ export function TarotResultCard({ evidence }: { evidence: EvidenceDto[] }) {
             const meaning = fact.meaning;
             if (!meaning) return null;
             const nameVi = tarotCardNameVi(String(fact.cardId ?? ""), String(fact.cardName ?? ""));
-            const entries = MEANING_LABELS.map(({ key, label }) => ({
-              label,
-              text: meaning[key],
-            })).filter((e) => typeof e.text === "string" && e.text.trim() !== "");
+            const entries = orderedMeanings(meaning, scenarioId);
             if (entries.length === 0) return null;
             return (
               <div key={ev.evidenceId}>
@@ -118,13 +149,25 @@ export function TarotResultCard({ evidence }: { evidence: EvidenceDto[] }) {
                   {fact.position ? `${tarotPositionLabelVi(fact.position)} — ` : ""}
                   {nameVi}
                 </h3>
-                <dl className="mt-1 space-y-1">
-                  {entries.map(({ label, text }) => (
-                    <div key={label} className="text-sm text-slate-700">
-                      <dt className="inline font-medium text-slate-500">{label}: </dt>
-                      <dd className="inline">{text}</dd>
-                    </div>
-                  ))}
+                <dl className="mt-2 space-y-2">
+                  {entries.map(({ label, text, primary }) =>
+                    primary ? (
+                      <div
+                        key={label}
+                        className="rounded-md border border-slate-300 bg-slate-50 p-3 text-sm text-slate-800"
+                      >
+                        <dt className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {label} — ứng với câu hỏi của bạn
+                        </dt>
+                        <dd>{text}</dd>
+                      </div>
+                    ) : (
+                      <div key={label} className="px-1 text-sm text-slate-600">
+                        <dt className="inline font-medium text-slate-500">{label}: </dt>
+                        <dd className="inline">{text}</dd>
+                      </div>
+                    ),
+                  )}
                 </dl>
               </div>
             );

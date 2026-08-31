@@ -6,6 +6,7 @@ import io.destinyos.api.dto.EngineOutcomeDto;
 import io.destinyos.api.dto.EvidenceDto;
 import io.destinyos.api.dto.FusionResultDto;
 import io.destinyos.api.dto.LabeledValue;
+import io.destinyos.api.dto.ScenarioContextDto;
 import io.destinyos.api.dto.ScenarioRunRequest;
 import io.destinyos.api.dto.ScenarioRunResponse;
 import io.destinyos.api.dto.SignalDto;
@@ -19,7 +20,9 @@ import io.destinyos.fusion.DimensionAnalysis;
 import io.destinyos.fusion.FusionResult;
 import io.destinyos.i18n.VietnameseLabels;
 import io.destinyos.persistence.calculation.CalculationRecorder;
+import io.destinyos.persistence.calculation.CalculationRequestContext;
 import io.destinyos.scenario.ScenarioEngine;
+import io.destinyos.scenario.ScenarioRegistry;
 import io.destinyos.scenario.ScenarioType;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -75,7 +78,17 @@ public class ScenarioOrchestrationService {
                 List.of());
 
         var scenarioResult = scenarioEngine.run(scenarioType, tasks, context);
-        var calculation = recorder.record(context, scenarioType.name(),
+
+        // Resolved once, from the request, and used for all three of: what is
+        // persisted, what is echoed back, and (via the persisted row) what the
+        // narrative layer later reads. Deliberately computed AFTER the engines
+        // have run and from a value no engine was given — the question and the
+        // UI focus have not influenced a single thing in scenarioResult, and
+        // the ordering here makes that visible rather than merely asserted.
+        var requestContext = new CalculationRequestContext(
+                request.effectiveQuestion(), request.focusId(), request.focusLabel());
+
+        var calculation = recorder.record(context, scenarioType.name(), requestContext,
                 scenarioResult.execution(), scenarioResult.fusion());
 
         List<EngineOutcomeDto> engineDtos = scenarioResult.execution().executions().stream()
@@ -94,6 +107,9 @@ public class ScenarioOrchestrationService {
         return new ScenarioRunResponse(
                 calculation.calculationId(),
                 scenarioType.name(),
+                new ScenarioContextDto(requestContext.question(), requestContext.focusId(),
+                        requestContext.focusLabel()),
+                ScenarioDefinitions.dimensionLabels(ScenarioRegistry.get(scenarioType)),
                 scenarioResult.policyDefined(),
                 engineDtos,
                 scenarioResult.unavailableEngines(),

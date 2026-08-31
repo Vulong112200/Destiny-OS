@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.destinyos.api.dto.LabeledValue;
 import io.destinyos.api.dto.RetentionDto;
+import io.destinyos.api.dto.ScenarioContextDto;
 import io.destinyos.api.dto.ScenarioRunResponse;
 import io.destinyos.api.service.CalculationQueryService;
 import io.destinyos.api.service.CalculationSaveService;
@@ -37,7 +38,7 @@ class CalculationControllerTest {
 
     @Test
     void aKnownCalculationIdReturnsItsRecordedExplainabilityRecord() throws Exception {
-        var fixture = new ScenarioRunResponse("calc-1", "BUSINESS", true,
+        var fixture = new ScenarioRunResponse("calc-1", "BUSINESS", ScenarioContextDto.EMPTY, List.of(), true,
                 List.of(), List.of(), List.of(), List.of(), null, "deadbeef",
                 ephemeralRetention());
         when(query.find("calc-1")).thenReturn(Optional.of(fixture));

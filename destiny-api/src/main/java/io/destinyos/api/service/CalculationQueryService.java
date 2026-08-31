@@ -6,6 +6,7 @@ import io.destinyos.api.dto.EngineOutcomeDto;
 import io.destinyos.api.dto.EvidenceDto;
 import io.destinyos.api.dto.FusionResultDto;
 import io.destinyos.api.dto.LabeledValue;
+import io.destinyos.api.dto.ScenarioContextDto;
 import io.destinyos.api.dto.ScenarioRunResponse;
 import io.destinyos.api.dto.SignalDto;
 import io.destinyos.core.signal.Dimension;
@@ -72,6 +73,14 @@ public class CalculationQueryService {
             return new ScenarioRunResponse(
                     calculation.calculationId(),
                     calculation.scenarioId(),
+                    // Rebuilt from the persisted columns (V9), not re-derived
+                    // from anything: reading a result back has to say what the
+                    // user actually asked at the time, even if the UI's focus
+                    // buttons have been renamed since.
+                    new ScenarioContextDto(calculation.question(), calculation.focusId(),
+                            calculation.focusLabel()),
+                    ScenarioDefinitions.dimensionLabels(
+                            ScenarioDefinitions.byId(calculation.scenarioId())),
                     fusionDto != null,
                     engineDtos,
                     List.of(), // not persisted separately; only relevant at run time

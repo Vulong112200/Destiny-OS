@@ -11,6 +11,20 @@ import java.util.List;
  * @param calculationId      the persisted calculation's id — the same id a
  *                           later {@code GET /api/v1/calculations/{id}} uses
  * @param scenarioId         which scenario ran
+ * @param context            what the user asked, echoed back (never
+ *                           {@code null}; its fields may be). Returned so the
+ *                           UI can show the reading next to the question that
+ *                           produced it, and so a result read back later still
+ *                           knows what it was an answer to
+ * @param dimensions         the dimensions this scenario's definition declares
+ *                           it cares about ({@code ScenarioDefinition#dimensions()}),
+ *                           technical value plus Vietnamese label. This is the
+ *                           scenario's declared scope, <em>not</em> a filter
+ *                           applied to anything below: {@code signals} and
+ *                           {@code fusion} are complete and unfiltered, and a
+ *                           client is free to use this set to decide what to
+ *                           foreground. Emitted in {@code Dimension} declaration
+ *                           order purely so the payload is stable across runs
  * @param policyDefined      whether this scenario has a real applicability
  *                           policy (only BUSINESS and DAILY_ACTION do today)
  * @param engines            per-engine execution outcome
@@ -30,6 +44,8 @@ import java.util.List;
 public record ScenarioRunResponse(
         String calculationId,
         String scenarioId,
+        ScenarioContextDto context,
+        List<LabeledValue> dimensions,
         boolean policyDefined,
         List<EngineOutcomeDto> engines,
         List<String> unavailableEngines,

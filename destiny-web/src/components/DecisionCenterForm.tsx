@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, runScenario } from "@/lib/api";
 import { findVnProvince, VN_PROVINCES } from "@/lib/vnProvinces";
+import { SCENARIO_META } from "@/lib/scenarioMeta";
+import { ScenarioPicker } from "./ScenarioPicker";
 import type {
   CompassDirectionName,
   IChingCastingMethod,
@@ -75,23 +77,11 @@ const DIRECTION_OPTIONS: { value: CompassDirectionName; label: string }[] = [
  */
 export function DecisionCenterForm() {
   const router = useRouter();
-  const [scenarioType, setScenarioType] = useState<SupportedScenarioType>("BUSINESS");
-
-  // Vietnamese labels from ScenarioRegistry's own displayNameVi — kept in
-  // sync by hand rather than fetched, since the set of *supported* scenarios
-  // is a frontend decision (which ones get a dedicated input form below),
-  // not something GET /api/v1/methodologies exposes.
-  const SCENARIO_LABELS: Record<SupportedScenarioType, string> = {
-    BUSINESS: "Mở rộng kinh doanh",
-    DAILY_ACTION: "Hôm nay nên làm gì",
-    CAREER: "Sự nghiệp",
-    FINANCE: "Tài chính",
-    RELATIONSHIP: "Quan hệ",
-    PURCHASE: "Mua sắm",
-    TRAVEL: "Di chuyển",
-    PROJECT: "Dự án",
-    GENERAL_DECISION: "Quyết định chung",
-  };
+  // Defaults to the most-asked topic rather than BUSINESS, which was first
+  // only because it was one of the two scenarios that had a policy at the
+  // time. All nine have had one since 2026-08-23.
+  const [scenarioType, setScenarioType] = useState<SupportedScenarioType>("CAREER");
+  const [focusId, setFocusId] = useState("");
 
   // --- Thông tin cá nhân (dùng chung cho mọi hệ) ---
   const [fullName, setFullName] = useState("");
@@ -115,6 +105,10 @@ export function DecisionCenterForm() {
   // --- Từng hệ: chỉ còn field đặc thù của hệ đó ---
   const [useTarot, setUseTarot] = useState(true);
   const [spread, setSpread] = useState<TarotSpreadName>("PAST_PRESENT_FUTURE");
+  // Lifted out of the Tarot section: the question is about the whole run, and
+  // burying it there meant a user who did not enable Tarot was never asked
+  // what they wanted to know. UI_UX_VIETNAMESE_SPEC §3 always had it as its
+  // own step in the flow.
   const [question, setQuestion] = useState("");
   const [useBazi, setUseBazi] = useState(false);
   const [useFengShui, setUseFengShui] = useState(false);
@@ -177,9 +171,18 @@ export function DecisionCenterForm() {
 
     setSubmitting(true);
     try {
+      const focus = SCENARIO_META[scenarioType].focuses.find((f) => f.id === focusId) ?? null;
+      const trimmedQuestion = question.trim();
       const result = await runScenario(scenarioType, {
+        context: {
+          question: trimmedQuestion === "" ? null : trimmedQuestion,
+          focusId: focus?.id ?? null,
+          focusLabel: focus?.label ?? null,
+        },
         numerology: hasNumerology ? { fullName: fullName.trim(), birthDate } : null,
-        tarot: useTarot ? { spread, seed: null, question: question.trim() || null } : null,
+        // Still sent on the Tarot payload as well: `TarotRequest.question`
+        // predates the request-level context and other callers may rely on it.
+        tarot: useTarot ? { spread, seed: null, question: trimmedQuestion || null } : null,
         bazi: hasBazi
           ? {
               birthDate,
@@ -238,39 +241,28 @@ export function DecisionCenterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-slate-900">1. Bạn đang muốn xem điều gì?</legend>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {(Object.keys(SCENARIO_LABELS) as SupportedScenarioType[]).map((type) => (
-            <label
-              key={type}
-              className={`cursor-pointer rounded-lg border px-4 py-3 text-center text-sm ${
-                scenarioType === type
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 text-slate-700 hover:border-slate-400"
-              }`}
-            >
-              <input
-                type="radio"
-                name="scenarioType"
-                value={type}
-                checked={scenarioType === type}
-                onChange={() => setScenarioType(type)}
-                className="sr-only"
-              />
-              {SCENARIO_LABELS[type]}
-            </label>
-          ))}
-        </div>
-        <p className="text-xs text-slate-500">
-          9 chủ đề đã có chính sách áp dụng hệ thống thật. Riêng &quot;Tương hợp&quot;
-          (so hai lá số trước khi cưới/hợp tác) chưa có ở đây — hệ thống hiện chỉ nhận một
-          lá số mỗi lượt tính, còn thực hành truyền thống mạnh nhất cho tương hợp lại cần hai.
-        </p>
-      </fieldset>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+        <ScenarioPicker
+          scenarioType={scenarioType}
+          onScenarioChange={setScenarioType}
+          focusId={focusId}
+          onFocusChange={setFocusId}
+          question={question}
+          onQuestionChange={setQuestion}
+        />
+      </section>
 
-      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
-        <legend className="px-1 text-sm font-semibold text-slate-900">2. Thông tin cá nhân</legend>
+      {/*
+        Everything below is *how* to compute, not *what* is being asked. Two
+        columns from `lg` up: the person on the left, the systems on the right.
+        These used to be six full-width fieldsets stacked one after another,
+        which is what made the page feel endless - the engine toggles sat a
+        full screen below the birth fields they depend on, so a user fixing a
+        validation error scrolled between the two repeatedly.
+      */}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-900">3. Thông tin cá nhân</legend>
         <p className="text-xs text-slate-500">
           Nhập một lần — dùng cho mọi hệ bạn bật dưới đây (Thần số học, Bát Tự, Bát Trạch, Chiêm
           tinh). Chỉ điền phần nào cần cho hệ bạn muốn xem; để trống những gì không biết.
@@ -414,7 +406,14 @@ export function DecisionCenterForm() {
         )}
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <div className="space-y-3">
+        <h2 className="px-1 text-sm font-semibold text-slate-900">4. Hệ thống áp dụng</h2>
+        <p className="px-1 text-xs text-slate-500">
+          Bật hệ nào thì hệ đó chạy. Mỗi hệ nói rõ nó đang cung cấp được gì và còn thiếu gì —
+          không hệ nào được bật sẵn để trông cho đầy.
+        </p>
+
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-sm font-semibold text-slate-900">
           <label className="flex items-center gap-2">
             <input
@@ -441,21 +440,16 @@ export function DecisionCenterForm() {
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">Câu hỏi / bối cảnh (tùy chọn)</span>
-              <textarea
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                rows={2}
-                placeholder="Tôi có nên mở rộng kinh doanh không?"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
-              />
-            </label>
+            <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              Tarot là hệ duy nhất hiện có bản diễn giải tiếng Việt riêng cho từng chiều (sự
+              nghiệp, tài chính, quan hệ, quyết định) — nên nó là hệ đóng góp nhiều nhất vào
+              phần trả lời đúng chủ đề bạn chọn.
+            </p>
           </div>
         )}
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-sm font-semibold text-slate-900">
           <label className="flex items-center gap-2">
             <input
@@ -479,7 +473,7 @@ export function DecisionCenterForm() {
         )}
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-sm font-semibold text-slate-900">
           <label className="flex items-center gap-2">
             <input
@@ -516,7 +510,7 @@ export function DecisionCenterForm() {
         )}
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-sm font-semibold text-slate-900">
           <label className="flex items-center gap-2">
             <input
@@ -546,7 +540,7 @@ export function DecisionCenterForm() {
         )}
       </fieldset>
 
-      <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-sm font-semibold text-slate-900">
           <label className="flex items-center gap-2">
             <input
@@ -612,19 +606,28 @@ export function DecisionCenterForm() {
         )}
       </fieldset>
 
+      </div>
+      </div>
+
       {error && (
         <p role="alert" className="rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-800">
           {error}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-      >
-        {submitting ? "Đang tính toán…" : "Tính toán"}
-      </button>
+      {/*
+        Sticky, so "Tính toán" is reachable from anywhere in the form instead
+        of only from its bottom edge.
+      */}
+      <div className="sticky bottom-0 -mx-4 border-t border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+        >
+          {submitting ? "Đang tính toán…" : "Tính toán"}
+        </button>
+      </div>
     </form>
   );
 }

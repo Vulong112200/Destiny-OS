@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.destinyos.api.dto.ScenarioRunRequest;
 import io.destinyos.api.dto.LabeledValue;
 import io.destinyos.api.dto.RetentionDto;
+import io.destinyos.api.dto.ScenarioContextDto;
 import io.destinyos.api.dto.ScenarioRunResponse;
 import io.destinyos.core.retention.RetentionClass;
 import io.destinyos.i18n.VietnameseLabels;
@@ -42,7 +43,7 @@ class ScenarioControllerTest {
 
     @Test
     void runsAValidScenarioAndReturnsTheOrchestrationResult() throws Exception {
-        var fixture = new ScenarioRunResponse("calc-1", "BUSINESS", true,
+        var fixture = new ScenarioRunResponse("calc-1", "BUSINESS", ScenarioContextDto.EMPTY, List.of(), true,
                 List.of(), List.of(), List.of(), List.of(), null, "deadbeef",
                 ephemeralRetention());
         when(orchestration.run(eq(ScenarioType.BUSINESS), any(ScenarioRunRequest.class)))
@@ -67,7 +68,7 @@ class ScenarioControllerTest {
 
     @Test
     void aMissingRequestBodyIsTreatedAsNoEnginesRequested() throws Exception {
-        var fixture = new ScenarioRunResponse("calc-2", "DAILY_ACTION", true,
+        var fixture = new ScenarioRunResponse("calc-2", "DAILY_ACTION", ScenarioContextDto.EMPTY, List.of(), true,
                 List.of(), List.of("TAROT"), List.of(), List.of(), null, "cafebabe",
                 ephemeralRetention());
         when(orchestration.run(eq(ScenarioType.DAILY_ACTION), any(ScenarioRunRequest.class)))

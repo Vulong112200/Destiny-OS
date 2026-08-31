@@ -63,9 +63,38 @@ destiny:
       # javadoc): the free-tier catalogue changes over time, so an operator
       # who wants OpenRouter must name a model they have confirmed available.
       model: ${DESTINY_AI_OPENROUTER_MODEL:}
+      # Tried in order when the model above cannot answer. Comma-separated.
+      #
+      # A single free model is unreliable by nature, not by bad choice: free
+      # models are rate-limited UPSTREAM at the inference provider and shared
+      # by every OpenRouter user. Measured live, three free models returned
+      # 429 "temporarily rate-limited upstream" while two others returned 200
+      # at the same instant.
+      #
+      # Default is the openrouter/free meta-model, which routes to whichever
+      # free model is currently serving (verified working). NOT
+      # openrouter/auto: that is a paid router and answers 402 Insufficient
+      # credits on a free-tier account.
+      #
+      # This is walked client-side rather than via OpenRouter's own
+      # "models": [...] request array on purpose - that array covers runtime
+      # failures, but a removed or misspelled model id is rejected upfront
+      # with 400 for the WHOLE request even when a valid fallback is listed
+      # beside it, which is exactly the case an operator needs covered.
+      fallback-models: ${DESTINY_AI_OPENROUTER_FALLBACK_MODELS:openrouter/free}
       base-url: ${DESTINY_AI_OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
       timeout-ms: ${DESTINY_AI_OPENROUTER_TIMEOUT_MS:15000}
-      max-tokens: ${DESTINY_AI_OPENROUTER_MAX_TOKENS:800}
+      # 2000, raised from 800 after measurement - do not lower without
+      # repeating it. Vietnamese is far more token-hungry than English on
+      # these tokenizers and the response schema is a summary plus four
+      # arrays of sentences: at 800, 2 of 3 runs against real free models
+      # came back truncated mid-string (one measured at 973 chars, no
+      # closing brace), so the schema check rejected them and every such
+      # call degraded to the deterministic fallback. Because ADR D8 always
+      # returns something renderable, that shows up as "AI is enabled and
+      # never seems to do anything", not as an error. See
+      # OpenRouterProperties#maxTokens.
+      max-tokens: ${DESTINY_AI_OPENROUTER_MAX_TOKENS:2000}
       temperature: ${DESTINY_AI_OPENROUTER_TEMPERATURE:0.3}
 
 # Phase 14 observability. The exposure list is pinned explicitly rather than

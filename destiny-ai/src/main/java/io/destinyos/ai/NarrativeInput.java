@@ -34,9 +34,20 @@ import java.util.Set;
  * engine). The caller (destiny-api) already has Vietnamese-labeled DTOs and
  * flattens whatever summary fields it wants surfaced (overall outcome,
  * per-dimension states) into this map.
+ *
+ * <p>{@code question} and {@code focusLabel} are what the user actually asked.
+ * They are not in AI_NARRATIVE_SPEC.md section 2's original sketch because
+ * nothing carried them this far: the question was accepted by the API and
+ * dropped before persistence, so both the LLM prompt and the deterministic
+ * fallback wrote about "Sự nghiệp" in general while the user had asked
+ * something specific. They are inputs to <em>wording</em> only — this whole
+ * module is downstream of every calculation, so there is nothing here they
+ * could influence even in principle.
  */
 public record NarrativeInput(
         String scenarioNameVi,
+        String question,
+        String focusLabel,
         Set<Dimension> scenarioRelevantDimensions,
         Map<String, Object> hardDataSummary,
         List<NarrativeSignalItem> signals,
@@ -59,7 +70,7 @@ public record NarrativeInput(
 
     /** Returns a copy with {@code signals} replaced - used by {@link NarrativePruner}. */
     NarrativeInput withSignals(List<NarrativeSignalItem> newSignals) {
-        return new NarrativeInput(scenarioNameVi, scenarioRelevantDimensions, hardDataSummary,
-                newSignals, conflicts, warnings, limitations, calculationMetadata);
+        return new NarrativeInput(scenarioNameVi, question, focusLabel, scenarioRelevantDimensions,
+                hardDataSummary, newSignals, conflicts, warnings, limitations, calculationMetadata);
     }
 }

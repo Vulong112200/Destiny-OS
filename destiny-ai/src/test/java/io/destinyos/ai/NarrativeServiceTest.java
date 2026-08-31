@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
  */
 class NarrativeServiceTest {
 
-    private static final NarrativeInput INPUT = new NarrativeInput("Kich ban thu", Set.of(), Map.of(), java.util.List.of(),
+    private static final NarrativeInput INPUT = new NarrativeInput("Kich ban thu", null, null, Set.of(), Map.of(), java.util.List.of(),
             java.util.List.of(), java.util.List.of(), java.util.List.of(), Map.of());
 
     private static AiProperties enabled() {
@@ -40,7 +40,12 @@ class NarrativeServiceTest {
         }
 
         @Override
-        public ProviderCallResult call(NarrativePrompt prompt) {
+        public ProviderCallResult call(NarrativePrompt prompt, java.util.function.Predicate<String> usableContent) {
+            // Deliberately ignores usableContent: this fake has no chain to
+            // advance, and AiNarrativeProvider allows that precisely so
+            // NarrativeService is forced to keep its own gate. If the service
+            // ever started trusting the predicate instead of re-parsing, these
+            // tests would be the ones to catch it.
             return result;
         }
     }
@@ -124,5 +129,36 @@ class NarrativeServiceTest {
 
         assertThat(result.source()).isEqualTo(NarrativeSource.FALLBACK);
         assertThat(result.fallbackReason()).isEqualTo(FallbackReason.MALFORMED_JSON);
+    }
+
+    @Test
+    void aSchemaTemplateEchoIsNotLabelledAsAnAiReading() {
+        // The production defect. A free model returned this project's own
+        // response schema back verbatim; every gate passed, and the user was
+        // shown four bullets reading "..." headed "Diễn giải bởi AI".
+        //
+        // Two things had to be true and only one was: the content is useless
+        // AND it was labelled as a genuine AI reading. The label is the part
+        // that matters most - presenting empty output as a result is what the
+        // honesty rules forbid - so this asserts the source, not just the text.
+        String templateEcho = "{\"summary\": \"...\", \"keySignals\": [\"...\"], \"conflicts\": [\"...\"], "
+                + "\"cautions\": [\"...\"], \"reflectionQuestions\": [\"...\"]}";
+        NarrativeService service = new NarrativeService(enabled(),
+                Optional.of(new FakeProvider(ProviderCallResult.ok(templateEcho, "echoing-model"))));
+
+        NarrativeResult result = service.generate(INPUT);
+
+        assertThat(result.source())
+                .as("a template echo must never be presented as an AI-generated reading")
+                .isEqualTo(NarrativeSource.FALLBACK);
+        assertThat(result.fallbackReason()).isEqualTo(FallbackReason.MALFORMED_JSON);
+        // And what the user gets instead is the deterministic report, which is
+        // genuinely useful - the thing the echo had displaced.
+        assertThat(result.response().isWellFormed()).isTrue();
+        // containsIgnoringCase: the fallback opens the phrase at a sentence
+        // start ("Dữ liệu tính toán gốc vẫn được giữ nguyên..."), and pinning
+        // the capitalisation here would make this test fail for a reason that
+        // has nothing to do with what it is checking.
+        assertThat(result.response().summary()).containsIgnoringCase("dữ liệu tính toán gốc");
     }
 }

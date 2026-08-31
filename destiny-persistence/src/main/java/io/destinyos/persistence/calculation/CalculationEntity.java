@@ -64,6 +64,30 @@ public class CalculationEntity {
     @Column(name = "result_hash", length = 128)
     private String resultHash;
 
+    /**
+     * The user's own question (V9 migration), or {@code null} when they asked
+     * nothing in particular. Recorded because a persisted answer whose
+     * question was discarded cannot be read back honestly — see V9's comment.
+     */
+    @Column(length = 500)
+    private String question;
+
+    /**
+     * The UI intent the user picked, e.g. {@code "doi-viec"} (V9 migration).
+     *
+     * <p>Recorded, never acted on. Nothing in the deterministic path reads
+     * this: it selects no school (Rule D), changes no engine input, no
+     * applicability, and no outcome. It exists so a reading can be shown next
+     * to the intent it was requested under, and so an audit can see what the
+     * user was looking at. Do not branch on it.
+     */
+    @Column(name = "focus_id", length = 100)
+    private String focusId;
+
+    /** The Vietnamese label shown for {@link #focusId}. Same rule: recorded, never acted on. */
+    @Column(name = "focus_label", length = 200)
+    private String focusLabel;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private EngineStatus status;
@@ -182,6 +206,46 @@ public class CalculationEntity {
 
     public String resultHash() {
         return resultHash;
+    }
+
+    public String question() {
+        return question;
+    }
+
+    public String focusId() {
+        return focusId;
+    }
+
+    public String focusLabel() {
+        return focusLabel;
+    }
+
+    /**
+     * Records what the user asked (V9).
+     *
+     * <p>One setter for all three fields rather than three independent ones,
+     * for the same reason {@link #applyRetention} is one call: the three are a
+     * single statement about one request, and letting a caller set a focus
+     * label without the question it belonged to produces a row that says
+     * something nobody ever asked.
+     *
+     * <p>Does no normalization of its own. The API layer trims, blank-maps and
+     * length-caps this input once ({@code ScenarioContextRequest}) so that what
+     * is persisted, what is echoed back to the caller, and what the narrative
+     * layer later reads are the same string. A second normalization here would
+     * be a second chance for those three to disagree.
+     *
+     * <p>Public for the same reason {@link #setScenarioId} is, and unlike
+     * {@link #applyRetention}: there is no invariant here that a caller could
+     * violate. Retention is package-private because a class and an expiry set
+     * independently produce a contradictory row; these three fields are simply
+     * a record of what was asked.
+     */
+    public void applyRequestContext(CalculationRequestContext requestContext) {
+        Objects.requireNonNull(requestContext, "requestContext");
+        this.question = requestContext.question();
+        this.focusId = requestContext.focusId();
+        this.focusLabel = requestContext.focusLabel();
     }
 
     public EngineStatus status() {

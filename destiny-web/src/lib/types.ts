@@ -81,10 +81,48 @@ export interface RetentionDto {
   canBeSaved: boolean;
 }
 
+/**
+ * What the user asked, carried alongside the calculation.
+ *
+ * Optional on this type because a result computed before the backend started
+ * persisting it has no context to return — the UI must render that case
+ * without pretending a question was asked.
+ *
+ * `focusId`/`focusLabel` are a **user-intent label for presentation only**.
+ * They select no school, change no engine input and alter no calculation;
+ * they exist so the page can restate what was asked and so the narrative can
+ * address it. Never branch a computation on them.
+ */
+export interface ScenarioContextDto {
+  question: string | null;
+  focusId: string | null;
+  focusLabel: string | null;
+}
+
 export interface ScenarioRunResponse {
   calculationId: string;
   scenarioId: string;
   policyDefined: boolean;
+  /**
+   * Always present since the backend started carrying it; its three fields
+   * are individually nullable. Optional here only so a stale cached response
+   * from before that change still type-checks.
+   */
+  context?: ScenarioContextDto | null;
+  /**
+   * The scenario's own `ScenarioDefinition.dimensions()` set — which
+   * dimensions this scenario is actually about, in `Dimension` declaration
+   * order. That order is stability, **not** a ranking: the backend
+   * deliberately does not filter or reorder anything by scenario.
+   *
+   * Not to be confused with `fusion.dimensions`, which is the per-dimension
+   * verdict list. This is the question's scope; that is the answer.
+   *
+   * Empty for an unknown or undefined-policy scenario; absent on results
+   * produced before the backend carried it, where `scenarioMeta.ts` is the
+   * fallback.
+   */
+  dimensions?: LabeledValue[] | null;
   engines: EngineOutcomeDto[];
   unavailableEngines: string[];
   evidence: EvidenceDto[];
@@ -297,7 +335,22 @@ export interface IChingRequestInput {
   lowerNumber: number | null;
 }
 
+/**
+ * The user's own framing of what they are asking.
+ *
+ * Sent at the request level rather than inside one engine's payload, because
+ * it describes the question, not an engine input. It reaches the narrative
+ * layer and the result page; it MUST NOT reach any calculation — see
+ * `ScenarioContextDto`.
+ */
+export interface ScenarioContextInput {
+  question: string | null;
+  focusId: string | null;
+  focusLabel: string | null;
+}
+
 export interface ScenarioRunRequestInput {
+  context?: ScenarioContextInput | null;
   numerology: NumerologyRequestInput | null;
   tarot: TarotRequestInput | null;
   bazi: BaziRequestInput | null;

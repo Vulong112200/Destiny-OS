@@ -8,6 +8,155 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Web — bố cục dashboard, câu hỏi của người dùng đi hết luồng, và lời luận giải bám chủ đề
+
+Ba khiếu nại của chủ dự án, và cả ba đều truy được về nguyên nhân cụ thể trong
+code chứ không phải "cần làm đẹp hơn".
+
+**1. Trang quá hẹp, phải cuộn liên tục.** App shell bị chặn ở `max-w-5xl`
+(1024px), trang kết quả ở `max-w-3xl` (**768px**), form ở `max-w-2xl` (672px) —
+trên màn 1920px thì bỏ phí quá nửa chiều ngang, và toàn bộ kết quả là **một cột
+dọc gồm ~10 khối xếp chồng**. Đã đổi: shell `max-w-[1600px]`, trang kết quả
+thành lưới 2 cột với rail dính bên phải, header dính. Ba khối *retention /
+danh sách hệ / mã truy vết* được đưa hẳn ra khỏi luồng cuộn dọc vào rail —
+chúng là tài liệu tra cứu, không phải nội dung, và trước đây nằm chen giữa phần
+đọc và phần bằng chứng nên ai đối chiếu lá số với bằng chứng cũng phải cuộn qua
+chúng mỗi lượt. Thẻ dữ liệu và bằng chứng nay xếp lưới 2–3 cột.
+
+**2. Lựa chọn ban đầu của người dùng không được chú trọng.** Nguyên nhân gốc:
+ô nhập câu hỏi **chỉ tồn tại bên trong mục Tarot**, nên người không bật Tarot
+không bao giờ được hỏi muốn biết điều gì — trong khi
+`UI_UX_VIETNAMESE_SPEC.md` §3 vẫn luôn liệt kê *"Nhập câu hỏi/context"* là một
+bước riêng trong luồng. Tệ hơn: **backend nhận rồi vứt** — `TarotRequest.question`
+đi tới `TarotDrawInput` và `TarotEngine` không bao giờ đọc nó, không lưu, không
+trả về. Đã tách thành bước 2 độc lập, và thêm `context {question, focusId,
+focusLabel}` ở cấp request, có lưu (Flyway `V9`) và trả về ở
+`ScenarioRunResponse`.
+Bổ sung **trọng tâm con** cho 9 chủ đề: "Quan hệ" tách thành *Yêu đương / Bạn
+đời–hôn nhân / Đang độc thân / Gia đình / Rạn nứt*. `focusId`/`focusLabel` được
+khai báo rõ trong Javadoc và trên UI là **nhãn ý định của người dùng, chỉ dùng
+để trình bày và diễn giải** — không chọn trường phái, không đổi đầu vào engine,
+không đổi applicability, không đổi bất kỳ phép tính nào. Cổ thư không phân biệt
+"yêu đương" với "bạn đời"; bịa ra sự phân biệt đó sẽ vi phạm Rule A. Câu hỏi
+cũng **cố ý không vào `resultHash`**: nó không ảnh hưởng phép tính nào, nên đưa
+vào sẽ phá định danh tái lập của CLAUDE.md §6.
+
+**3. Luận giải chung chung.** Hai thứ đã có sẵn mà chưa ai dùng:
+- `ScenarioDefinition.dimensions()` biết chủ đề nào ứng với chiều nào, nhưng
+  **chết ở mọi nơi trừ bộ lọc tín hiệu MEDIUM của AI pruner** (`grep` toàn repo
+  xác nhận: một consumer duy nhất). Nên một lượt chạy "Sự nghiệp" hiển thị phần
+  phân tích *Quan hệ* và *Nhà cửa* cùng cỡ chữ, cùng thứ tự registry, không gì
+  nối lại với câu hỏi. Nay `dimensions` được expose trong response và chia đôi
+  trang: chiều đúng câu hỏi mở sẵn, chiều ngoài trọng tâm gập lại — **vẫn giữ
+  nguyên**, vì đó là kết quả thật và giấu đi mới là không trung thực. Backend
+  **không** lọc hay sắp xếp lại gì; việc chia chỉ là trình bày.
+- **Tarot đã có sẵn diễn giải riêng cho từng chiều** (career/finance/
+  relationship/decision/general) trong `fact.meaning`, `TarotEngine` gửi cả năm,
+  và **không chỗ nào chọn cái đúng**. Người hỏi sự nghiệp thấy đoạn sự nghiệp
+  nằm thứ ba, cùng kiểu chữ với đoạn quan hệ. Nay đoạn khớp chủ đề lên đầu và
+  được đóng khung; bốn đoạn kia vẫn hiển thị bên dưới.
+Thêm lớp nối `signal → evidence` (`reading.ts`) để hiển thị **đúng đoạn văn đã
+được biên soạn** ngay trong thẻ từng chiều. Không có nội dung nào được sinh mới:
+mọi trường đều chép từ dữ liệu backend đã tạo. Engine chưa có văn bản biên soạn
+thì nói rõ *"chưa có phần luận giải"* thay vì để trống — "hệ này chưa có nội
+dung được viết" và "hệ này không tìm thấy gì" là hai phát biểu khác nhau, và
+chỉ phát biểu thứ nhất là đúng.
+
+### AI narrative — chuỗi model dự phòng, và cổng chặn output rỗng
+
+**Vì sao cần chuỗi dự phòng.** Đo thực tế: model free bị nghẽn **ở nhà cung cấp
+thượng nguồn**, không phải hạn mức tài khoản. Cùng một thời điểm
+`gemma-4-31b:free`, `glm-5.2:free` và `gemma-4-26b:free` đều trả 429
+*"temporarily rate-limited upstream"* (Google AI Studio, Z.ai) trong khi
+`minimax-m3:free` và `nemotron-ultra:free` vẫn 200. Một model free đơn lẻ vốn dĩ
+không đáng tin.
+
+**Cơ chế native của OpenRouter không đủ.** Mảng `models: [...]` có được chấp
+nhận và cứu được lỗi lúc chạy, nhưng với model id **đã bị xoá** thì OpenRouter
+validate trước và trả `400 "not a valid model ID"` *ngay cả khi có fallback hợp
+lệ trong mảng*. Đúng tình huống "model bị xoá/đổi tên" thì nó bó tay, nên việc
+chuyển tiếp phải làm ở phía Java. `openrouter/auto` cũng không dùng được: tài
+khoản chưa nạp credit nhận `402`.
+
+Đã thêm `destiny.ai.openrouter.fallback-models`. Retry giữ **bên trong** từng
+model; hết cách với model nào thì sang model kế; thắng đầu tiên thì trả về; tất
+cả thua thì trả lý do **cuối cùng**. Model thật sự trả lời được báo cáo đúng
+tên, không phải tên model chính đã cấu hình.
+
+**Cổng chặn output rỗng.** Chạy thật lần đầu thành công thì lộ lỗi tiếp: model
+**echo nguyên schema template** — cả 5 trường đều là `"..."`. `isWellFormed()`
+cũ chỉ kiểm tra `!summary.isBlank()` nên lọt hết, và người dùng thấy 4 gạch đầu
+dòng `...` dưới nhãn *"Diễn giải bởi AI"*. Tệ hơn bản fallback tất định mà nó
+vừa thay thế, và **gắn nhãn cái rỗng thành kết quả thật** — đúng thứ Rule C tồn
+tại để ngăn. Luật mới: summary phải chứa **ít nhất một ký tự chữ**
+(`Character.isLetter` trên code point, Unicode-aware — `[a-zA-Z]` sẽ loại nhầm
+"Ừ"). Cố ý **không** dùng ngưỡng độ dài: tiếng Việt cô đọng, một bản tóm tắt
+ngắn hợp lệ phải được hiển thị, và ngưỡng độ dài sẽ đánh đổi một lỗi thật lấy
+một lỗi tự bịa. Phần tử mảng rỗng nghĩa thì **bị loại bỏ** chứ không làm hỏng cả
+response — summary tốt kèm mảng rác vẫn đáng hiển thị.
+
+**Một lỗi im lặng tốn nguyên chu kỳ debug.** `attemptCall` ánh xạ mọi lỗi thành
+`FallbackReason` mà **không log gì**. API key bọc nháy đơn trong `.env` → 401 →
+`catch (RestClientException)` → `PROVIDER_UNAVAILABLE`, không phân biệt được với
+"chưa cấu hình provider". Nay mọi nhánh đều log WARN kèm tên model và lý do; 401
+có thông điệp riêng. Không log key, không log body.
+
+**Trang kết quả không còn chờ narrative.** Chuỗi dự phòng nhân độ trễ xấu nhất
+lên, mà `page.tsx` đang `Promise.all` chờ narrative rồi mới render — tức phần
+*ít thẩm quyền nhất* chặn toàn bộ dữ liệu cứng, ngược cả UX lẫn CLAUDE.md §9.
+Đã tách sang `<Suspense>`: dữ liệu cứng hiện ngay (~5s), narrative stream vào
+sau. Xác minh: trang chứa cả skeleton lẫn nội dung cuối.
+
+**Rủi ro còn lại, ghi để không quên:** chốt cuối `openrouter/free` định tuyến
+sang model free bất kỳ, nên chất lượng không kiểm soát được — một lần nó rơi vào
+`nemotron-3.5-lightning` (trả placeholder, nay đã bị cổng mới chặn), một lần rơi
+vào `nemotron-3-super-120b` (lần đo trước từng chèn ký tự Hàn vào tiếng Việt, lần
+này sạch). Vẫn giữ chốt cuối vì thà thêm một lượt thử còn hơn không có gì.
+`nvidia/nemotron-3-ultra-550b` **cố ý không** nằm trong chuỗi dù viết tốt nhất:
+đo ~34s, vượt timeout 25s nên sẽ luôn timeout và đốt 2 lượt thử vô ích.
+
+### AI narrative — bật lên, và hai lỗi chỉ lộ ra khi gọi thật
+
+`DESTINY_AI_ENABLED` chuyển sang `true` với model
+`google/gemma-4-31b-it:free`, chọn sau khi **thử thật 8 model free** bằng đúng
+system prompt của dự án. Việc thử bắt được ba thứ mà đọc mô tả model không thấy:
+`nvidia/nemotron-3-super-120b` chèn ký tự Hàn (`tiến취`) vào tiếng Việt **3/3
+lần**; `minimax/minimax-m2.7` gọi dữ liệu Bát Tự là **"Tử vi"** — đúng lỗi thuật
+ngữ CLAUDE.md §2 cấm; `nvidia/nemotron-3-ultra-550b` viết tốt nhất nhưng ~34s,
+luôn vượt timeout 15s.
+
+**Lỗi 1 — `max-tokens: 800` cắt cụt JSON tiếng Việt.** Đo được: model tốt trả
+JSON hỏng **2/3 lần**, response dừng giữa chuỗi (973 ký tự, không kết thúc bằng
+`}`) vì hết token. Tiếng Việt tốn token hơn tiếng Anh nhiều. Hậu quả: kể cả bật
+AI và cấu hình đúng, phần lớn lượt vẫn âm thầm rơi về `MALFORMED_JSON` →
+fallback. Có **hai** default cần sửa, không phải một: `application.yml` và
+`OpenRouterProperties.maxTokens`. Cả hai nâng lên 2000.
+
+**Lỗi 2 — model trả `conflicts` là mảng object.** Chúng bắt chước cấu trúc
+payload đầu vào; `NarrativeResponse` khai báo `List<String>` nên Jackson fail và
+vứt toàn bộ câu trả lời. Đã thêm ràng buộc tường minh vào system prompt rằng bốn
+trường mảng bắt buộc là **mảng chuỗi thuần**.
+
+**Một lỗi tiềm ẩn có sẵn, phát hiện khi viết test cho chính thay đổi trên:**
+Jackson tắt `FAIL_ON_TRAILING_TOKENS` mặc định, nên
+`{"summary":"draft"} {"summary":"final"}` parse im lặng ra **object đầu tiên** —
+đúng loại rủi ro "parse nhầm thứ khác mà không ai biết" mà tác giả gốc đã cảnh
+báo, và tồn tại từ trước. Đã sửa parser.
+
+**Bản fallback tất định cũng được nâng cùng lúc** — đây mới là thứ đang chạy
+thật khi AI không gọi được. Trước: `"TAROT: Sự nghiệp - Thuận lợi (Mạnh)"`. Nay
+có nhắc lại câu hỏi, trọng tâm, tên lá bài + chiều xuôi/ngược, và đoạn diễn giải
+đã biên soạn.
+
+**Chưa khắc phục, ghi lại để không bị quên:** `warnings`/`limitations` vào
+narrative vẫn luôn rỗng vì `CalculationContext.uncertainties()` chưa từng được
+`CalculationRecorder` lưu (V4–V6) — lỗ hổng có sẵn, không được lấp bằng dữ liệu
+giả. Và bộ pruner vẫn loại phần lớn tín hiệu Thần số học ở chủ đề có trọng tâm
+(chúng là `MEDIUM` + `Dimension.OTHER`, mà `MEDIUM` chỉ sống sót khi chiều của
+nó thuộc chủ đề), nên phần văn bản vừa nối cho Thần số học chưa phát huy được
+mấy ở narrative — khác với ở trang kết quả, nơi nó hiển thị đầy đủ.
+
+
 ### Nghiên cứu — Chương 8 (Thai Nguyên/Cung Mệnh) qua xác minh Opus: thuật toán đứng vững, 4/4 ví dụ tái tạo được; blocker §B3 của R22 gỡ được thật nhưng **không đều**
 
 `docs/research_drafts/VERIFICATION_OPUS_R22.md`, mục *"Addendum Opus

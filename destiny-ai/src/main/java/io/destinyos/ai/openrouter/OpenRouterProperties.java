@@ -1,5 +1,7 @@
 package io.destinyos.ai.openrouter;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -14,6 +16,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * not a bug. An operator who wants OpenRouter must set
  * {@code DESTINY_AI_OPENROUTER_MODEL} to a model they have confirmed is
  * currently available on their account.
+ *
+ * <p>{@code fallbackModels} exists because a single free model is unreliable
+ * by nature, not by misconfiguration. Free models are rate-limited
+ * <em>upstream at the inference provider</em>, shared across every OpenRouter
+ * user - measured live, three free models returned
+ * {@code 429 "... is temporarily rate-limited upstream"} while two others
+ * returned {@code 200} at the same instant. A model id can also simply be
+ * retired. Neither is something an operator can fix by choosing a better
+ * single value.
  */
 @ConfigurationProperties(prefix = "destiny.ai.openrouter")
 public class OpenRouterProperties {
@@ -22,8 +33,59 @@ public class OpenRouterProperties {
     private String model = "";
     private String baseUrl = "https://openrouter.ai/api/v1";
     private int timeoutMs = 15_000;
-    private int maxTokens = 800;
+
+    /**
+     * Output token ceiling. 2000, raised from 800 after measurement — do not
+     * lower it back without repeating the measurement.
+     *
+     * <p>800 was silently breaking the AI path in production. Vietnamese costs
+     * far more tokens per character than English on these tokenizers, and this
+     * schema asks for a summary plus four arrays of full sentences. Running the
+     * project's own system prompt against free OpenRouter models, 2 of 3 runs
+     * came back invalid: the reply stopped mid-string (one measured at 973
+     * characters, not ending in {@code }}), {@link NarrativeResponseParser}
+     * correctly rejected it, and the request degraded to
+     * {@link io.destinyos.ai.FallbackReason#MALFORMED_JSON}.
+     *
+     * <p>That failure is nearly invisible from the outside: ADR D8 guarantees a
+     * renderable result either way, so a truncation budget does not produce an
+     * error, it produces a system that looks like it has AI enabled and never
+     * uses it. Cutting this number looks free and is not.
+     */
+    private int maxTokens = 2_000;
+
     private double temperature = 0.3;
+
+    /**
+     * Models to try, in order, when {@link #model} cannot answer.
+     *
+     * <p>Defaults to the single meta-model {@code openrouter/free}, which
+     * OpenRouter routes to whichever free model is currently serving
+     * (verified: it answered by routing to
+     * {@code nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free}). That makes
+     * the default chain "my chosen model, else whatever free model is up",
+     * which is the behaviour an operator almost always wants and would
+     * otherwise have to discover.
+     *
+     * <p>Deliberately NOT {@code openrouter/auto}: measured on a free-tier
+     * account, {@code auto} returns {@code 402 Insufficient credits}. It is a
+     * paid router, and defaulting to it would turn "AI enabled" into a silent
+     * permanent fallback on exactly the accounts this project targets.
+     *
+     * <p>Also deliberately client-side rather than OpenRouter's own
+     * {@code "models": [...]} request array. That array works for runtime
+     * failures, but a <em>removed or misspelled</em> model id is validated
+     * upfront and rejected with
+     * {@code 400 "... is not a valid model ID"} for the whole request, even
+     * when a valid fallback is listed alongside it. The case an operator most
+     * needs covering - "the model I pinned no longer exists" - is precisely
+     * the case that array does not cover, so the chain is walked here.
+     *
+     * <p>Never null; blank and duplicate entries are dropped on binding so a
+     * comma-separated environment variable with a stray trailing comma or
+     * space does not become an empty model id in a request body.
+     */
+    private List<String> fallbackModels = List.of("openrouter/free");
 
     public String getApiKey() {
         return apiKey;
@@ -63,6 +125,38 @@ public class OpenRouterProperties {
 
     public void setMaxTokens(int maxTokens) {
         this.maxTokens = maxTokens;
+    }
+
+    public List<String> getFallbackModels() {
+        return fallbackModels;
+    }
+
+    /**
+     * Accepts what Spring's binder produces from
+     * {@code DESTINY_AI_OPENROUTER_FALLBACK_MODELS=a,b,c} and cleans it up:
+     * each entry trimmed, blanks removed, duplicates removed (first wins),
+     * null treated as empty.
+     *
+     * <p>Normalizing here rather than at the call site means the chain-walking
+     * code never has to defend against {@code ""} - an empty model id is not a
+     * fallback, it is a request that will be rejected for a reason that has
+     * nothing to do with availability, wasting one link of the chain and
+     * confusing the logs.
+     */
+    public void setFallbackModels(List<String> fallbackModels) {
+        List<String> cleaned = new ArrayList<>();
+        if (fallbackModels != null) {
+            for (String candidate : fallbackModels) {
+                if (candidate == null) {
+                    continue;
+                }
+                String trimmed = candidate.trim();
+                if (!trimmed.isEmpty() && !cleaned.contains(trimmed)) {
+                    cleaned.add(trimmed);
+                }
+            }
+        }
+        this.fallbackModels = List.copyOf(cleaned);
     }
 
     public double getTemperature() {
