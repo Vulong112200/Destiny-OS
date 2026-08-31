@@ -742,13 +742,16 @@ class ScenarioApiIntegrationTest {
 
         assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
                 .contains("ICHING_CAST", "ICHING_ORIGINAL_HEXAGRAM", "ICHING_MOVING_LINES",
-                        "ICHING_DRAWN_LINES", "ICHING_BLOCKED_LINE_JUDGMENT_TEXT");
+                        "ICHING_DRAWN_LINES", "ICHING_JUDGMENT_ORIGINAL",
+                        "ICHING_BLOCKED_LINE_SELECTION_RULE", "ICHING_BLOCKED_CAT_HUNG_POLARITY");
 
         assertThat(pillar(body.evidence(), "ICHING_CAST"))
                 .containsEntry("method", "THREE_COINS")
                 .containsEntry("seed", 42);
 
-        // Chart evidence only, same as Bát Tự's chart half - no vote yet.
+        // Chart AND quẻ từ/hào từ evidence now (R24/R25) - still no vote yet,
+        // same as Bát Tự's chart half: real judgment text is not the same
+        // thing as a resolved cát/hung polarity (see IChingEngine's Javadoc).
         assertThat(body.signals()).noneMatch(signal -> signal.engine().equals("ICHING"));
     }
 

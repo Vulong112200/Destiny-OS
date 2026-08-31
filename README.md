@@ -308,6 +308,62 @@ Cần `destiny-app` đang chạy (xem trên) — frontend gọi thẳng 3 nhóm 
 của `destiny-api` qua CORS (`WebCorsConfig`, chỉ mở cho
 `http://localhost:3000`). Mở `http://localhost:3000`.
 
+### Triển khai (backend Render, frontend host riêng)
+
+`Dockerfile` chỉ build **backend** (`destiny-app`); `.dockerignore` loại
+`destiny-web` vì frontend là deployable riêng. Nghĩa là hai bên nằm ở hai
+origin khác nhau, và **phải khai báo cho nhau biết** — thiếu một trong hai biến
+dưới đây thì trình duyệt báo đúng một câu vô nghĩa: *"Không thể kết nối tới hệ
+thống tính toán."*
+
+**1. Trên host của frontend — `NEXT_PUBLIC_API_BASE_URL`**
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://<ten-service>.onrender.com
+```
+
+Ba cái bẫy, theo thứ tự hay dính:
+
+- `destiny-web/.env.local` **bị gitignore** (`destiny-web/.gitignore` dòng
+  `.env*`), nên giá trị local **không** đi theo repo. Không đặt biến này trên
+  host thì `lib/api.ts` rơi về mặc định `http://localhost:8080` — tức trình
+  duyệt của *người dùng cuối* tự gọi vào máy của chính họ.
+- Next.js **nhúng `NEXT_PUBLIC_*` lúc build**, không phải lúc chạy. Phải đặt nó
+  là biến môi trường **build-time**; đặt runtime rồi restart sẽ không có tác
+  dụng, phải build lại.
+- Phải là **`https://`**. Trang HTTPS gọi `http://` bị trình duyệt chặn vì
+  mixed content, và lỗi hiện ra y hệt lỗi mạng.
+
+**2. Trên Render (backend) — `APP_CORS_ALLOWED_ORIGINS`**
+
+```bash
+APP_CORS_ALLOWED_ORIGINS=https://<domain-frontend>
+```
+
+Mặc định chỉ là `http://localhost:3000` (xem `WebCorsConfig`). Không thêm origin
+thật của frontend thì **mọi** request bị trả `403 Invalid CORS request` ngay ở
+bước preflight. Nhiều origin thì ngăn cách bằng dấu phẩy, không có khoảng trắng:
+
+```bash
+APP_CORS_ALLOWED_ORIGINS=https://a.vercel.app,https://destiny-os.com
+```
+
+**Cách kiểm tra nhanh, không cần mở trình duyệt** — chạy preflight thủ công:
+
+```bash
+curl -i -X OPTIONS https://<backend>/api/v1/scenarios/career \
+  -H "Origin: https://<frontend>" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: content-type"
+```
+
+`200` kèm header `Access-Control-Allow-Origin` là đúng. `403 Invalid CORS
+request` nghĩa là thiếu origin trong `APP_CORS_ALLOWED_ORIGINS`.
+
+**Lưu ý gói free của Render:** service ngủ sau một khoảng không có request, nên
+lần gọi đầu tiên mất ~50s để khởi động lại. Đó là chậm, không phải lỗi — nhưng
+với người dùng thì khó phân biệt.
+
 ### Bật AI Narrative (tùy chọn, tắt mặc định)
 
 Hệ thống chạy đầy đủ mà **không cần** phần này — mọi kịch bản vẫn ra kết quả

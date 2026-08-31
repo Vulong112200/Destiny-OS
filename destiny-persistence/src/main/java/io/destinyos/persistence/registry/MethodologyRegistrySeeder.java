@@ -372,9 +372,35 @@ public class MethodologyRegistrySeeder {
                             + "Rule D đã ghi vào DECISION_LOG.md (dư 0 khi chia hào động cho 6 "
                             + "→ hào 6, loại suy từ quy tắc chia-8 tường minh trong cùng văn "
                             + "bản). Emits chart evidence only (quẻ gốc, hào động, quẻ biến) - "
-                            + "không phát tín hiệu, vì lời đoán theo hào/quẻ (interpretation "
-                            + "layer) chưa được biên soạn, đúng tinh thần Rule B - xem "
-                            + "BlockedSection LINE_JUDGMENT_TEXT trên mỗi lá số."),
+                            + "lời quẻ/lời hào nay đã có ở ICHING_HEXAGRAM_JUDGMENT_NGOTATTO, "
+                            + "nhưng engine này vẫn không phát tín hiệu, vì việc chọn lời chính "
+                            + "khi nhiều hào động và việc suy ra cát/hung vẫn chưa nghiên cứu - "
+                            + "xem BlockedSection LINE_SELECTION_RULE và CAT_HUNG_POLARITY trên "
+                            + "mỗi lá số."),
+
+            new Entry("ICHING_HEXAGRAM_JUDGMENT_NGOTATTO",
+                    "Kinh Dịch - Quẻ từ và hào từ (Ngô Tất Tố)", "EASTERN",
+                    "1.0",
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Ngô Tất Tố (dịch và chú giải) - \"Kinh Dịch Trọn Bộ\", NXB Văn Học",
+                    "Bản số hóa khoahoctamlinh.vn, chủ dự án cung cấp 2026-08-31. Ngô Tất Tố "
+                            + "mất 1954, bản dịch vào phạm vi công cộng tại Việt Nam từ 2005 "
+                            + "(Điều 27 Luật SHTT) - xem docs/research_drafts/"
+                            + "R24_iching_hexagram_judgments.md mục 2 cho phân tích bản quyền "
+                            + "đầy đủ. Trích xuất toàn bộ 64 quẻ từ (卦辭) và 386 hào từ (爻辭, "
+                            + "gồm Dụng Cửu/Dụng Lục) kèm số trang trích dẫn. Hán văn của 8 quẻ "
+                            + "đầu đã đối chiếu ≥2 nguồn độc lập (zh.wikisource.org, ctext.org) "
+                            + "từ đợt thí điểm R24 trước khi có sách; 56 quẻ còn lại lấy trực "
+                            + "tiếp từ đúng một cuốn sách này, CHƯA đối chiếu nguồn thứ hai.",
+                    Set.of("R24", "R25"),
+                    "Đóng góp lớn nhất khoảng trống 'ICHING' bên dưới: nội dung diễn giải cho "
+                            + "cả 64 quẻ không còn là RESEARCH_REQUIRED trống rỗng nữa. Nhưng "
+                            + "CHƯA qua xác minh Opus (khác mọi mục R khác trong dự án đã qua "
+                            + "bước này trước khi được tin dùng) - 3/386 hào từ là vá thủ công "
+                            + "do lỗi in/OCR hiếm trong bản gốc (KHÔN Thượng Lục, TIỆM Lục Nhị, "
+                            + "TỐN Cửu Ngũ - xem ghi chú trên từng entry). Vẫn CONTENT_REQUIRED "
+                            + "chứ chưa PRODUCTION_READY vì thiếu golden-test/Opus-verify, và vì "
+                            + "engine chưa phát tín hiệu nào từ nội dung này (xem ICHING_HEXAGRAM_CASTING)."),
 
             new Entry("FENGSHUI_KUA", "Phong Thủy - Bát Trạch (Cung Phi)", "EASTERN",
                     "1.1",
@@ -414,20 +440,24 @@ public class MethodologyRegistrySeeder {
                             + "number alone is a profile, not a judgement, so without a "
                             + "direction the engine returns the profile as evidence only."),
 
-            new Entry("ICHING", "Kinh Dịch - Luận giải (đọc lời hào/lời quẻ)", "EASTERN",
-                    "1.1",
+            new Entry("ICHING", "Kinh Dịch - Luận giải (chọn lời chính, suy cát/hung)", "EASTERN",
+                    "1.2",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
-                    Set.of("R12"),
+                    Set.of("R12", "R24"),
                     "The casting/hexagram-identification half split off to "
                             + "ICHING_HEXAGRAM_CASTING (CONTENT_REQUIRED) on 2026-08-24, the "
-                            + "same way BAZI split from BAZI_TUBINH_CHART - all four casting "
-                            + "methods (Three Coins, Yarrow, Mai Hoa Number, Mai Hoa Time) are "
-                            + "now implemented in destiny-engine-iching. What remains here is "
-                            + "the interpretive half only: which line's judgment text (爻辭) or "
-                            + "the hexagram's own text (卦辭) to read when several lines move at "
-                            + "once, and the line/hexagram meaning content itself, neither of "
-                            + "which has been authored (registered as the engine's "
-                            + "LINE_JUDGMENT_TEXT BlockedSection)."),
+                            + "same way BAZI split from BAZI_TUBINH_CHART. On 2026-08-31 the "
+                            + "line/hexagram meaning content itself ALSO split off, to "
+                            + "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO (CONTENT_REQUIRED) - 64 quẻ từ "
+                            + "and 386 hào từ, sourced from a real book, are no longer missing. "
+                            + "What remains here, genuinely unresearched: (1) which line's "
+                            + "judgment text to treat as the primary reading when several lines "
+                            + "move at once (Chu Hi's seven-rule scheme, R12 §7, one low-"
+                            + "confidence secondary summary only); (2) a computable cát/hung "
+                            + "(favourable/unfavourable) polarity rule over that text, needed "
+                            + "before this content can emit any Signal (registered as the "
+                            + "engine's LINE_SELECTION_RULE and CAT_HUNG_POLARITY "
+                            + "BlockedSections)."),
 
             new Entry("MAIHOA", "Mai Hoa Dịch Số - Luận giải", "EASTERN",
                     "1.1",

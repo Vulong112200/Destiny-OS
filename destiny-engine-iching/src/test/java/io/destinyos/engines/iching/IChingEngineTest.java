@@ -33,14 +33,53 @@ class IChingEngineTest {
         }
 
         @Test
-        @DisplayName("The line-judgment-text gap is named as a blocked section on every reading")
+        @DisplayName("The line-selection-rule and cát/hung-polarity gaps are named as blocked sections on every reading")
         void blockedSectionIsNamedInEvidence() {
             var result = run(IChingCastInput.threeCoins(1));
             assertThat(result.evidence())
                     .extracting(e -> e.ruleId())
-                    .contains("ICHING_BLOCKED_LINE_JUDGMENT_TEXT");
+                    .contains("ICHING_BLOCKED_LINE_SELECTION_RULE", "ICHING_BLOCKED_CAT_HUNG_POLARITY");
             assertThat(result.warnings())
                     .anySatisfy(w -> assertThat(w.critical()).isTrue());
+        }
+    }
+
+    @Nested
+    @DisplayName("Quẻ từ / hào từ content (R24/R25)")
+    class JudgmentContent {
+
+        @Test
+        @DisplayName("The Mai Hoa worked example (hexagram 64) carries real quẻ từ evidence, not just the cast")
+        void queTuEvidencePresent() {
+            var result = run(IChingCastInput.fromNumbers(3, 6));
+            var judgment = result.evidence().stream()
+                    .filter(e -> e.ruleId().equals("ICHING_JUDGMENT_ORIGINAL"))
+                    .findFirst().orElseThrow();
+            assertThat(judgment.fact()).containsEntry("number", 64);
+            assertThat((String) judgment.fact().get("nghia")).isNotBlank();
+            assertThat((String) judgment.fact().get("hanTu")).isNotBlank();
+        }
+
+        @Test
+        @DisplayName("A single moving line carries its own hào từ evidence")
+        void haoTuEvidencePresentForMovingLine() {
+            var result = run(IChingCastInput.fromNumbers(3, 6));
+            int position = result.data().movingLinePositions().get(0);
+            assertThat(result.evidence())
+                    .extracting(e -> e.ruleId())
+                    .contains("ICHING_LINE_JUDGMENT_" + position);
+        }
+
+        @Test
+        @DisplayName("All six lines moving on Kiền (hexagram 1) reads Dụng Cửu, not six separate line texts")
+        void dungCuuForKienAllLinesMoving() {
+            // Three Coins with every line drawn old (9 or 6) — construct via
+            // a seed search is brittle; instead assert the table-level
+            // contract this branch relies on, since IChingCastInput has no
+            // "force all lines old" input for Three Coins/Yarrow.
+            assertThat(LineJudgmentTable.dungLine(1)).isPresent();
+            assertThat(LineJudgmentTable.dungLine(1).orElseThrow().label()).isEqualTo("Dụng Cửu");
+            assertThat(LineJudgmentTable.dungLine(2).orElseThrow().label()).isEqualTo("Dụng Lục");
         }
     }
 

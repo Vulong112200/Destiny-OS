@@ -153,7 +153,12 @@ class MethodologyRegistryTest {
             // way WESTERN_ASTROLOGY_CHART_ANGLES split from WESTERN_ASTROLOGY.
             // ICHING and MAIHOA now cover the interpretive half only.
             assertStatus("ICHING_HEXAGRAM_CASTING", MethodologyStatus.CONTENT_REQUIRED, "R12");
-            assertStatus("ICHING", MethodologyStatus.RESEARCH_REQUIRED, "R12");
+            // R24/R25 (2026-08-31): quẻ từ/hào từ content authored from a
+            // real book (Ngô Tất Tố), split off the same way BAZI_TUBINH_CHART
+            // split BAZI_DAY_MASTER_STRENGTH_TVH.
+            assertStatus("ICHING_HEXAGRAM_JUDGMENT_NGOTATTO", MethodologyStatus.CONTENT_REQUIRED,
+                    "R24", "R25");
+            assertStatus("ICHING", MethodologyStatus.RESEARCH_REQUIRED, "R12", "R24");
             assertStatus("MAIHOA", MethodologyStatus.RESEARCH_REQUIRED, "R12");
             assertStatus("QIMEN", MethodologyStatus.OUT_OF_SCOPE, "R13");
             assertStatus("CALENDAR_VN_TRADITIONAL", MethodologyStatus.PRODUCTION_READY,
@@ -184,7 +189,8 @@ class MethodologyRegistryTest {
             Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
                     "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART",
                     "BAZI_DAY_MASTER_STRENGTH_TVH", "FENGSHUI_KUA",
-                    "WESTERN_ASTROLOGY_CHART_ANGLES", "ICHING_HEXAGRAM_CASTING");
+                    "WESTERN_ASTROLOGY_CHART_ANGLES", "ICHING_HEXAGRAM_CASTING",
+                    "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();
