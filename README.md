@@ -454,7 +454,7 @@ trước khi backend kịp trả lời. Phía web, lệnh gọi narrative có `A
 riêng và trang kết quả export `maxDuration`.
 
 
-Bộ test hiện tại — 469 test:
+Bộ test hiện tại — 696 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
 - **harness thực thi** — timeout, cô lập ngoại lệ, giới hạn đồng thời, thất bại một phần
@@ -464,6 +464,7 @@ Bộ test hiện tại — 469 test:
 - **Calendar** — bảng ví dụ tính mẫu gốc của Hồ Ngọc Đức (1983-1986), 4 năm lệch Việt/Trung có tên cụ thể (1985, 2007, 2030, 2053), quét Tết toàn bộ 1900-2100, chu kỳ Can Chi 60 năm, ranh giới giờ Tý 23:00, không suy đoán khi vùng miền chưa xác định (R14b)
 - **Tarot** — đúng cấu trúc 78 lá RWS, rút bài xác định theo seed, không thiên vị khi xoay lá, không trùng lá trong một lần rút, cả 78 lá đều có nội dung diễn giải thật và sinh đúng tối đa 5 signal/lá
 - **Thần số học** — golden test đối chiếu ví dụ tính mẫu từ nguồn độc lập (không tự sinh từ code), chuẩn hóa tên tiếng Việt đúng (kể cả trường hợp `đ` không phân rã Unicode), giữ số chủ đạo 11/22/33, cả 65 tổ hợp (loại số × giá trị) đều có nội dung diễn giải và sinh signal thật
+- **Kinh Dịch** — 4 phương pháp gieo quẻ với phân phối xác suất tự suy ra bằng tổ hợp học (Tam Tiền 1:3:3:1, Thi Thảo 4:20:28:12); đủ 64 quẻ từ + 386 hào từ, và **mọi khẳng định về nội dung đều kiểm một tính chất suy dẫn được ĐỘC LẬP với chính dữ liệu đang kiểm** — nhãn hào phải khớp âm/dương thật của quẻ (phép này bắt được 2 lỗi thật của sách nguồn), chữ Hán phải là CJK Unified chứ không phải Kangxi Radical, quẻ từ phải mở đầu bằng tên quẻ của chính nó, lời dịch không được chứa marker lời bình, và bảng phải có đúng 386 entry; cực tính cát/hung được **đối chiếu chéo với chính bản dịch Ngô Tất Tố** (吉→"tốt" 113/119, 咎→"lỗi" 88/91) nên đảo một cực tính sẽ làm build đỏ; golden test hào làm chủ đối chiếu hai ví dụ in trong nguồn (quẻ 16→hào 4, quẻ 43→hào 6)
 - **Fusion** — đủ 14/14 test case bắt buộc của đặc tả: đếm nguồn theo engine riêng biệt (không theo signal), tín hiệu critical sống sót qua đa số, methodology conflict không bị tự động gộp
 - **Scenario** — chỉ chạy engine được chính sách nêu tên, applicability chỉ thu hẹp không mở rộng, scenario chưa có chính sách thì không chạy gì cả thay vì đoán
 - **Lưu trữ tính toán** — round-trip đầy đủ Calculation/Evidence/Signal/Fusion/Conflict, `result_hash` giống hệt nhau khi cùng input/version/seed/outcome và khác nhau khi bất kỳ yếu tố nào đổi
