@@ -84,20 +84,38 @@ public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, Tar
         List<TarotCard> shuffled = new ArrayList<>(TarotDeck.allCards());
         fisherYatesShuffle(shuffled, random);
 
-        List<String> positions = input.spread().positions();
-        List<TarotCardDraw> draws = new ArrayList<>(positions.size());
-        List<Evidence> evidence = new ArrayList<>(positions.size());
+        int cardCount = input.resolvedCardCount();
+        List<String> positions = input.spread().positions(cardCount);
+
+        // Which slots of the shuffled deck get turned over. Taking from the top
+        // and letting the querent point at face-down slots draw from the same
+        // shuffle and are equally chance-determined; what differs is who made
+        // the choice, and the reading records which it was rather than
+        // presenting the two as the same event.
+        List<Integer> slots = new ArrayList<>(cardCount);
+        if (input.pickedByQuerent()) {
+            slots.addAll(input.pickedPositions());
+        } else {
+            for (int i = 1; i <= cardCount; i++) {
+                slots.add(i);
+            }
+        }
+
+        List<TarotCardDraw> draws = new ArrayList<>(cardCount);
+        List<Evidence> evidence = new ArrayList<>(cardCount);
         List<Signal> signals = new ArrayList<>();
         String drawGroupId = UUID.randomUUID().toString();
 
-        for (int i = 0; i < positions.size(); i++) {
-            TarotCard card = shuffled.get(i);
+        for (int i = 0; i < cardCount; i++) {
+            int slot = slots.get(i);
+            TarotCard card = shuffled.get(slot - 1);
             TarotOrientation orientation = decideOrientation(input.orientationPolicy(), random);
             String position = positions.get(i);
             String evidenceId = UUID.randomUUID().toString();
 
             draws.add(new TarotCardDraw(position, card, orientation));
-            evidence.add(buildEvidence(evidenceId, position, card, orientation, drawGroupId));
+            evidence.add(buildEvidence(evidenceId, position, card, orientation, drawGroupId,
+                    slot, input.pickedByQuerent(), input.spread().hasPositionMeanings()));
             signals.addAll(buildSignals(evidenceId, card, orientation, drawGroupId));
         }
 
@@ -167,9 +185,22 @@ public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, Tar
     }
 
     private static Evidence buildEvidence(String evidenceId, String position, TarotCard card,
-                                          TarotOrientation orientation, String groupId) {
+                                          TarotOrientation orientation, String groupId,
+                                          int deckSlot, boolean pickedByQuerent,
+                                          boolean positionHasMeaning) {
         Map<String, Object> fact = new LinkedHashMap<>();
         fact.put("position", position);
+        // Whether `position` means anything. FREE_FORM reports CARD_1, CARD_2 …
+        // which is an index, not an interpretation, and a renderer that treats
+        // it like PAST or OUTCOME would be inventing a claim the spread
+        // deliberately declines to make.
+        fact.put("positionHasMeaning", positionHasMeaning);
+        // Which slot of the shuffled deck this card came from, and who chose
+        // it. Recorded because "the engine took the top three" and "the querent
+        // pointed at slots 12, 47 and 63" are different events, and a reading
+        // that cannot tell them apart cannot be audited or honestly described.
+        fact.put("deckSlot", deckSlot);
+        fact.put("selectionMode", pickedByQuerent ? "PICKED_BY_QUERENT" : "TOP_OF_DECK");
         fact.put("cardId", card.id());
         fact.put("cardName", card.name());
         fact.put("arcana", card.arcana().name());
@@ -249,7 +280,25 @@ public final class TarotEngine implements MetaphysicalEngine<TarotDrawInput, Tar
         if (input == null) {
             return ValidationResult.failed("NULL_INPUT", "Tarot draw input is required.", ENGINE_ID);
         }
-        return ValidationResult.ok();
+        // FREE_FORM has no card count of its own, so a missing count is a
+        // caller mistake rather than something to default silently - picking a
+        // number here would be the engine inventing the shape of the reading.
+        if (input.spread().requiresCardCount() && input.cardCount() == null) {
+            return ValidationResult.failed("MISSING_CARD_COUNT",
+                    "Spread FREE_FORM cần số lá muốn bốc (1-10); hệ thống không tự chọn.",
+                    ENGINE_ID);
+        }
+        try {
+            input.resolvedCardCount();
+        } catch (IllegalArgumentException e) {
+            return ValidationResult.failed("INVALID_CARD_COUNT", e.getMessage(), ENGINE_ID);
+        }
+        // An invalid pick is the caller's error and has to say what is wrong,
+        // because the querent is holding a deck and will want to re-pick.
+        return input.pickedPositionsProblem()
+                .map(problem -> ValidationResult.failed("INVALID_PICKED_POSITIONS",
+                        problem, ENGINE_ID))
+                .orElseGet(ValidationResult::ok);
     }
 
     @Override

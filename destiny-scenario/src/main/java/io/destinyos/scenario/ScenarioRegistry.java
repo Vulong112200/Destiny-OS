@@ -63,6 +63,7 @@ public final class ScenarioRegistry {
                         "ZIWEI", Applicability.HIGH,
                         "WESTERN_ASTROLOGY", Applicability.HIGH,
                         "TAROT", Applicability.MEDIUM,
+                        "ICHING", Applicability.MEDIUM,
                         "NUMEROLOGY_PYTHAGOREAN", Applicability.MEDIUM,
                         "FENGSHUI_KUA", Applicability.HIGH
                 ),
@@ -77,6 +78,7 @@ public final class ScenarioRegistry {
                         "BAZI", Applicability.HIGH,
                         "FENGSHUI_KUA", Applicability.MEDIUM,
                         "TAROT", Applicability.MEDIUM,
+                        "ICHING", Applicability.MEDIUM,
                         "ZIWEI", Applicability.MEDIUM
                 ),
                 Set.of(Dimension.DAILY, Dimension.TIMING)));
@@ -93,6 +95,7 @@ public final class ScenarioRegistry {
                         "ZIWEI", Applicability.HIGH,
                         "WESTERN_ASTROLOGY", Applicability.MEDIUM,
                         "TAROT", Applicability.LOW,
+                        "ICHING", Applicability.MEDIUM,
                         "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW,
                         "FENGSHUI_KUA", Applicability.LOW
                 ),
@@ -109,6 +112,7 @@ public final class ScenarioRegistry {
                         "ZIWEI", Applicability.HIGH,
                         "WESTERN_ASTROLOGY", Applicability.MEDIUM,
                         "TAROT", Applicability.LOW,
+                        "ICHING", Applicability.MEDIUM,
                         "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW,
                         "FENGSHUI_KUA", Applicability.MEDIUM
                 ),
@@ -126,6 +130,7 @@ public final class ScenarioRegistry {
                         "ZIWEI", Applicability.HIGH,
                         "WESTERN_ASTROLOGY", Applicability.MEDIUM,
                         "TAROT", Applicability.LOW,
+                        "ICHING", Applicability.MEDIUM,
                         "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW
                 ),
                 Set.of(Dimension.RELATIONSHIP)));
@@ -136,12 +141,36 @@ public final class ScenarioRegistry {
         // Numerology have no named branch for a purchase decision as such
         // (Tài Tinh is about wealth generally, not a purchase) - omitted
         // rather than guessed.
+        // TAROT and ICHING added 2026-09-01 at the project owner's decision, at
+        // MEDIUM. Two reasons, and the second is the stronger one.
+        //
+        // First, consistency: `scenario_scope_reference.md` records TAROT as
+        // "không tìm thấy" for PURCHASE - but it records exactly the same for
+        // CAREER and FINANCE ("không tìm thấy (chỉ hiện đại)"), and TAROT is in
+        // both of those policies. The same evidence was producing opposite
+        // treatment, which is not a methodology position, it is an oversight.
+        //
+        // Second, what these two systems are: both answer a question that was
+        // posed, rather than reading a topic off a natal chart. The research
+        // note for GENERAL_DECISION says of I Ching that it has "một khái niệm
+        // truyền thống thực sự và rất mạnh cho câu hỏi mở". "Should I buy this
+        // laptop next week" is such a question. A topic-specific classical
+        // branch is the wrong thing to look for in an oracle that takes the
+        // question as its input.
+        //
+        // Why this mattered in practice: PURCHASE previously named only ZIWEI
+        // (no engine exists), WESTERN_ASTROLOGY (emits no signals) and
+        // FENGSHUI_KUA. A user selecting Tarot got a run with no interpretation
+        // at all and no statement of why - see the honest-reporting fix in
+        // ScenarioEngine.
         map.put(ScenarioType.PURCHASE, new ScenarioDefinition(
                 ScenarioType.PURCHASE, "Mua sắm", true,
                 Map.of(
                         "ZIWEI", Applicability.HIGH,
                         "WESTERN_ASTROLOGY", Applicability.LOW,
-                        "FENGSHUI_KUA", Applicability.HIGH
+                        "FENGSHUI_KUA", Applicability.HIGH,
+                        "TAROT", Applicability.MEDIUM,
+                        "ICHING", Applicability.MEDIUM
                 ),
                 Set.of(Dimension.HOME, Dimension.FINANCE, Dimension.DECISION)));
 
@@ -152,7 +181,9 @@ public final class ScenarioRegistry {
                 Map.of(
                         "ZIWEI", Applicability.HIGH,
                         "WESTERN_ASTROLOGY", Applicability.LOW,
-                        "FENGSHUI_KUA", Applicability.HIGH
+                        "FENGSHUI_KUA", Applicability.HIGH,
+                        "TAROT", Applicability.MEDIUM,
+                        "ICHING", Applicability.MEDIUM
                 ),
                 Set.of(Dimension.TRAVEL, Dimension.DECISION)));
 
@@ -170,6 +201,7 @@ public final class ScenarioRegistry {
                         "ZIWEI", Applicability.MEDIUM,
                         "WESTERN_ASTROLOGY", Applicability.LOW,
                         "TAROT", Applicability.LOW,
+                        "ICHING", Applicability.LOW,
                         "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW,
                         "FENGSHUI_KUA", Applicability.MEDIUM
                 ),

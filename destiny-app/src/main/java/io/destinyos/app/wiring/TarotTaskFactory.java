@@ -51,7 +51,8 @@ public class TarotTaskFactory implements EngineTaskFactory {
         // cannot be allowed to change which cards come up (Rule A). It is
         // carried on the input as the record of what was asked, which is
         // precisely why it has to be the same question everything else recorded.
-        var input = new TarotDrawInput(spread, request.effectiveQuestion(), tarot.seed(), null);
+        var input = new TarotDrawInput(spread, request.effectiveQuestion(), tarot.seed(),
+                null, tarot.cardCount(), tarot.pickedPositions());
         return Optional.of(EngineTask.of(engine, input));
     }
 }

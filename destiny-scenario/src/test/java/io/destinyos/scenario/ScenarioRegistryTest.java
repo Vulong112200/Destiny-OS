@@ -55,6 +55,7 @@ class ScenarioRegistryTest {
                     "ZIWEI", Applicability.HIGH,
                     "WESTERN_ASTROLOGY", Applicability.MEDIUM,
                     "TAROT", Applicability.LOW,
+                    "ICHING", Applicability.MEDIUM,
                     "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW,
                     "FENGSHUI_KUA", Applicability.LOW));
         }
@@ -78,6 +79,7 @@ class ScenarioRegistryTest {
                     "ZIWEI", Applicability.HIGH,
                     "WESTERN_ASTROLOGY", Applicability.MEDIUM,
                     "TAROT", Applicability.LOW,
+                    "ICHING", Applicability.MEDIUM,
                     "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW,
                     "FENGSHUI_KUA", Applicability.MEDIUM));
         }
@@ -112,6 +114,7 @@ class ScenarioRegistryTest {
                     "ZIWEI", Applicability.HIGH,
                     "WESTERN_ASTROLOGY", Applicability.MEDIUM,
                     "TAROT", Applicability.LOW,
+                    "ICHING", Applicability.MEDIUM,
                     "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW));
         }
 
@@ -138,7 +141,9 @@ class ScenarioRegistryTest {
             assertThat(definition.applicableEngines()).containsExactlyInAnyOrderEntriesOf(java.util.Map.of(
                     "ZIWEI", Applicability.HIGH,
                     "WESTERN_ASTROLOGY", Applicability.LOW,
-                    "FENGSHUI_KUA", Applicability.HIGH));
+                    "FENGSHUI_KUA", Applicability.HIGH,
+                    "TAROT", Applicability.MEDIUM,
+                    "ICHING", Applicability.MEDIUM));
             assertThat(definition.dimensions()).containsExactlyInAnyOrder(
                     Dimension.HOME, Dimension.FINANCE, Dimension.DECISION);
         }
@@ -149,23 +154,47 @@ class ScenarioRegistryTest {
             assertThat(definition.applicableEngines()).containsExactlyInAnyOrderEntriesOf(java.util.Map.of(
                     "ZIWEI", Applicability.HIGH,
                     "WESTERN_ASTROLOGY", Applicability.LOW,
-                    "FENGSHUI_KUA", Applicability.HIGH));
+                    "FENGSHUI_KUA", Applicability.HIGH,
+                    "TAROT", Applicability.MEDIUM,
+                    "ICHING", Applicability.MEDIUM));
             assertThat(definition.dimensions()).containsExactlyInAnyOrder(
                     Dimension.TRAVEL, Dimension.DECISION);
         }
 
         @Test
-        @DisplayName("Bát Tự, Tarot and Numerology have no named branch for either — omitted from both")
-        void neitherIncludesBaziTarotOrNumerology() {
+        @DisplayName("Bát Tự and Numerology have no named branch for either — still omitted from both")
+        void neitherIncludesBaziOrNumerology() {
+            // TAROT was in this list until 2026-09-01, on the grounds that the
+            // research found "không tìm thấy" a named classical branch for it.
+            // That was true, and it was also true of CAREER and FINANCE, where
+            // TAROT was included anyway — so the same evidence was producing
+            // opposite treatment. Bát Tự and Numerology stay out because their
+            // omission is not inconsistent with anything: the research places
+            // purchase-date selection in Trạch Nhật, outside personal Bát Tự.
             for (ScenarioType type : Set.of(ScenarioType.PURCHASE, ScenarioType.TRAVEL)) {
                 var definition = ScenarioRegistry.get(type);
                 assertThat(definition.applicabilityFor("BAZI"))
                         .as("BAZI for %s", type).isEqualTo(Applicability.NOT_APPLICABLE);
-                assertThat(definition.applicabilityFor("TAROT"))
-                        .as("TAROT for %s", type).isEqualTo(Applicability.NOT_APPLICABLE);
                 assertThat(definition.applicabilityFor("NUMEROLOGY_PYTHAGOREAN"))
                         .as("NUMEROLOGY_PYTHAGOREAN for %s", type)
                         .isEqualTo(Applicability.NOT_APPLICABLE);
+            }
+        }
+
+        @Test
+        @DisplayName("Both now run a system that can actually answer a posed question")
+        void bothRunAQuestionAnsweringSystem() {
+            // The failure this guards against is the one the project owner hit:
+            // PURCHASE named ZIWEI (no engine exists), WESTERN_ASTROLOGY (emits
+            // no signals) and FENGSHUI_KUA (needs a facing direction to say
+            // anything). A user could complete the form and get a reading with
+            // no interpretation in it at all.
+            for (ScenarioType type : Set.of(ScenarioType.PURCHASE, ScenarioType.TRAVEL)) {
+                var definition = ScenarioRegistry.get(type);
+                assertThat(definition.applicabilityFor("TAROT"))
+                        .as("TAROT for %s", type).isEqualTo(Applicability.MEDIUM);
+                assertThat(definition.applicabilityFor("ICHING"))
+                        .as("ICHING for %s", type).isEqualTo(Applicability.MEDIUM);
             }
         }
     }
@@ -182,6 +211,7 @@ class ScenarioRegistryTest {
                     "ZIWEI", Applicability.MEDIUM,
                     "WESTERN_ASTROLOGY", Applicability.LOW,
                     "TAROT", Applicability.LOW,
+                    "ICHING", Applicability.LOW,
                     "NUMEROLOGY_PYTHAGOREAN", Applicability.LOW,
                     "FENGSHUI_KUA", Applicability.MEDIUM));
         }

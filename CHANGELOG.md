@@ -8,6 +8,97 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### Kịch bản — hệ người dùng chọn bị bỏ im lặng, và Tarot/Kinh Dịch nay có ở cả 9 kịch bản
+
+Khiếu nại của chủ dự án, tái hiện được nguyên văn: chọn Tarot cho kịch bản
+**Mua sắm**, nhập câu hỏi *"Tôi dự tính mua sắm laptop mới vào ngày 25/9-30/9,
+có nên không?"*, nhận về một trang **chỉ có Chiêm tinh và Phong Thủy, cả hai
+không có luận giải**. Ba lỗi khác nhau chồng lên nhau.
+
+**1. `ScenarioEngine` bỏ im lặng dữ liệu người dùng đã nhập.** Vòng lặp chỉ đi
+qua `definition.applicableEngines().keySet()` — engine mà **chính sách** nêu tên.
+Task người dùng gửi cho engine không có trong chính sách **biến mất không dấu
+vết**: không trong `unavailableEngines`, không trong evidence, không ở đâu cả.
+Chỉ chạy engine được chính sách nêu tên là **đúng và cố ý** — đó là thứ làm nên
+một kịch bản. Nhưng im lặng về phần bị bỏ thì phá đúng nguyên tắc trung thực mà
+cả class đó được xây trên. Nay có `ScenarioResult.enginesOutsideScenario` và
+`ScenarioRunResponse.enginesOutsideScenario`, tách riêng khỏi
+`unavailableEngines` (trường hợp ngược lại: kịch bản muốn nhưng request không có
+dữ liệu). Hai thứ này từng bị lẫn vào nhau bằng cách im lặng về một trong hai.
+
+**2. `PURCHASE` và `TRAVEL` là hai kịch bản duy nhất không có Tarot — và cũng là
+hai kịch bản tệ nhất.** Chính sách của chúng chỉ nêu `ZIWEI` (chưa có engine),
+`WESTERN_ASTROLOGY` (không phát Signal nào) và `FENGSHUI_KUA` (cần hướng nhà mới
+nói được gì). Một người dùng điền xong form hoàn toàn có thể nhận về một lượt
+chạy **không có một dòng luận giải nào**, và đó chính là điều đã xảy ra.
+
+Đã thêm `TAROT` và `ICHING` ở mức **MEDIUM** (quyết định của chủ dự án). Hai lý
+do, và lý do thứ hai mạnh hơn:
+
+- **Bất nhất trong chính dự án.** `scenario_scope_reference.md` ghi TAROT là
+  *"không tìm thấy"* cho PURCHASE — nhưng ghi **y hệt** cho CAREER và FINANCE
+  (*"không tìm thấy (chỉ hiện đại)"*), mà TAROT **vẫn có** trong cả hai chính
+  sách đó. Cùng một mức bằng chứng cho ra cách đối xử trái ngược. Đó không phải
+  một lập trường phương pháp, đó là một chỗ bị bỏ sót.
+- **Bản chất hai hệ này.** Cả hai **trả lời câu hỏi được đặt ra**, không phải đọc
+  một chủ đề từ lá số bẩm sinh. Ghi chú nghiên cứu cho GENERAL_DECISION nói về
+  Kinh Dịch rằng nó có *"một khái niệm truyền thống thực sự và rất mạnh cho câu
+  hỏi mở"*. "Tuần sau có nên mua laptop không" chính là một câu hỏi như vậy. Đi
+  tìm một nhánh cổ điển theo chủ đề là tìm sai thứ ở một hệ lấy câu hỏi làm đầu vào.
+
+**3. `ICHING` trước đó chỉ có ở GENERAL_DECISION** — nên toàn bộ tầng cát/hung
+vừa mở hôm nay vô hình ở 8/9 kịch bản. Đã thêm `ICHING` vào cả 9 chính sách,
+cùng lý do trên. `PROJECT` để **LOW** chứ không MEDIUM, vì `PROJECT` theo thiết
+kế là `BUSINESS` hạ đúng một bậc và có test ghim quy tắc đó — sửa registry cho
+khớp test, không sửa test cho khớp registry.
+
+**Phong Thủy KHÔNG thiếu luận giải** — đây là chẩn đoán, không phải sửa code.
+`FengShuiKuaEngine` **có** phát Signal, nhưng chỉ khi có `facingDirection`. Không
+có hướng nhà thì nó trả về Cung Phi làm evidence và dừng — đúng thiết kế, vì số
+Cung Phi một mình là một *profile*, không phải một phán định. Form đã có ô hướng
+nhà nhưng ghi "(tùy chọn)" mà không nói hệ quả, nên người dùng bỏ qua rồi kết
+luận hệ thống thiếu luận giải. Việc phải sửa là ở phần nói ra hệ quả, không phải
+ở engine.
+
+### Tarot — 6 spread thay vì 3, và người bốc là người chọn
+
+Ba phê bình của chủ dự án, cả ba đều đúng.
+
+**"Chọn gì có 3 lá thì có đúng với thuật thức của đa số bói tarot không".** Đã
+thêm **`CELTIC_CROSS` (10 lá)** — spread được dùng phổ biến nhất trong thực hành
+đương đại — và **`HORSESHOE_FIVE` (5 lá)**. Cả hai được khai báo tường minh là
+**cấu trúc hiện đại**, không giả làm cổ điển: `scenario_scope_reference.md` đã
+ghi rằng spread tarot theo chủ đề là *"cấu trúc hiện đại"*, ngoại lệ duy nhất là
+trải bài 3 lá cho câu hỏi mở mà nó gọi là *"bằng chứng MẠNH"*.
+
+**"Bộ người dùng không thể biết chính quá khứ và hiện tại của người ta ra sao à".**
+Đây là phê bình sắc nhất và nó dẫn tới `FREE_FORM`: bốc số lá do người dùng chọn
+(1–10) và **không gán ý nghĩa vị trí nào cả**. Vị trí trả về là `CARD_1`,
+`CARD_2`… tức một **chỉ số, không phải một cách hiểu**, và evidence mang cờ
+`positionHasMeaning: false` để tầng hiển thị không trình bày `CARD_3` như thể nó
+có nghĩa. Một spread gán nhãn "QUÁ KHỨ" cho một lá là đang tự nhận biết quá khứ
+của người xem. Nó không biết. `FREE_FORM` là mặc định trung thực cho ai không
+muốn bố cục nói thay mình.
+
+**"Để người dùng tự chọn thì đúng hơn".** `TarotDrawInput.pickedPositions` —
+người xem chỉ vào các **ô 1..78 của bộ đã xào**. Bản chất phải nói cho đúng, và
+đây là chỗ dễ nói quá: bộ vẫn được xào từ `seed`, nên **người chọn không biết ô
+đó là lá gì** — mức ngẫu nhiên y như cũ. Cái khác là **ai đã thực hiện lựa chọn**,
+và evidence ghi `selectionMode: PICKED_BY_QUERENT | TOP_OF_DECK` thay vì báo cáo
+hai việc đó y như nhau. Có test khẳng định chọn ô 1,2,3 cho ra **đúng** kết quả
+lấy từ trên xuống — hai đường cùng rút từ một lần xào, đó chính là điều làm cho
+sự phân biệt này là về *người chọn* chứ không phải về *lá khác nhau*.
+
+Đây **không phải** chỉ đích danh lá: chọn ô 47 không nói gì về ô 47 chứa lá gì.
+Một chế độ cho phép gọi tên "The Fool" thì không còn là bốc nữa, nên không có.
+
+Lựa chọn không dùng được thì **bị từ chối kèm lý do**, không bị âm thầm sửa —
+sai số lá so với spread, chọn trùng ô, ô ngoài 1..78, `FREE_FORM` thiếu số lá.
+Người đang cầm bộ bài sẽ chọn lại, nên thông báo phải nói rõ sai ở đâu.
+
+Toàn dự án: **702 test** PASS.
+
+
 ### AI trên web — ba lỗi thật, và một chẩn đoán bác bỏ giả thuyết ban đầu
 
 Khiếu nại là "phần AI chưa chạy được ở web". **Chẩn đoán trực tiếp trên backend

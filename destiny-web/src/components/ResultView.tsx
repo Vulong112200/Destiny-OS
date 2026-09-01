@@ -33,6 +33,18 @@ import { TarotResultCard } from "./TarotResultCard";
  * chain, and none of the hard data below should wait on that. See
  * `NarrativePanel`.
  */
+/**
+ * Tên tiếng Việt của một hệ, lấy từ bảng nhãn backend trả về.
+ *
+ * <p>Trước đây `involvedEngines` được render thẳng ra trang, nên người dùng cuối
+ * đọc được `ICHING`, `WESTERN_ASTROLOGY` — đúng thứ `CLAUDE.md` §9 cấm. Lùi về
+ * chính id khi chưa có nhãn là có chủ đích: mất nhãn thì trang phải suy giảm
+ * thành tên kỹ thuật, không được biến thành khoảng trắng.
+ */
+function engineName(engineId: string, labels?: LabelRegistries): string {
+  return labels?.Engine?.[engineId] ?? engineId;
+}
+
 export function ResultView({
   result,
   labels = {},
@@ -53,7 +65,16 @@ export function ResultView({
       {result.fusion && result.fusion.conflicts.length > 0 && (
         <section id="mau-thuan" className="scroll-mt-20">
           <h2 className="mb-3 text-lg font-semibold text-slate-900">
-            Điểm khác biệt giữa các phương pháp
+            {/*
+              Không đặt cứng "giữa các phương pháp". Từ 2026-09-01 Kinh Dịch có
+              thể tự mâu thuẫn với chính nó — một lời quẻ mang cả chữ tốt lẫn chữ
+              xấu phát ra hai Signal đối cực, nên `involvedEngines` chỉ có MỘT
+              phần tử. Nói với người đọc rằng hai hệ bất đồng trong khi thực tế
+              là một lời quẻ tự nói cả tốt cả xấu là mô tả sai bằng chứng.
+            */}
+            {result.fusion.conflicts.every((c) => c.involvedEngines.length < 2)
+              ? "Điểm cần lưu ý: bằng chứng không thống nhất"
+              : "Điểm khác biệt giữa các phương pháp"}
           </h2>
           <div className="grid gap-3 xl:grid-cols-2">
             {result.fusion.conflicts.map((conflict, i) => (
@@ -64,7 +85,11 @@ export function ResultView({
                 </div>
                 <p className="text-sm text-slate-700">{conflict.description}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Liên quan: {conflict.involvedEngines.join(", ")}
+                  {conflict.involvedEngines.length === 1
+                    ? `Trong cùng một hệ: ${engineName(conflict.involvedEngines[0], labels)}`
+                    : `Liên quan: ${conflict.involvedEngines
+                        .map((id) => engineName(id, labels))
+                        .join(", ")}`}
                 </p>
               </div>
             ))}

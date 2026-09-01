@@ -26,11 +26,25 @@ import java.util.List;
  *                           foreground. Emitted in {@code Dimension} declaration
  *                           order purely so the payload is stable across runs
  * @param policyDefined      whether this scenario has a real applicability
- *                           policy (only BUSINESS and DAILY_ACTION do today)
+ *                           policy (every scenario except COMPATIBILITY does,
+ *                           which is undefined on purpose — its evidence is
+ *                           entirely dual-chart and this system is single-chart)
  * @param engines            per-engine execution outcome
  * @param unavailableEngines engines the scenario's policy names but the
  *                           request did not supply data for — reported
  *                           honestly rather than silently skipped
+ * @param enginesOutsideScenario engines the request supplied input for that
+ *                           this scenario's policy does not name, so they did
+ *                           not run. Separate from {@code unavailableEngines},
+ *                           which is the opposite case: the scenario wanted the
+ *                           engine and the request had no data for it. Added
+ *                           2026-09-01 because the two had been conflated by
+ *                           being silent about one of them — a user who chose
+ *                           Tarot for "Mua sắm" had their draw discarded with
+ *                           nothing in the payload saying so, and the page they
+ *                           got back showed only engines that emit no
+ *                           interpretation. The client should tell the user
+ *                           plainly, ideally before they submit
  * @param evidence           every evidence item produced
  * @param signals            every signal produced
  * @param fusion             the fused conclusion, or {@code null} when
@@ -49,10 +63,25 @@ public record ScenarioRunResponse(
         boolean policyDefined,
         List<EngineOutcomeDto> engines,
         List<String> unavailableEngines,
+        List<String> enginesOutsideScenario,
         List<EvidenceDto> evidence,
         List<SignalDto> signals,
         FusionResultDto fusion,
         String resultHash,
         RetentionDto retention
 ) {
+
+    /**
+     * Kept so callers written before {@code enginesOutsideScenario} existed
+     * keep compiling; it defaults to empty, which is the correct value for a
+     * caller that has no notion of engines outside the scenario.
+     */
+    public ScenarioRunResponse(String calculationId, String scenarioId, ScenarioContextDto context,
+                               List<LabeledValue> dimensions, boolean policyDefined,
+                               List<EngineOutcomeDto> engines, List<String> unavailableEngines,
+                               List<EvidenceDto> evidence, List<SignalDto> signals,
+                               FusionResultDto fusion, String resultHash, RetentionDto retention) {
+        this(calculationId, scenarioId, context, dimensions, policyDefined, engines,
+                unavailableEngines, List.of(), evidence, signals, fusion, resultHash, retention);
+    }
 }

@@ -113,6 +113,7 @@ public class ScenarioOrchestrationService {
                 scenarioResult.policyDefined(),
                 engineDtos,
                 scenarioResult.unavailableEngines(),
+                scenarioResult.enginesOutsideScenario(),
                 evidenceDtos,
                 signalDtos,
                 fusionDto,

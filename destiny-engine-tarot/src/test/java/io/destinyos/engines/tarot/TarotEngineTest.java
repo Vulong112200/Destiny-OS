@@ -101,9 +101,88 @@ class TarotEngineTest {
     @DisplayName("The number of cards drawn matches the spread's position count")
     void cardCountMatchesSpread() {
         for (TarotSpread spread : TarotSpread.values()) {
+            if (spread.requiresCardCount()) {
+                // FREE_FORM has no count of its own by design, so it is checked
+                // against a count the caller supplies rather than one the spread
+                // claims. Skipping it here would leave the only variable-size
+                // spread unchecked.
+                continue;
+            }
             var reading = engine.calculate(TarotDrawInput.withSeed(spread, 7L), context()).data();
             assertThat(reading.draws()).hasSize(spread.cardCount());
         }
+    }
+
+    @Test
+    @DisplayName("FREE_FORM draws the number of cards asked for, with no position meanings")
+    void freeFormDrawsRequestedCount() {
+        for (int count = 1; count <= 10; count++) {
+            var reading = engine.calculate(TarotDrawInput.freeForm(count, 7L), context()).data();
+            assertThat(reading.draws()).as("FREE_FORM with %d cards", count).hasSize(count);
+            // The point of FREE_FORM: positions are an index, not a claim about
+            // the querent's past or outcome.
+            assertThat(reading.draws()).extracting(TarotCardDraw::position)
+                    .allSatisfy(position -> assertThat((String) position).startsWith("CARD_"));
+        }
+        assertThat(TarotSpread.FREE_FORM.hasPositionMeanings()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Celtic Cross draws ten cards, in its declared order")
+    void celticCrossDrawsTen() {
+        var reading = engine.calculate(
+                TarotDrawInput.withSeed(TarotSpread.CELTIC_CROSS, 7L), context()).data();
+        assertThat(reading.draws()).hasSize(10);
+        assertThat(reading.draws()).extracting(TarotCardDraw::position)
+                .containsExactlyElementsOf(TarotSpread.CELTIC_CROSS.positions());
+        assertThat(reading.draws()).extracting(d -> d.card().id())
+                .as("no card may appear twice in one draw")
+                .doesNotHaveDuplicates();
+    }
+
+    @Test
+    @DisplayName("Picked slots return the cards at those slots of the same shuffle")
+    void pickedSlotsSelectFromTheSameShuffle() {
+        // The querent points at face-down slots. The deck order still comes
+        // from the seed, so the same seed with the same picks must reproduce
+        // exactly - otherwise the draw could not be audited.
+        var picks = java.util.List.of(12, 47, 63);
+        var first = engine.calculate(new TarotDrawInput(TarotSpread.PAST_PRESENT_FUTURE,
+                null, 7L, null, null, picks), context()).data();
+        var again = engine.calculate(new TarotDrawInput(TarotSpread.PAST_PRESENT_FUTURE,
+                null, 7L, null, null, picks), context()).data();
+
+        assertThat(first.draws()).extracting(d -> d.card().id())
+                .containsExactlyElementsOf(again.draws().stream().map(d -> d.card().id()).toList());
+
+        // And picking slot 1,2,3 must equal taking from the top - the two paths
+        // draw from one shuffle, which is what makes the distinction about who
+        // chose rather than about the cards being different.
+        var topOfDeck = engine.calculate(
+                TarotDrawInput.withSeed(TarotSpread.PAST_PRESENT_FUTURE, 7L), context()).data();
+        var pickedTop = engine.calculate(new TarotDrawInput(TarotSpread.PAST_PRESENT_FUTURE,
+                null, 7L, null, null, java.util.List.of(1, 2, 3)), context()).data();
+        assertThat(pickedTop.draws()).extracting(d -> d.card().id())
+                .containsExactlyElementsOf(topOfDeck.draws().stream().map(d -> d.card().id()).toList());
+    }
+
+    @Test
+    @DisplayName("An unusable pick is rejected with a reason, never silently corrected")
+    void badPicksAreRejected() {
+        // A querent holding a deck will re-pick, so the message has to say what
+        // is wrong rather than the engine quietly drawing something else.
+        assertThat(engine.validateInput(new TarotDrawInput(TarotSpread.PAST_PRESENT_FUTURE,
+                null, 7L, null, null, java.util.List.of(1, 2))).valid())
+                .as("wrong number of slots for the spread").isFalse();
+        assertThat(engine.validateInput(new TarotDrawInput(TarotSpread.PAST_PRESENT_FUTURE,
+                null, 7L, null, null, java.util.List.of(1, 1, 2))).valid())
+                .as("same slot twice").isFalse();
+        assertThat(engine.validateInput(new TarotDrawInput(TarotSpread.PAST_PRESENT_FUTURE,
+                null, 7L, null, null, java.util.List.of(1, 2, 79))).valid())
+                .as("slot outside the 78-card deck").isFalse();
+        assertThat(engine.validateInput(new TarotDrawInput(TarotSpread.FREE_FORM,
+                null, 7L, null, null, java.util.List.of())).valid())
+                .as("FREE_FORM with no card count").isFalse();
     }
 
     @Test

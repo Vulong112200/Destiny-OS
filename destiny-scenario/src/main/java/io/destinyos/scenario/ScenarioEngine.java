@@ -63,7 +63,13 @@ public final class ScenarioEngine {
             // honest choice - guessing an applicability policy here would
             // be an unsourced product decision, not a software judgment
             // call the way Fusion's vote thresholds are.
+            // Nothing ran, so everything the caller supplied is input this
+            // scenario did not use. It is reported in both lists on purpose:
+            // `unavailableEngines` because the run produced no engine results,
+            // and `enginesOutsideScenario` because from the caller's side their
+            // input went unused, which is the thing they need told.
             return new ScenarioResult(scenarioType, false, new ExecutionOutcome(List.of()),
+                    List.copyOf(availableTasks.keySet()),
                     List.copyOf(availableTasks.keySet()), null);
         }
 
@@ -79,6 +85,23 @@ public final class ScenarioEngine {
             }
         }
 
+        // The other direction, which this loop used to ignore entirely: input
+        // the caller supplied for an engine this scenario's policy does not
+        // name. Only policy-named engines run — that part is deliberate, it is
+        // what makes a scenario a scenario — but until 2026-09-01 the discarded
+        // input was invisible in the result. A user who chose Tarot for "Mua
+        // sắm" got back astrology and feng shui, neither of which emits an
+        // interpretation, and nothing anywhere said their Tarot draw had been
+        // dropped. Running it anyway would break the policy; saying nothing
+        // breaks the honesty rule the rest of this class is built on, so the
+        // fix is to report it.
+        List<String> outsideScenario = new ArrayList<>();
+        for (String suppliedEngineId : availableTasks.keySet()) {
+            if (!definition.applicableEngines().containsKey(suppliedEngineId)) {
+                outsideScenario.add(suppliedEngineId);
+            }
+        }
+
         ExecutionOutcome execution = executor.runAll(tasksToRun, context);
 
         List<Signal> clampedSignals = execution.flatMap(exec -> {
@@ -90,7 +113,8 @@ public final class ScenarioEngine {
 
         var fusionResult = fusion.fuse(clampedSignals);
 
-        return new ScenarioResult(scenarioType, true, execution, unavailable, fusionResult);
+        return new ScenarioResult(scenarioType, true, execution, unavailable,
+                outsideScenario, fusionResult);
     }
 
     /**
