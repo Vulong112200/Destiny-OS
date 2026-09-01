@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,15 +95,26 @@ public class OpenRouterNarrativeProvider implements AiNarrativeProvider {
      * Tries each model in {@link #modelChain()} in order and returns the first
      * success.
      *
-     * <p>Retry semantics are unchanged and stay <em>inside</em> one model:
+     * <p>Retry semantics stay <em>inside</em> one model:
      * {@link #MAX_ATTEMPTS} attempts, retried only on TIMEOUT or SERVER_ERROR.
      * A model exhausted for any reason - retried out, rate-limited, invalid
      * id, empty response - hands over to the next. Total attempts are
      * therefore bounded by {@code MAX_ATTEMPTS x chain size}: still finite, as
-     * CLAUDE.md section 5 requires. Chain length is the operator's own
-     * configuration and each link carries its own timeout, so a request's
-     * worst-case latency is something they set rather than something this
-     * class decides for them.
+     * CLAUDE.md section 5 requires.
+     *
+     * <p>Bounded attempts are not the same thing as bounded <em>latency</em>,
+     * which is what {@link OpenRouterProperties#getTotalDeadlineMs() the total
+     * deadline} adds. {@link OpenRouterProperties#getTimeoutMs()} bounds one
+     * HTTP attempt, so the worst case used to be the product
+     * {@code MAX_ATTEMPTS x chain size x timeoutMs} - 200 seconds with four
+     * models at 25s, a configuration this project shipped. No downstream
+     * caller waits that long, so the deterministic fallback this class exists
+     * to reach was arriving after everyone had stopped listening. One deadline
+     * now covers the whole walk: it is checked between attempts and between
+     * models, and once it is spent the chain stops advancing and reports the
+     * last real failure it saw. The first attempt against the first model
+     * always runs regardless, so no request is ever refused for a failure that
+     * never actually happened.
      *
      * <p>When everything fails, the <em>last</em> failure reason is returned.
      * That is the reason belonging to the last model actually tried, which is
@@ -122,10 +134,11 @@ public class OpenRouterNarrativeProvider implements AiNarrativeProvider {
     public ProviderCallResult call(NarrativePrompt prompt, Predicate<String> usableContent) {
         List<String> chain = modelChain();
         ProviderCallResult result = ProviderCallResult.failure(FallbackReason.PROVIDER_UNAVAILABLE);
+        Deadline deadline = new Deadline(properties.getTotalDeadlineMs());
 
         for (int i = 0; i < chain.size(); i++) {
             String model = chain.get(i);
-            result = accepted(model, callWithRetries(prompt, model), usableContent);
+            result = accepted(model, callWithRetries(prompt, model, deadline), usableContent);
             if (result.success()) {
                 if (i > 0) {
                     // Worth an INFO: "the narrative came from a model I never
@@ -136,7 +149,20 @@ public class OpenRouterNarrativeProvider implements AiNarrativeProvider {
                 }
                 return result;
             }
-            if (i < chain.size() - 1) {
+            int remaining = chain.size() - 1 - i;
+            if (remaining > 0 && deadline.spent()) {
+                // The deadline is the only reason the chain ever stops early
+                // with models left untried, so it says so explicitly. Without
+                // this line an operator comparing logs against their
+                // configured chain would see models silently skipped and have
+                // no way to tell that from a chain they had mis-configured.
+                log.warn("OpenRouter total deadline of {} ms is spent after {} ms; skipping the remaining {} "
+                        + "model(s) in the chain. Last reason was {}. Falling back to the deterministic "
+                        + "hard-data report.",
+                        properties.getTotalDeadlineMs(), deadline.elapsedMs(), remaining, result.failureReason());
+                return result;
+            }
+            if (remaining > 0) {
                 log.warn("OpenRouter model {} failed ({}); trying next model in the chain.",
                         model, result.failureReason());
             }
@@ -145,6 +171,40 @@ public class OpenRouterNarrativeProvider implements AiNarrativeProvider {
         log.warn("Every OpenRouter model in the chain failed ({} tried); last reason was {}. "
                 + "Falling back to the deterministic hard-data report.", chain.size(), result.failureReason());
         return result;
+    }
+
+    /**
+     * The wall-clock budget for one whole {@link #call} - see
+     * {@link OpenRouterProperties#getTotalDeadlineMs()} for why the budget
+     * exists at all.
+     *
+     * <p>Uses {@link System#nanoTime()} rather than wall-clock time because
+     * this measures an elapsed duration, and {@code nanoTime} is the monotonic
+     * clock: an NTP correction or a daylight-saving jump mid-request must not
+     * be able to make a deadline appear already spent (or never spendable).
+     *
+     * <p>A budget of {@code 0} - or a negative one from a mis-set property -
+     * is a legitimate, meaningful configuration and not an error: it means
+     * "one attempt against the primary model, never walk the chain", because
+     * {@link #spent()} is only ever consulted <em>after</em> an attempt has
+     * already been made.
+     */
+    private static final class Deadline {
+
+        private final long startedAtNanos = System.nanoTime();
+        private final long budgetNanos;
+
+        Deadline(int budgetMs) {
+            this.budgetNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(0, budgetMs));
+        }
+
+        boolean spent() {
+            return System.nanoTime() - startedAtNanos >= budgetNanos;
+        }
+
+        long elapsedMs() {
+            return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
+        }
     }
 
     /**
@@ -205,9 +265,25 @@ public class OpenRouterNarrativeProvider implements AiNarrativeProvider {
         return ProviderCallResult.failure(FallbackReason.MALFORMED_JSON);
     }
 
-    private ProviderCallResult callWithRetries(NarrativePrompt prompt, String model) {
+    /**
+     * The bounded retry loop for one model, now also bounded by the shared
+     * {@link Deadline}.
+     *
+     * <p>The deadline check sits before the <em>next</em> attempt rather than
+     * before the first one. A retry is a bet that the same model will behave
+     * differently a moment later, and that bet is only worth making if there
+     * is still time for the answer to be of use to anybody; the first attempt
+     * is not a bet, it is the request.
+     */
+    private ProviderCallResult callWithRetries(NarrativePrompt prompt, String model, Deadline deadline) {
         ProviderCallResult result = ProviderCallResult.failure(FallbackReason.PROVIDER_UNAVAILABLE);
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            if (attempt > 1 && deadline.spent()) {
+                log.warn("OpenRouter total deadline of {} ms is spent after {} ms; not retrying model {} "
+                        + "(last reason {}).",
+                        properties.getTotalDeadlineMs(), deadline.elapsedMs(), model, result.failureReason());
+                return result;
+            }
             result = attemptCall(prompt, model);
             if (result.success() || !isRetryable(result.failureReason())) {
                 return result;

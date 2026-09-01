@@ -35,6 +35,55 @@ public class OpenRouterProperties {
     private int timeoutMs = 15_000;
 
     /**
+     * Ceiling on how long ONE {@code call(...)} may spend walking the whole
+     * model chain, in milliseconds. 45000.
+     *
+     * <p>{@link #timeoutMs} bounds a single HTTP attempt and nothing more, so
+     * before this property existed the real worst case was the product of
+     * three independent numbers nobody was looking at together:
+     * {@code MAX_ATTEMPTS (2) x chain length x timeoutMs}. With four models at
+     * a 25s timeout - a configuration this project shipped in its own
+     * {@code .env} - that is {@code 2 x 4 x 25000 = 200 seconds} for one
+     * request. The javadoc on {@code OpenRouterNarrativeProvider.call} used to
+     * call that latency "something the operator set rather than something this
+     * class decides", which was true only in the sense that the operator set
+     * three factors and was handed their product.
+     *
+     * <p>200 seconds is not a slow narrative, it is a broken page. Every
+     * caller downstream has a shorter patience than that: a browser fetch, a
+     * Next.js server component's platform execution limit (10-15s by default),
+     * a reverse proxy's idle timeout. Whichever of them gives up first turns a
+     * would-be fallback into nothing at all - and ADR D8's guarantee that the
+     * system stays usable is precisely what makes the difference invisible.
+     * The deterministic fallback is only a guarantee if somebody is still
+     * listening when it arrives.
+     *
+     * <p>45 seconds is chosen so the whole chain still fits under the web
+     * layer's own patience with room to spare: {@code destiny-web} allows a
+     * narrative call 75s and its result route 90s, and the value here has to
+     * leave the shorter of those room to be the side that gives up last.
+     * Within 45s the default 15s timeout still buys three attempts, which is
+     * enough for "my pinned model is rate-limited, try the free meta-model".
+     * Widening the chain no longer widens the worst case, which is the point -
+     * chain length becomes a question of "how many models get a chance"
+     * rather than "how long a user waits".
+     *
+     * <p>The deadline is checked <em>between</em> attempts, never mid-flight,
+     * because an in-flight HTTP call already has {@link #timeoutMs} bounding
+     * it and cancelling it early would only discard an answer that may be
+     * about to arrive. The honest consequence is that the true worst case is
+     * {@code totalDeadlineMs + timeoutMs} - an attempt starting one
+     * millisecond before the deadline still runs its full timeout - so pick
+     * both numbers together, not either alone.
+     *
+     * <p>A deadline of {@code 0} is meaningful rather than broken: it degrades
+     * to "try the primary model once, never walk the chain", because the check
+     * only ever happens after an attempt has already been made. No request is
+     * refused for a failure that never actually happened.
+     */
+    private int totalDeadlineMs = 45_000;
+
+    /**
      * Output token ceiling. 2000, raised from 800 after measurement — do not
      * lower it back without repeating the measurement.
      *
@@ -117,6 +166,14 @@ public class OpenRouterProperties {
 
     public void setTimeoutMs(int timeoutMs) {
         this.timeoutMs = timeoutMs;
+    }
+
+    public int getTotalDeadlineMs() {
+        return totalDeadlineMs;
+    }
+
+    public void setTotalDeadlineMs(int totalDeadlineMs) {
+        this.totalDeadlineMs = totalDeadlineMs;
     }
 
     public int getMaxTokens() {

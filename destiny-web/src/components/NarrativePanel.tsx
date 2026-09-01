@@ -1,5 +1,6 @@
-import { getOrGenerateNarrative } from "@/lib/api";
+import { getOrGenerateNarrative, isFallbackNarrative } from "@/lib/api";
 import { LabeledBadge } from "./LabeledBadge";
+import { NarrativeRegenerateButton } from "./NarrativeRegenerateButton";
 
 /**
  * The AI/fallback narrative, fetched independently of the rest of the page.
@@ -17,6 +18,16 @@ import { LabeledBadge } from "./LabeledBadge";
  * it is the one part of this page that may legitimately arrive late, be
  * degraded, or be a deterministic fallback. Making everything else wait for
  * it gave the least authoritative section the most scheduling power.
+ *
+ * <p><strong>Lý do fallback phải hiện thành chữ, không phải tooltip.</strong>
+ * Backend đã trả về `fallbackReason` dưới dạng `LabeledValue` có sẵn `labelVi`
+ * ("Phần diễn giải AI đang tắt", "Chưa cấu hình dịch vụ AI", …), nhưng panel
+ * này trước đây chỉ nhét `fallbackReason.technical` vào thuộc tính `title=`.
+ * Hệ quả là thông tin duy nhất trả lời được câu hỏi "vì sao phần AI không
+ * chạy?" vừa bị ẩn sau thao tác hover, vừa hiện ra dưới dạng enum kỹ thuật —
+ * đúng thứ CLAUDE.md §9 cấm. Và vì cả tầng AI được thiết kế để suy giảm im
+ * lặng (ADR D8), đó là chỗ duy nhất phân biệt được "AI đang tắt" với "model
+ * bị giới hạn tần suất" mà không phải mở log backend.
  */
 export async function NarrativePanel({ calculationId }: { calculationId: string }) {
   const narrative = await getOrGenerateNarrative(calculationId);
@@ -32,9 +43,14 @@ export async function NarrativePanel({ calculationId }: { calculationId: string 
           Không tạo được phần tổng kết bằng lời cho lần tính này. Mọi dữ liệu tính toán bên dưới
           vẫn đầy đủ và không phụ thuộc vào phần này.
         </p>
+        <div className="mt-3">
+          <NarrativeRegenerateButton calculationId={calculationId} />
+        </div>
       </section>
     );
   }
+
+  const laFallback = isFallbackNarrative(narrative);
 
   return (
     <section
@@ -43,11 +59,23 @@ export async function NarrativePanel({ calculationId }: { calculationId: string 
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-indigo-700">📝 Tổng kết bằng lời văn</h2>
-        <span className="text-xs text-indigo-500" title={narrative.fallbackReason.technical}>
+        <span className="text-xs text-indigo-500">
           Nguồn diễn giải: <LabeledBadge value={narrative.source} />
           {narrative.model && <span className="ml-1">· {narrative.model}</span>}
         </span>
       </div>
+
+      {laFallback && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <span className="text-xs text-amber-800">
+            Phần này do hệ thống tự tóm tắt từ dữ liệu tính toán, không phải do AI viết.
+            {" Lý do: "}
+            <strong className="font-medium">{narrative.fallbackReason.labelVi}</strong>.
+          </span>
+          <NarrativeRegenerateButton calculationId={calculationId} />
+        </div>
+      )}
+
       <p className="max-w-prose text-slate-800">{narrative.summary}</p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">

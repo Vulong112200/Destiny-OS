@@ -7,6 +7,25 @@ import { ResultHero } from "@/components/ResultHero";
 import { ResultSidebar } from "@/components/ResultSidebar";
 import { ResultView } from "@/components/ResultView";
 
+/**
+ * Hạn thực thi của route này, tính bằng giây.
+ *
+ * <p>`NarrativePanel` là async server component nên nó chạy **trên server
+ * của Next**, và hạn mặc định của một serverless function thường là 10–15
+ * giây. Chuỗi model của backend cộng deadline tổng của nó có thể mất tới ~60
+ * giây một cách hợp lệ, nên nếu không khai báo gì thì trên môi trường deploy
+ * phần diễn giải bị cắt trước khi backend kịp trả lời — mỗi lần, và không
+ * kèm lỗi nào nhìn thấy được.
+ *
+ * <p>90 giây = hạn chờ client cho narrative (75s, đã bao trọn deadline tổng
+ * 45s của backend) + chỗ dư cho cold start. Đặt lớn hơn hạn chờ trong
+ * `lib/api.ts` là có chủ ý: bên
+ * nào có hạn chờ ngắn nhất mới là bên nên kết thúc trước, và ta muốn đó là
+ * lệnh gọi API — nó biết vì sao nó thất bại — chứ không phải nền tảng, thứ
+ * chỉ biết trả về 504.
+ */
+export const maxDuration = 90;
+
 export default async function ResultPage({
   params,
 }: {

@@ -83,7 +83,23 @@ destiny:
       # beside it, which is exactly the case an operator needs covered.
       fallback-models: ${DESTINY_AI_OPENROUTER_FALLBACK_MODELS:openrouter/free}
       base-url: ${DESTINY_AI_OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
+      # Hạn chờ của MỘT lần gọi HTTP, không phải của cả chuỗi model.
       timeout-ms: ${DESTINY_AI_OPENROUTER_TIMEOUT_MS:15000}
+      # Deadline TỔNG cho một lần sinh diễn giải, tính cả mọi model trong
+      # chuỗi và mọi lần retry.
+      #
+      # timeout-ms ở trên chỉ chặn một lần gọi HTTP, nên trước khi có tham số
+      # này worst case là phép nhân của ba con số không ai nhìn cùng nhau:
+      # MAX_ATTEMPTS (2) x số model x timeout-ms. Với 4 model ở 25s - đúng cấu
+      # hình dự án này từng dùng - là 2 x 4 x 25000 = 200 giây cho một request.
+      # Không caller nào ở dưới chờ nổi 200 giây, nên bản fallback tất định mà
+      # ADR D8 bảo đảm vẫn được tạo ra nhưng không còn ai nghe.
+      #
+      # 45s để cả chuỗi nằm gọn dưới hạn chờ của destiny-web (75s cho lệnh
+      # gọi narrative, 90s cho route kết quả). Deadline chỉ được kiểm tra
+      # GIỮA các lần gọi, nên worst case thật là total-deadline-ms +
+      # timeout-ms; chọn hai con số cùng nhau, đừng chọn riêng.
+      total-deadline-ms: ${DESTINY_AI_OPENROUTER_TOTAL_DEADLINE_MS:45000}
       # 2000, raised from 800 after measurement - do not lower without
       # repeating it. Vietnamese is far more token-hungry than English on
       # these tokenizers and the response schema is a summary plus four

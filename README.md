@@ -381,6 +381,79 @@ OpenRouter thay đổi theo thời gian, phải tự xác nhận model còn kh�
 Gọi `POST /api/v1/calculations/{id}/narrative` sau khi đã có `calculationId`
 từ một lần chạy kịch bản.
 
+#### Bật AI trên môi trường deploy — bốn cái bẫy, cả bốn đều im lặng
+
+Tầng AI được thiết kế để **suy giảm im lặng** (`ADR D8`): thiếu cấu hình thì nó
+trả `200` kèm báo cáo phi-AI, không lỗi, không cảnh báo. Đó là hành vi đúng cho
+người dùng cuối, nhưng nó cũng khiến bốn nguyên nhân dưới đây **hiện ra y như
+nhau** khi bạn nhìn từ trình duyệt.
+
+**1. Container không tự có biến AI nào.** `Dockerfile` không set `ENV` nào, và
+`.dockerignore` loại `.env`. Nên trên Docker/Render, giá trị mặc định áp dụng:
+`destiny.ai.enabled=false`, key rỗng, model rỗng → `FallbackReason.AI_DISABLED`.
+Phải đặt **trong env panel của host**, không phải trong `.env`:
+
+```bash
+DESTINY_AI_ENABLED=true
+OPENROUTER_API_KEY=<api-key>
+DESTINY_AI_OPENROUTER_MODEL=<model-da-xac-nhan-con-ton-tai>
+DESTINY_AI_OPENROUTER_FALLBACK_MODELS=<model-2>,<model-3>,openrouter/free
+APP_CORS_ALLOWED_ORIGINS=https://<domain-that-cua-web>
+```
+
+Cả **ba** biến đầu phải khác rỗng, nếu không bean provider không được tạo và
+kết quả là `NO_API_KEY` — vẫn `200`, vẫn có báo cáo, chỉ là không có AI.
+
+**2. Chạy jar sai thư mục (áp cho cả môi trường local).** `spring-dotenv` đọc
+`.env` theo **thư mục làm việc của process**. Phải chạy từ **gốc repo**:
+
+```bash
+java -jar destiny-app/target/destiny-app-*.jar    # từ gốc repo, không phải từ destiny-app/
+```
+
+**3. `NEXT_PUBLIC_API_BASE_URL` được nhúng lúc BUILD, không phải lúc chạy.**
+Next inline biến `NEXT_PUBLIC_*` vào bundle, nên đặt biến rồi restart **không
+có tác dụng gì** — phải build lại. Ba cái bẫy con: `.env.local` bị gitignore nên
+giá trị local không bao giờ theo lên host; thiếu biến thì code lặng lẽ dùng
+`http://localhost:8080`; và phải là `https://` nếu web chạy https, không thì
+trình duyệt chặn mixed content.
+
+**4. Một bản diễn giải fallback đã lưu sẽ không tự tạo lại.**
+`NarrativeRecorder` là **upsert và ghi cả kết quả fallback**. Nên một
+calculation từng sinh narrative lúc AI đang tắt sẽ được phục vụ bản fallback đó
+mãi. Từ 2026-09-01 web tự `POST` lại khi thấy nguồn là fallback, và panel có nút
+**"Tạo lại phần diễn giải"** — nhưng khi thử nghiệm, **hãy dùng một calculation
+mới**, đừng dùng id cũ.
+
+#### Chẩn đoán trong một lệnh
+
+Panel giờ hiện **lý do bằng tiếng Việt** ngay trên trang khi nguồn là fallback
+("Phần diễn giải AI đang tắt" / "Chưa cấu hình dịch vụ AI" / …), nên thường
+không cần mở log nữa. Muốn kiểm từ dòng lệnh:
+
+```bash
+curl -s -X POST $BACKEND/api/v1/calculations/<id-moi>/narrative | python -m json.tool
+```
+
+| `source` / `fallbackReason` | Nguyên nhân |
+|---|---|
+| `AI_GENERATED` | backend tốt — lỗi nằm ở phía web (bẫy 3 hoặc 4) |
+| `AI_DISABLED` | `.env` không được đọc, hoặc thiếu `DESTINY_AI_ENABLED` (bẫy 1, 2) |
+| `NO_API_KEY` | thiếu API key **hoặc** thiếu model (bean provider không được tạo) |
+| `RATE_LIMITED` / `PROVIDER_UNAVAILABLE` / `MALFORMED_JSON` | lỗi phía provider — log `WARN` của `OpenRouterNarrativeProvider` nêu rõ model nào và lý do đã map |
+
+Trường `model` trong response cho biết **model nào thực sự trả lời**. Nếu nó
+không phải model chính bạn đặt, chuỗi fallback đã rơi qua — các model đứng
+trước đã thất bại, và đó là tín hiệu nên xác minh lại danh mục model miễn phí.
+
+**Ngân sách thời gian.** Chuỗi model bị chặn bởi một **deadline tổng**
+(`DESTINY_AI_OPENROUTER_TOTAL_DEADLINE_MS`, mặc định 45s) chứ không phải
+timeout từng lượt gọi — trước đây trường hợp tệ nhất là
+`2 lần thử × 4 model × 25s = 200s`, đủ để nền tảng serverless kill hàm render
+trước khi backend kịp trả lời. Phía web, lệnh gọi narrative có `AbortSignal`
+riêng và trang kết quả export `maxDuration`.
+
+
 Bộ test hiện tại — 469 test:
 
 - **bất biến miền** — trạng thái trung thực, tách `NOT_APPLICABLE` khỏi `NEUTRAL`, bảo toàn tính bất định
