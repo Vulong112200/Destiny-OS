@@ -186,11 +186,19 @@ class MethodologyRegistryTest {
             // make it a reading is not - the same state TAROT_RWS was in before
             // its meaning corpus was authored. BAZI itself (the interpretive
             // half) stays non-calculable, which is the point of the split.
+            // ICHING_CAT_HUNG_LEXICAL (CONTENT_REQUIRED) and
+            // ICHING_HAO_LAM_CHU_NGUYENHIENLE (PRODUCTION_READY) joined on
+            // 2026-09-01. The first is what closed CAT_HUNG_POLARITY and let
+            // Kinh Dịch emit Signals; the second is PRODUCTION_READY because
+            // the rule is fully determined by the hexagram's own structure and
+            // golden-tested against two worked examples printed in the source —
+            // it needs no further content, only Evidence, by design.
             Set<String> calculable = Set.of("TAROT_RWS", "NUMEROLOGY_PYTHAGOREAN",
                     "CALENDAR_VN_TRADITIONAL", "BAZI_TUBINH_CHART",
                     "BAZI_DAY_MASTER_STRENGTH_TVH", "FENGSHUI_KUA",
                     "WESTERN_ASTROLOGY_CHART_ANGLES", "ICHING_HEXAGRAM_CASTING",
-                    "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO");
+                    "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO", "ICHING_CAT_HUNG_LEXICAL",
+                    "ICHING_HAO_LAM_CHU_NGUYENHIENLE");
 
             for (String id : calculable) {
                 assertThat(registry.isCalculable(id)).as("%s should be calculable", id).isTrue();

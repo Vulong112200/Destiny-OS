@@ -17,16 +17,42 @@ public final class LineJudgmentTable {
     private LineJudgmentTable() {
     }
 
+    /**
+     * Builds the index, and <strong>refuses a duplicate key</strong> rather
+     * than letting the later entry win.
+     *
+     * <p>The four {@code LineJudgments1..4} sources are split purely by file
+     * size and nothing coordinates them. Two entries claiming the same
+     * (hexagram, position) used to overwrite in silence: the key still
+     * resolved, so every completeness and lookup assertion still passed, and
+     * one real line text would simply be gone. Failing at class
+     * initialisation makes that outcome unreachable instead of merely
+     * detectable.
+     */
     private static Map<Long, LineJudgment> buildIndex() {
         Map<Long, LineJudgment> index = new HashMap<>();
         for (List<LineJudgment> batch : List.of(
                 LineJudgments1.entries(), LineJudgments2.entries(),
                 LineJudgments3.entries(), LineJudgments4.entries())) {
             for (LineJudgment lj : batch) {
-                index.put(key(lj.hexagramNumber(), lj.position()), lj);
+                LineJudgment clash = index.put(key(lj.hexagramNumber(), lj.position()), lj);
+                if (clash != null) {
+                    throw new IllegalStateException("Duplicate line judgment for hexagram "
+                            + lj.hexagramNumber() + " position " + lj.position()
+                            + " — one of the two would have been lost silently");
+                }
             }
         }
         return index;
+    }
+
+    /**
+     * How many entries the table holds; 386 when complete (384 ordinary lines
+     * plus dụng cửu and dụng lục). Exposed so a test can pin the total, which
+     * is the only assertion a dropped entry cannot survive.
+     */
+    public static int size() {
+        return BY_KEY.size();
     }
 
     private static long key(int hexagramNumber, int position) {

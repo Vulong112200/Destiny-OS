@@ -114,7 +114,21 @@ public final class HexagramTable {
         return BY_TRIGRAMS.get(upper).get(lower);
     }
 
+    /**
+     * The hexagram with this King Wen number, 1-64.
+     *
+     * <p>Range-checked explicitly rather than left to the list index. The
+     * off-by-one here is the easy mistake — a caller passing a 0-based index
+     * would silently get the neighbouring hexagram for 1-63 and only blow up
+     * at 0 — and an {@code IndexOutOfBoundsException} mentioning a list would
+     * not have named the real problem.
+     *
+     * @throws IllegalArgumentException if {@code number} is outside 1-64
+     */
     public static Hexagram byNumber(int number) {
+        if (number < 1 || number > 64) {
+            throw new IllegalArgumentException("King Wen number must be 1-64, got " + number);
+        }
         return BY_NUMBER.get(number - 1);
     }
 

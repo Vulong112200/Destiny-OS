@@ -379,28 +379,137 @@ public class MethodologyRegistrySeeder {
                             + "mỗi lá số."),
 
             new Entry("ICHING_HEXAGRAM_JUDGMENT_NGOTATTO",
-                    "Kinh Dịch - Quẻ từ và hào từ (Ngô Tất Tố)", "EASTERN",
+                    "Kinh Dịch - Quẻ từ và hào từ (cổ văn + Ngô Tất Tố)", "EASTERN",
+                    "1.1",
+                    MethodologyStatus.CONTENT_REQUIRED,
+                    "Hán văn: 周易 (zh.wikisource.org); dịch âm/dịch nghĩa: Ngô Tất Tố - "
+                            + "\"Kinh Dịch Trọn Bộ\", NXB Văn Học",
+                    "Hai nguồn cho hai tầng khác bản chất (Rule D, DECISION_LOG.md 2026-09-01). "
+                            + "HÁN VĂN 卦辭/爻辭 lấy từ zh.wikisource.org/wiki/周易/*, đọc bằng "
+                            + "wikitext thô (action=raw) để không model nào chuẩn hóa ký tự - cổ "
+                            + "văn là văn bản chung của mọi ấn bản, không phải lựa chọn dịch "
+                            + "thuật. DỊCH ÂM/DỊCH NGHĨA từ Ngô Tất Tố (bản số hóa "
+                            + "khoahoctamlinh.vn, chủ dự án cung cấp 2026-08-31; mất 1954 nên "
+                            + "vào phạm vi công cộng tại VN từ 2005, Điều 27 Luật SHTT) - đây "
+                            + "mới là lựa chọn dịch thuật nên ghi tên dịch giả và không sửa lời "
+                            + "văn. Đủ 64 quẻ từ + 386 hào từ (gồm Dụng Cửu/Dụng Lục) kèm số "
+                            + "trang. Dị bản của bản wikisource được khai báo: dùng 无 (không "
+                            + "dùng 無), 于 (không dùng 於), quẻ 49 chép 巳日 không phải 己日.",
+                    Set.of("R24", "R25"),
+                    "ĐÃ QUA XÁC MINH OPUS 2026-09-01 (VERIFICATION_OPUS_R24.md) - lần bác bỏ "
+                            + "nặng nhất của quy trình này: bản ship ngày 2026-08-31 có 287/386 "
+                            + "hào từ mang Hán văn SAI (bộ trích vớ trúng đoạn 象曰 của hào "
+                            + "trước), và test đi kèm chỉ khẳng định isNotBlank() nên PASS trong "
+                            + "khi ghim văn bản sai vào spec. Xác minh cũng tìm: 15.4% ký tự Hán "
+                            + "là Kangxi Radical codepoint; Hán văn của chính cuốn sách sai khác "
+                            + "cổ văn ở 34/64 quẻ từ và 280/386 hào từ (hỏng OCR tới mức trộn "
+                            + "chữ Latin vào Hán văn) - đó là lý do đổi nguồn Hán văn. Hai lỗi "
+                            + "nhãn hào thật của sách bắt được bằng suy dẫn âm/dương (quẻ 45 hào "
+                            + "1, quẻ 51 hào 4); 5 quẻ từ bị cắt cụt đã nối lại; 5 khuyết tật "
+                            + "của sách đã vá kèm lý do trên từng entry. Được xác nhận đúng: thứ "
+                            + "tự chương = thứ tự Văn Vương (59/60 khớp HexagramTable) và phần "
+                            + "tiếng Việt (383/384 sạch). Vẫn CONTENT_REQUIRED chứ chưa "
+                            + "PRODUCTION_READY vì: chưa ai đọc kiểm độ chính xác bản dịch tiếng "
+                            + "Việt (mọi phép kiểm đều là cấu trúc), Hán văn nay dựa một nguồn "
+                            + "cho 56/64 quẻ, và chưa ai đọc kiểm bản dịch. Cập nhật 2026-09-01 "
+                            + "(vòng hai): 27 entry bị lỗi TRÍCH của chính dự án đã được sửa - "
+                            + "26 entry có lời bình GIẢI NGHĨA của sách chạy tràn vào trường "
+                            + "nghia không dấu phân cách (quẻ 1 hào 1 dài ~2000 ký tự trong khi "
+                            + "lời dịch chỉ 32), 1 entry mang lời Tượng truyện thay cho lời dịch "
+                            + "hào (quẻ 16 hào 6), và 1 lỗi in \"Háo\"/\"Hào\" (quẻ 45 hào 6). "
+                            + "Bộ test cũ PASS suốt vì chỉ khẳng định isNotBlank() - đúng khuôn "
+                            + "mẫu lỗi mà chính VERIFICATION_OPUS_R24 §B3 đã cảnh báo. Nay có "
+                            + "test suy dẫn: không marker lời bình, nhãn vị trí suy từ position "
+                            + "+ âm/dương, độ dài nghia bám số chữ Hán, và đếm bảng == 386 "
+                            + "(LineJudgmentTable nay ném lỗi ngay khi trùng khoá thay vì ghi "
+                            + "đè im lặng). Engine NAY ĐÃ PHÁT SIGNAL - xem ICHING_CAT_HUNG_LEXICAL."),
+
+            new Entry("ICHING_CAT_HUNG_LEXICAL",
+                    "Kinh Dịch - Cát/hung đọc từ từ vựng phán định trong cổ văn", "EASTERN",
                     "1.0",
                     MethodologyStatus.CONTENT_REQUIRED,
-                    "Ngô Tất Tố (dịch và chú giải) - \"Kinh Dịch Trọn Bộ\", NXB Văn Học",
-                    "Bản số hóa khoahoctamlinh.vn, chủ dự án cung cấp 2026-08-31. Ngô Tất Tố "
-                            + "mất 1954, bản dịch vào phạm vi công cộng tại Việt Nam từ 2005 "
-                            + "(Điều 27 Luật SHTT) - xem docs/research_drafts/"
-                            + "R24_iching_hexagram_judgments.md mục 2 cho phân tích bản quyền "
-                            + "đầy đủ. Trích xuất toàn bộ 64 quẻ từ (卦辭) và 386 hào từ (爻辭, "
-                            + "gồm Dụng Cửu/Dụng Lục) kèm số trang trích dẫn. Hán văn của 8 quẻ "
-                            + "đầu đã đối chiếu ≥2 nguồn độc lập (zh.wikisource.org, ctext.org) "
-                            + "từ đợt thí điểm R24 trước khi có sách; 56 quẻ còn lại lấy trực "
-                            + "tiếp từ đúng một cuốn sách này, CHƯA đối chiếu nguồn thứ hai.",
+                    "Từ vựng phán định cổ văn (吉/凶/悔/吝/无咎); nghĩa 5 chữ theo bảng thuật ngữ "
+                            + "của Nguyễn Hiến Lê - \"Kinh Dịch - Đạo Của Người Quân Tử\", NXB "
+                            + "Văn Học, tr.92",
+                    "Đóng BlockedSection CAT_HUNG_POLARITY (2026-09-01) và là lý do Kinh Dịch "
+                            + "lần đầu phát Signal. Đây là phép ĐỌC, không phải công thức: các "
+                            + "chữ 吉/凶/悔/吝/无咎 có thật trong Hán văn đã ship (nguồn "
+                            + "zh.wikisource, đã qua kiểm codepoint CJK), nên mỗi cực tính truy "
+                            + "được về đúng một chữ ở đúng một vị trí trong đúng một câu, và "
+                            + "Evidence ghi lại chữ đã khớp. Nghĩa 5 chữ lấy NGUYÊN VĂN tr.92: "
+                            + "cát = tốt lành; hung = ngược lại với cát, XẤU NHẤT (nên là chữ "
+                            + "duy nhất được STRONG); hối = lỗi, ăn năn; lận = LỖI NHỎ, tiếc "
+                            + "(nên nhẹ hơn hối); vô cữu = không có lỗi hoặc lỗi không về ai cả. "
+                            + "Các dạng ghép (元吉, 大吉, 中吉, 終吉, 貞吉, 小吉, 終凶, 征凶, "
+                            + "无悔, 悔亡) là SUY DẪN của dự án từ chính 5 chữ đó, khai báo tường "
+                            + "minh chứ không giả làm trích dẫn (Rule D). Quét chuỗi dài trước "
+                            + "chuỗi ngắn là điều kiện đúng đắn, không phải tối ưu: 92 entry "
+                            + "mang 无咎/無咎 so với 7 entry mang 咎 trần, nên đọc sai thứ tự sẽ "
+                            + "gán NGƯỢC cực tính cho 92 entry. CỐ Ý KHÔNG tính: tứ đức "
+                            + "(元/亨/利/貞) vì tr.173 định nghĩa trinh là \"chính và bền\" tức "
+                            + "đức tính CÓ ĐIỀU KIỆN, và tr.90-92 nêu 5 cách đọc tứ đức cạnh "
+                            + "tranh (a-đ) trong đó cách đ của Cao Hanh (亨=享 tế hưởng, 利貞=利占) "
+                            + "phủ định cách a mà chính tác giả chọn; 孚 (tin) vì không phải "
+                            + "phán định; 厲 (lệ) vì không nguồn nào tra nghĩa. Đường suy cát/hung "
+                            + "theo VỊ HÀO (đắc trung hào 2/5, đắc chính) đã bị BÁC dù đếm được "
+                            + "hoàn toàn, vì chính tr.101 tự phủ định: \"trong Dịch, không có qui "
+                            + "tắc gì luôn luôn đúng, có rất nhiều lệ ngoại, phải tùy thời mà "
+                            + "xét\", và cùng trang nêu luôn phản ví dụ (hai hào đều bất chính "
+                            + "mà nghĩa tốt; ca khác đều chính mà nghĩa xấu) - một quy tắc mà "
+                            + "chính nguồn của nó in phản ví dụ là đúng thứ Rule C cấm.",
                     Set.of("R24", "R25"),
-                    "Đóng góp lớn nhất khoảng trống 'ICHING' bên dưới: nội dung diễn giải cho "
-                            + "cả 64 quẻ không còn là RESEARCH_REQUIRED trống rỗng nữa. Nhưng "
-                            + "CHƯA qua xác minh Opus (khác mọi mục R khác trong dự án đã qua "
-                            + "bước này trước khi được tin dùng) - 3/386 hào từ là vá thủ công "
-                            + "do lỗi in/OCR hiếm trong bản gốc (KHÔN Thượng Lục, TIỆM Lục Nhị, "
-                            + "TỐN Cửu Ngũ - xem ghi chú trên từng entry). Vẫn CONTENT_REQUIRED "
-                            + "chứ chưa PRODUCTION_READY vì thiếu golden-test/Opus-verify, và vì "
-                            + "engine chưa phát tín hiệu nào từ nội dung này (xem ICHING_HEXAGRAM_CASTING)."),
+                    "Độ phủ đo trên toàn bộ 448 văn bản đã ship: 65% có ít nhất một chữ phán "
+                            + "định, 35% không có chữ nào và được báo NEUTRAL - đó là văn bản từ "
+                            + "chối phán, không phải khoảng trống bị bỏ. 28 entry mang ĐỒNG THỜI "
+                            + "chữ tốt và chữ xấu; theo Rule E đây là kết quả hợp lệ nên engine "
+                            + "phát nhiều Signal đối cực riêng biệt và để máy consensus/conflict "
+                            + "sẵn có tự nhận ra, TUYỆT ĐỐI không lấy trung bình. Bảng valence "
+                            + "được TỰ KIỂM CHÉO bằng chính bản dịch Ngô Tất Tố đã ship (nguồn "
+                            + "độc lập với bảng): 吉 được ông dịch là \"tốt\" ở 113/119 entry "
+                            + "(95%), 咎 là \"lỗi\" ở 88/91 (97%), 吝 là \"tiếc\" ở 19/20 (95%) - "
+                            + "đó là phép biến bảng từ một khẳng định thành thứ có nguồn thứ hai "
+                            + "đồng ý, và là test sẽ đỏ nếu ai lặng lẽ đảo một cực tính. Chưa "
+                            + "PRODUCTION_READY vì: chỉ có một nguồn tra nghĩa cho 5 chữ, và "
+                            + "10 dạng ghép vẫn là suy dẫn chưa có nguồn trực tiếp. Không Signal "
+                            + "nào được đánh critical trong khi LINE_SELECTION_RULE còn treo: có "
+                            + "nhiều hào động thì engine không thể khẳng định chữ 凶 nào mới là "
+                            + "câu trả lời cho câu hỏi đã đặt."),
+
+            new Entry("ICHING_HAO_LAM_CHU_NGUYENHIENLE",
+                    "Kinh Dịch - Hào làm chủ (chúng dĩ quả vi chủ)", "EASTERN",
+                    "1.0",
+                    MethodologyStatus.PRODUCTION_READY,
+                    "Qui tắc 眾以寡為主，多以少為尊 - Nguyễn Hiến Lê, \"Kinh Dịch - Đạo Của "
+                            + "Người Quân Tử\", NXB Văn Học, tr.101-103",
+                    "Qui tắc xác định HOÀN TOÀN bằng cấu trúc âm/dương của chính quẻ, không có "
+                            + "lựa chọn trường phái và không cần bảng tra. Nguyên văn tr.101: "
+                            + "\"Chúng dĩ quả vi chủ, đa dĩ thiểu vi tôn. Nghĩa là cái gì nhiều "
+                            + "thì bỏ đi mà lấy cái ít. Theo qui tắc đó, quẻ nào nhiều dương thì "
+                            + "lấy âm là chủ; ngược lại thì lấy dương làm chủ.\" Chỉ phát Evidence, "
+                            + "TUYỆT ĐỐI không phát Signal, vì nguồn phủ định điều đó hai lần: "
+                            + "tr.102 \"Làm chủ chỉ vì nó là số ít trong một đám số nhiều, chứ "
+                            + "không phải vì tốt hay xấu\", và tr.102-103 \"...không cần để ý tới "
+                            + "hào đó có cao quí hay không, tốt hay xấu\". Lệ ngoại mà sách tự nêu "
+                            + "(tr.103: quẻ Cấu, hào 1 là hào âm duy nhất mà không phải hào quyết "
+                            + "định ý nghĩa của quẻ) được ship KÈM kết quả chứ không biên dịch "
+                            + "thành một nhánh if ẩn - hàm vẫn trả hào 1 cho quẻ 44 vì đó đúng là "
+                            + "điều qui tắc phát biểu. Nguồn này chỉ có MỘT loại hào chủ, KHÔNG "
+                            + "dùng cặp 成卦之主/主卦之主 của Chu Hi, nên không được đọc thành đã "
+                            + "implement khái niệm hào chủ theo trường phái phổ biến hơn (Rule D).",
+                    Set.of("R24"),
+                    "GOLDEN TEST ĐẦU TIÊN của Kinh Dịch theo nghĩa của dự án - một ví dụ có đáp "
+                            + "án in sẵn trong nguồn độc lập, đối chiếu đầu-cuối, lấp đúng gạch "
+                            + "đầu dòng thứ ba ở VERIFICATION_OPUS_R24.md §E. Hai ví dụ sách tự "
+                            + "kiểm được ghim: quẻ 16 Lôi địa Dự (5 âm, 1 dương) -> hào 4 làm "
+                            + "chủ, và quẻ 43 Trạch thiên Quải (5 dương, 1 âm) -> hào 6 làm chủ "
+                            + "(tr.102). Hai ví dụ này còn đối nghịch nhau về tốt/xấu, và đó "
+                            + "chính là luận điểm của sách. Số quẻ có hào chủ được suy dẫn độc "
+                            + "lập chứ không tra bảng: có 6 cách đặt một hào dương giữa năm hào "
+                            + "âm và 6 cách ngược lại, nên đúng 12/64 quẻ có hào chủ; 3-3, 4-2, "
+                            + "2-4 và hai quẻ thuần Kiền/Khôn đều trả về rỗng - rỗng là câu trả "
+                            + "lời thật, vì chọn \"hào thiểu số đầu tiên\" trong ca 4-2 sẽ là tự "
+                            + "đặt ra một quy tắc sách không hề phát biểu, và sẽ vô hình vì hàm "
+                            + "vẫn trả về một con số hợp lý cho mọi quẻ."),
 
             new Entry("FENGSHUI_KUA", "Phong Thủy - Bát Trạch (Cung Phi)", "EASTERN",
                     "1.1",
@@ -440,24 +549,35 @@ public class MethodologyRegistrySeeder {
                             + "number alone is a profile, not a judgement, so without a "
                             + "direction the engine returns the profile as evidence only."),
 
-            new Entry("ICHING", "Kinh Dịch - Luận giải (chọn lời chính, suy cát/hung)", "EASTERN",
-                    "1.2",
+            new Entry("ICHING", "Kinh Dịch - Luận giải (chọn lời chính khi nhiều hào động)", "EASTERN",
+                    "1.3",
                     MethodologyStatus.RESEARCH_REQUIRED, null, null,
                     Set.of("R12", "R24"),
-                    "The casting/hexagram-identification half split off to "
-                            + "ICHING_HEXAGRAM_CASTING (CONTENT_REQUIRED) on 2026-08-24, the "
+                    "This umbrella entry has been emptied out one layer at a time, and only one "
+                            + "layer is left. The casting/hexagram-identification half split off "
+                            + "to ICHING_HEXAGRAM_CASTING (CONTENT_REQUIRED) on 2026-08-24, the "
                             + "same way BAZI split from BAZI_TUBINH_CHART. On 2026-08-31 the "
-                            + "line/hexagram meaning content itself ALSO split off, to "
-                            + "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO (CONTENT_REQUIRED) - 64 quẻ từ "
-                            + "and 386 hào từ, sourced from a real book, are no longer missing. "
-                            + "What remains here, genuinely unresearched: (1) which line's "
-                            + "judgment text to treat as the primary reading when several lines "
-                            + "move at once (Chu Hi's seven-rule scheme, R12 §7, one low-"
-                            + "confidence secondary summary only); (2) a computable cát/hung "
-                            + "(favourable/unfavourable) polarity rule over that text, needed "
-                            + "before this content can emit any Signal (registered as the "
-                            + "engine's LINE_SELECTION_RULE and CAT_HUNG_POLARITY "
-                            + "BlockedSections)."),
+                            + "line/hexagram meaning content itself split off, to "
+                            + "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO. On 2026-09-01 the cát/hung "
+                            + "polarity split off as well, to ICHING_CAT_HUNG_LEXICAL, closing "
+                            + "the CAT_HUNG_POLARITY BlockedSection - so Kinh Dịch now emits real "
+                            + "Signals into Fusion, and the governing-line layer shipped "
+                            + "alongside it as ICHING_HAO_LAM_CHU_NGUYENHIENLE (Evidence only, on "
+                            + "purpose). What remains here, and is genuinely still unresearched: "
+                            + "which line's judgment text to treat as the PRIMARY reading when "
+                            + "several lines move at once. Chu Hi's seven-rule scheme (R12 §7) "
+                            + "rests on one low-confidence secondary summary. A second source was "
+                            + "checked on 2026-09-01 and does NOT close it: Nguyễn Hiến Lê, "
+                            + "\"Kinh Dịch - Đạo Của Người Quân Tử\" - tr.104 he declares \"Đoạn "
+                            + "này liên quan tới việc bói, chúng tôi không có ý khảo về môn bói, "
+                            + "nên chỉ giảng qua thôi\"; tr.106-107 he says only that every moving "
+                            + "line flips AT ONCE giving exactly ONE changed hexagram, counts as "
+                            + "far as \"hai, ba hào cùng biến\" and stops, never mentions 4/5/6 "
+                            + "moving lines, and gives no rule at all for choosing a primary "
+                            + "text. Recorded so a future round does not reopen this source. "
+                            + "Consequence while it stays open: with more than one moving line, "
+                            + "each line's cát/hung Signal participates at reduced Applicability "
+                            + "and none is marked critical."),
 
             new Entry("MAIHOA", "Mai Hoa Dịch Số - Luận giải", "EASTERN",
                     "1.1",

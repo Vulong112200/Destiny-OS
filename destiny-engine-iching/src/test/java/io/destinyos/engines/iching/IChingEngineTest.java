@@ -25,22 +25,86 @@ class IChingEngineTest {
     class Honesty {
 
         @Test
-        @DisplayName("The engine emits no signals at all, and reports PARTIAL")
-        void emitsNoSignals() {
+        @DisplayName("Status stays PARTIAL even now that signals are emitted — LINE_SELECTION_RULE is still open")
+        void statusStaysPartial() {
+            // Closing CAT_HUNG_POLARITY does not make the engine complete.
+            // Promoting to SUCCESS the moment signals appeared would hide the
+            // one gap that is still real.
             var result = run(IChingCastInput.threeCoins(1));
-            assertThat(result.signals()).isEmpty();
             assertThat(result.status()).isEqualTo(EngineStatus.PARTIAL);
         }
 
         @Test
-        @DisplayName("The line-selection-rule and cát/hung-polarity gaps are named as blocked sections on every reading")
+        @DisplayName("The line-selection-rule gap is named as a blocked section on every reading")
         void blockedSectionIsNamedInEvidence() {
             var result = run(IChingCastInput.threeCoins(1));
             assertThat(result.evidence())
                     .extracting(e -> e.ruleId())
-                    .contains("ICHING_BLOCKED_LINE_SELECTION_RULE", "ICHING_BLOCKED_CAT_HUNG_POLARITY");
+                    .contains("ICHING_BLOCKED_LINE_SELECTION_RULE");
             assertThat(result.warnings())
                     .anySatisfy(w -> assertThat(w.critical()).isTrue());
+        }
+
+        @Test
+        @DisplayName("CAT_HUNG_POLARITY is no longer blocked — it must not be claimed as open and closed at once")
+        void catHungIsNoLongerBlocked() {
+            var result = run(IChingCastInput.threeCoins(1));
+            assertThat(result.evidence())
+                    .extracting(e -> e.ruleId())
+                    .doesNotContain("ICHING_BLOCKED_CAT_HUNG_POLARITY");
+        }
+
+        @Test
+        @DisplayName("Hào làm chủ never becomes a signal — the source denies it carries any polarity")
+        void haoLamChuIsEvidenceOnly() {
+            // Nguyễn Hiến Lê tr.102: "Làm chủ chỉ vì nó là số ít trong một đám
+            // số nhiều, chứ không phải vì tốt hay xấu." A signal derived from
+            // the governing line would assert exactly what that sentence denies.
+            var result = run(IChingCastInput.fromNumbers(3, 6));
+            assertThat(result.signals())
+                    .as("no signal may be sourced from the hào-làm-chủ methodology")
+                    .noneSatisfy(s -> assertThat(s.school()).isEqualTo(HaoLamChu.SCHOOL));
+        }
+    }
+
+    @Nested
+    @DisplayName("Cát/hung signals (CAT_HUNG_POLARITY, closed 2026-09-01)")
+    class CatHung {
+
+        @Test
+        @DisplayName("A reading emits real cát/hung signals traceable to the evidence they were read from")
+        void emitsSignalsLinkedToEvidence() {
+            var result = run(IChingCastInput.fromNumbers(3, 6));
+            assertThat(result.signals()).isNotEmpty();
+
+            var evidenceIds = result.evidence().stream().map(e -> e.evidenceId()).toList();
+            assertThat(result.signals()).allSatisfy(signal -> {
+                assertThat(signal.tag()).startsWith("ICHING_CAT_HUNG_");
+                // A signal whose evidenceIds point nowhere is unauditable, which
+                // defeats the whole reason this layer is a reading and not a score.
+                assertThat(signal.evidenceIds()).isNotEmpty();
+                assertThat(evidenceIds).containsAll(signal.evidenceIds());
+            });
+        }
+
+        @Test
+        @DisplayName("The hexagram's own quẻ từ signal carries full applicability")
+        void queGocSignalIsFullyApplicable() {
+            var result = run(IChingCastInput.fromNumbers(3, 6));
+            assertThat(result.signals())
+                    .filteredOn(s -> s.tag().startsWith("ICHING_CAT_HUNG_QUE_GOC"))
+                    .isNotEmpty()
+                    .allSatisfy(s -> assertThat(s.applicability())
+                            .isEqualTo(io.destinyos.core.signal.Applicability.HIGH));
+        }
+
+        @Test
+        @DisplayName("No cát/hung signal is marked critical while LINE_SELECTION_RULE is open")
+        void nothingIsCriticalYet() {
+            // With several moving lines the engine cannot say which 凶 is *the*
+            // answer, and `critical` means a signal that should dominate.
+            var result = run(IChingCastInput.threeCoins(1));
+            assertThat(result.signals()).allSatisfy(s -> assertThat(s.critical()).isFalse());
         }
     }
 

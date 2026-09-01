@@ -12,7 +12,11 @@ import io.destinyos.core.result.EngineResult;
 import io.destinyos.core.result.EngineStatus;
 import io.destinyos.core.result.EngineWarning;
 import io.destinyos.core.result.ResearchReference;
+import io.destinyos.core.signal.Applicability;
 import io.destinyos.core.signal.Dimension;
+import io.destinyos.core.signal.Polarity;
+import io.destinyos.core.signal.Signal;
+import io.destinyos.core.signal.Strength;
 import io.destinyos.engine.EngineCapability;
 import io.destinyos.engine.EngineMetadata;
 import io.destinyos.engine.MetaphysicalEngine;
@@ -65,11 +69,25 @@ import java.util.UUID;
  * line texts, sourced from Ngô Tất Tố's "Kinh Dịch Trọn Bộ" (NXB Văn Học),
  * supplied by the project owner and extracted with page citations — see
  * {@link HexagramJudgment}/{@link LineJudgment} and
- * {@code docs/research_drafts/R24_iching_hexagram_judgments.md}. Only
- * hexagrams 1-8's Chinese text has an independent second-source cross-check
- * (the R24 pilot, pre-dating the full book); none of this content has had
- * the project's standard Opus verification pass yet — treat it as real but
- * not yet fully settled.
+ * {@code docs/research_drafts/R24_iching_hexagram_judgments.md}. This content
+ * <strong>has now had the project's standard Opus verification pass</strong>
+ * (2026-09-01, {@code VERIFICATION_OPUS_R24.md}), which rejected the book's
+ * own Chinese text outright — 34/64 quẻ từ and 280/386 hào từ differed from
+ * the classical text through OCR damage — and replaced it with
+ * {@code zh.wikisource.org} raw wikitext while keeping Ngô Tất Tố's
+ * translation untouched. Only hexagrams 1-8's Chinese has an independent
+ * second-source cross-check (the R24 pilot); the remaining 56 rest on the
+ * single wikisource edition, so a ctext.org cross-check is still owed.
+ *
+ * <p><strong>27 extraction defects repaired, 2026-09-01.</strong> A follow-up
+ * audit found the shipped text was complete in <em>count</em> but wrong in
+ * <em>content</em> for 27 entries: 26 had the book's own GIẢI NGHĨA
+ * commentary run into the {@code nghia} field with no separator (hexagram 1
+ * line 1 held ~2,000 characters where the translation is 32), and one held
+ * Tượng truyện text instead of the line's own gloss. Every repair carries a
+ * {@code note} saying what was cut, and {@code HexagramJudgmentTableTest} now
+ * asserts the absence of those markers — the earlier suite passed throughout
+ * because it only ever asserted the field was non-blank.
  *
  * <p><strong>Deliberately not shipped in this version</strong> (ADR D7 —
  * reported as a {@link BlockedSection}, not silently absent):
@@ -80,11 +98,6 @@ import java.util.UUID;
  *       applied here; this engine instead surfaces every moving line's text
  *       and lets the AI Narrative layer (Rule B) present them together,
  *       rather than silently picking one;</li>
- *   <li>any cát/hung (favourable/unfavourable) polarity extracted from the
- *       judgment or line text — the classical text sometimes states this
- *       outright (吉/凶/无咎…) and sometimes does not, and no rule for
- *       reading it computably has been researched, so this stays evidence
- *       only, never a {@link io.destinyos.core.signal.Signal};</li>
  *   <li>splitting a single multi-digit number into upper and lower trigrams
  *       for {@link CastingMethod#MAI_HOA_NUMBER} — this rule was found only
  *       in secondary sources with two-source consensus, and the primary text
@@ -94,11 +107,29 @@ import java.util.UUID;
  *       which the primary text does describe.</li>
  * </ul>
  *
- * <p>Emits no signals, for the same reason Bát Tự's chart half and Western
- * astrology's chart half do not: a signal needs a resolved favourable/
- * unfavourable judgement, which is exactly what the blocked section above
- * withholds — real judgment/line text is not the same thing as a resolved
- * polarity.
+ * <p><strong>Now emits Signals — {@code CAT_HUNG_POLARITY} closed
+ * 2026-09-01.</strong> Until this date the engine returned an empty signal
+ * list for the same reason Bát Tự's chart half still does: a Signal needs a
+ * resolved favourable/unfavourable judgement, and real judgment text is not
+ * the same thing as a resolved polarity. What closed it was not a new formula
+ * but a <em>reading</em>: {@link CatHungLexicon} scans the Chinese text that
+ * was already shipped for the judgment vocabulary physically present in it
+ * (吉/凶/悔/吝/无咎), with the five valences taken verbatim from Nguyễn Hiến
+ * Lê's own glossary (<em>Kinh Dịch — Đạo Của Người Quân Tử</em>, NXB Văn Học,
+ * tr.92). 65% of the shipped texts carry such a term; the other 35% report
+ * NEUTRAL, which is the text declining to pronounce rather than a gap.
+ *
+ * <p>The position-based alternative — đắc trung / đắc chính — was examined
+ * and <em>rejected</em>, because that same source disowns it on tr.101 and
+ * supplies the counterexamples itself. {@link CatHungLexicon} records the
+ * reasoning; the short version is that a rule its own source publishes
+ * counterexamples to is what Rule C forbids.
+ *
+ * <p><strong>Hào làm chủ (the governing line) — new, Evidence only.</strong>
+ * {@link HaoLamChu} computes it from the classical 眾以寡為主 rule, which is
+ * fully determined by the hexagram's structure. It emits no Signal on
+ * purpose: the source states twice, on tr.102 and again on tr.103, that being
+ * the governing line says nothing whatever about good or bad.
  */
 public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, IChingReading> {
 
@@ -112,16 +143,26 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
     public static final String JUDGMENT_METHODOLOGY_ID = "ICHING_HEXAGRAM_JUDGMENT_NGOTATTO";
     public static final String JUDGMENT_RULE_VERSION = "1.0";
     public static final String JUDGMENT_SCHOOL =
-            "Ngô Tất Tố (dịch và chú giải) — \"Kinh Dịch Trọn Bộ\", NXB Văn Học";
+            "Hán văn: 周易 (zh.wikisource.org); dịch âm/dịch nghĩa: Ngô Tất Tố — "
+                    + "\"Kinh Dịch Trọn Bộ\", NXB Văn Học";
     public static final String JUDGMENT_SOURCE =
-            "Bản số hóa khoahoctamlinh.vn, do chủ dự án cung cấp 2026-08-31. Ngô Tất Tố mất "
-                    + "1954 nên bản dịch đã vào phạm vi công cộng tại Việt Nam từ 2005 (Điều 27 "
-                    + "Luật SHTT). Trích xuất 64 quẻ từ + 386 hào từ (gồm Dụng Cửu/Dụng Lục) "
-                    + "kèm trang trích dẫn; Hán văn của 8 quẻ đầu đã đối chiếu ≥2 nguồn độc lập "
-                    + "(zh.wikisource.org, ctext.org) từ đợt thí điểm R24, 56 quẻ còn lại lấy "
-                    + "trực tiếp từ đúng một cuốn sách này, CHƯA đối chiếu nguồn thứ hai. Chi "
-                    + "tiết: docs/research_drafts/R24_iching_hexagram_judgments.md. CHƯA qua "
-                    + "xác minh Opus.";
+            "Hai nguồn cho hai tầng khác nhau (Rule D). (1) HÁN VĂN 卦辭/爻辭 lấy từ "
+                    + "zh.wikisource.org/wiki/周易/*, đọc bằng wikitext thô (action=raw) để "
+                    + "không có model tóm tắt nào chuẩn hóa ký tự — cổ văn là văn bản chung của "
+                    + "mọi ấn bản, không phải lựa chọn dịch thuật, nên chọn bản có chứng cứ tốt "
+                    + "nhất. (2) DỊCH ÂM và DỊCH NGHĨA lấy từ Ngô Tất Tố (\"Kinh Dịch Trọn Bộ\", "
+                    + "NXB Văn Học, bản số hóa khoahoctamlinh.vn, chủ dự án cung cấp "
+                    + "2026-08-31) — đây MỚI là lựa chọn dịch thuật nên ghi rõ tên dịch giả và "
+                    + "không sửa lời văn của ông. Ngô Tất Tố mất 1954, bản dịch vào phạm vi "
+                    + "công cộng tại Việt Nam từ 2005 (Điều 27 Luật SHTT). Xác minh 2026-09-01: "
+                    + "thứ tự chương của sách được xác nhận là thứ tự Văn Vương bằng cách đối "
+                    + "chiếu quái tượng in trong sách với HexagramTable (59/60 khớp); toàn bộ "
+                    + "386 nhãn hào được suy dẫn lại từ cấu trúc âm/dương của chính quẻ, bắt "
+                    + "được 2 lỗi thật của sách (quẻ 45 hào 1, quẻ 51 hào 4); ghép cặp Việt-Hán "
+                    + "kiểm bằng số âm tiết Hán-Việt so với số chữ cổ văn. Hán văn của chính "
+                    + "cuốn sách bị loại vì sai khác cổ văn ở 34/64 quẻ từ và 280/386 hào từ "
+                    + "(hỏng OCR, 15% ký tự là Kangxi Radical codepoint). Chi tiết: "
+                    + "docs/research_drafts/R24_iching_hexagram_judgments.md.";
 
     public static final String SOURCE =
             "8 quẻ đơn và số Tiên Thiên: 說卦傳 (Thuyết Quái truyện) ch.3/5, cross-checked "
@@ -161,25 +202,26 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
     private static final List<BlockedSection> BLOCKED_SECTIONS = List.of(
             new BlockedSection("LINE_SELECTION_RULE",
                     "Chọn lời hào/lời quẻ nào làm 'lời đoán chính' khi nhiều hào động", "R12",
-                    "Quẻ từ và hào từ nay đã có nội dung thật (R24/R25), nhưng việc CHỌN một "
-                            + "lời làm câu trả lời chính khi có từ 2 hào động trở lên vẫn thuộc "
-                            + "tầng diễn giải/nghĩa lý. Bộ quy tắc của Chu Hy (Dịch Học Khải "
-                            + "Mông) tìm được có độ tin cậy thấp (một tóm tắt thứ cấp, chưa fetch "
-                            + "trực tiếp văn bản gốc). Engine trả về TẤT CẢ lời hào động, không "
-                            + "tự chọn một lời làm chính.",
+                    "Quẻ từ và hào từ nay đã có nội dung thật (R24/R25) và mỗi lời đã có cực "
+                            + "tính cát/hung đọc được (CatHungLexicon), nhưng việc CHỌN một lời "
+                            + "làm câu trả lời chính khi có từ 2 hào động trở lên vẫn chưa có "
+                            + "nguồn. Bộ quy tắc của Chu Hy (Dịch Học Khải Mông) tìm được có độ "
+                            + "tin cậy thấp (một tóm tắt thứ cấp, chưa fetch trực tiếp văn bản "
+                            + "gốc). Đã kiểm thêm một nguồn nữa và nguồn đó KHÔNG đóng được mục "
+                            + "này: Nguyễn Hiến Lê, \"Kinh Dịch — Đạo Của Người Quân Tử\", NXB "
+                            + "Văn Học — tr.104 ông tự tuyên bố \"Đoạn này liên quan tới việc "
+                            + "bói, chúng tôi không có ý khảo về môn bói, nên chỉ giảng qua "
+                            + "thôi\"; tr.106-107 ông chỉ nói mọi hào động đổi CÙNG MỘT LƯỢT và "
+                            + "cho ĐÚNG MỘT quẻ biến, đếm tới \"hai, ba hào cùng biến\" rồi dừng, "
+                            + "không hề nhắc 4/5/6 hào động và không một chữ nào về quy tắc chọn "
+                            + "lời chính. Ghi lại để vòng sau không mở lại nguồn này. Engine trả "
+                            + "về TẤT CẢ lời hào động, không tự chọn một lời làm chính; và vì "
+                            + "chưa biết lời nào là chính, Signal của các hào động bị hạ "
+                            + "Applicability xuống MEDIUM khi có nhiều hơn một hào động.",
                     List.of("1 hào động: đọc lời hào đó",
                             "2 hào động: đọc lời hào cao hơn làm chính",
                             "3 hào động: đọc lời quẻ gốc và quẻ biến",
                             "4-6 hào động: quy tắc riêng theo Dịch Học Khải Mông (nguồn chưa xác minh đủ)")
-            ),
-            new BlockedSection("CAT_HUNG_POLARITY",
-                    "Suy ra tốt/xấu (cát/hung) từ lời quẻ/lời hào", "R24",
-                    "Cổ văn đôi khi nêu thẳng cát/hung/vô cữu/hối/lận, đôi khi không — nhưng "
-                            + "chưa có quy tắc đã nghiên cứu để suy ra một cực tính (Polarity) "
-                            + "máy tính được cho mọi trường hợp. Vì vậy quẻ từ/hào từ chỉ là "
-                            + "Evidence, không phát sinh Signal nào cho Fusion.",
-                    List.of("Chỉ dùng các từ khóa tường minh (吉/凶/无咎…), bỏ qua trường hợp mơ hồ",
-                            "Suy luận theo truyền thống chú giải (Trình Di, Chu Hy) — cần chọn trường phái")
             )
     );
 
@@ -204,21 +246,27 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
                     blocked.displayNameVi() + ": " + blocked.reasonVi()));
         }
 
+        Analysis analysis = analyse(reading);
+
         return new EngineResult<>(
                 EngineStatus.PARTIAL,
                 reading,
-                buildEvidence(reading),
-                List.of(),
+                analysis.evidence(),
+                analysis.signals(),
                 warnings,
                 List.of(),
                 new ResearchReference("R12", "Kinh Dịch",
-                        "Quẻ đã dựng và quẻ từ/hào từ đã có nội dung thật (R24/R25). Chưa có "
-                                + "quy tắc chọn lời chính khi nhiều hào động, và chưa suy ra được "
-                                + "cực tính cát/hung máy tính được, nên engine không phát sinh "
-                                + "tín hiệu nào cho Fusion.",
+                        "Quẻ đã dựng, quẻ từ/hào từ đã có nội dung thật (R24/R25), và cực tính "
+                                + "cát/hung nay đọc được từ chính từ vựng phán định trong Hán văn "
+                                + "(CatHungLexicon, nghĩa theo Nguyễn Hiến Lê tr.92) nên engine "
+                                + "đã phát Signal vào Fusion. Vẫn còn treo: quy tắc chọn lời nào "
+                                + "làm chính khi nhiều hào động.",
                         "docs/RESEARCH_BLOCKERS.md R12; docs/research_drafts/R24_iching_hexagram_judgments.md",
-                        List.of("Quy tắc chọn lời hào chính (Chu Hy)", "Suy ra cát/hung máy tính được")),
-                Map.of("methodologyId", METHODOLOGY_ID, "judgmentMethodologyId", JUDGMENT_METHODOLOGY_ID));
+                        List.of("Quy tắc chọn lời hào chính (Chu Hy)")),
+                Map.of("methodologyId", METHODOLOGY_ID,
+                        "judgmentMethodologyId", JUDGMENT_METHODOLOGY_ID,
+                        "catHungMethodologyId", CatHungLexicon.METHODOLOGY_ID,
+                        "haoLamChuMethodologyId", HaoLamChu.METHODOLOGY_ID));
     }
 
     private interface LineCaster {
@@ -272,8 +320,18 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
         return new IChingReading(method, original, changed, List.of(cast.movingLinePosition()), List.of(), null);
     }
 
-    private static List<Evidence> buildEvidence(IChingReading reading) {
+    /**
+     * Evidence and Signals built together, because a Signal must name the
+     * exact Evidence it was read off. Splitting the two passes would mean
+     * re-deriving evidence ids or handing Fusion a Signal whose
+     * {@code evidenceIds} point at nothing.
+     */
+    private record Analysis(List<Evidence> evidence, List<Signal> signals) {
+    }
+
+    private static Analysis analyse(IChingReading reading) {
         List<Evidence> evidence = new ArrayList<>();
+        List<Signal> signals = new ArrayList<>();
         String groupId = UUID.randomUUID().toString();
 
         Map<String, Object> castFact = new LinkedHashMap<>();
@@ -289,26 +347,60 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
             evidence.add(hexagramEvidence("ICHING_CHANGED_HEXAGRAM", reading.changedHexagram(), groupId));
         }
 
+        // The original hexagram's own 卦辭 always applies — it is the judgment
+        // on the situation the cast produced, not one of several candidates —
+        // so its polarity carries full Applicability.
         judgmentEvidence("ICHING_JUDGMENT_ORIGINAL", reading.originalHexagram(), groupId)
-                .ifPresent(evidence::add);
+                .ifPresent(found -> {
+                    evidence.add(found);
+                    signals.addAll(catHungSignals(found, "QUE_GOC", Applicability.HIGH, groupId));
+                });
         if (reading.changedHexagram() != null) {
+            // The changed hexagram is where the situation is heading rather
+            // than where it is, and no consulted source weighs the two against
+            // each other, so it participates at reduced applicability.
             judgmentEvidence("ICHING_JUDGMENT_CHANGED", reading.changedHexagram(), groupId)
-                    .ifPresent(evidence::add);
+                    .ifPresent(found -> {
+                        evidence.add(found);
+                        signals.addAll(catHungSignals(found, "QUE_BIEN",
+                                Applicability.MEDIUM, groupId));
+                    });
         }
 
         int hexagramNumber = reading.originalHexagram().number();
+        // With two or more moving lines, LINE_SELECTION_RULE is still open —
+        // the engine cannot say which line's text is "the" answer. Every
+        // moving line therefore participates, but at reduced applicability;
+        // that is the open blocker being represented rather than an invented
+        // weight, and it is stated in the blocked section's own reason.
+        Applicability lineApplicability = reading.movingLinePositions().size() > 1
+                ? Applicability.MEDIUM
+                : Applicability.HIGH;
         if (reading.movingLinePositions().size() == 6 && (hexagramNumber == 1 || hexagramNumber == 2)) {
             // The classical special case (R12): all six lines moving in a
             // pure Kiền or Khôn hexagram reads "dụng cửu"/"dụng lục" (用九/
-            // 用六) instead of any of the six ordinary line texts.
+            // 用六) instead of any of the six ordinary line texts. Because it
+            // replaces all six rather than competing with them, it is the
+            // single applicable line text and gets full applicability.
             lineJudgmentEvidence(hexagramNumber, 0, "ICHING_LINE_JUDGMENT_DUNG", groupId)
-                    .ifPresent(evidence::add);
+                    .ifPresent(found -> {
+                        evidence.add(found);
+                        signals.addAll(catHungSignals(found, "HAO_DUNG",
+                                Applicability.HIGH, groupId));
+                    });
         } else {
             for (int position : reading.movingLinePositions()) {
                 lineJudgmentEvidence(hexagramNumber, position,
-                        "ICHING_LINE_JUDGMENT_" + position, groupId).ifPresent(evidence::add);
+                        "ICHING_LINE_JUDGMENT_" + position, groupId)
+                        .ifPresent(found -> {
+                            evidence.add(found);
+                            signals.addAll(catHungSignals(found, "HAO_" + position,
+                                    lineApplicability, groupId));
+                        });
             }
         }
+
+        haoLamChuEvidence(reading.originalHexagram(), groupId).ifPresent(evidence::add);
 
         Map<String, Object> movingFact = new LinkedHashMap<>();
         movingFact.put("positions", reading.movingLinePositions());
@@ -340,7 +432,73 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
                     Dimension.OTHER, fact, "research-blocker", groupId, null));
         }
 
-        return List.copyOf(evidence);
+        return new Analysis(List.copyOf(evidence), List.copyOf(signals));
+    }
+
+    /**
+     * Signals read off one judgment text's Chinese by {@link CatHungLexicon}.
+     *
+     * <p>Every term found becomes its own Signal. A text carrying both a
+     * favourable and an unfavourable term therefore yields several Signals of
+     * opposing polarity, deliberately: Rule E makes conflict a valid result,
+     * and the existing consensus machinery is what should notice it. Averaging
+     * them here would destroy the finding before Fusion ever saw it.
+     *
+     * <p>Nothing is marked {@code critical}, including 凶. The reason is the
+     * still-open {@code LINE_SELECTION_RULE}: with several moving lines the
+     * engine cannot assert that any one 凶 is <em>the</em> answer to the
+     * question asked, and {@code critical} in this project means a signal that
+     * should dominate. Escalating an unresolved candidate would be exactly the
+     * confident-but-unverifiable output the blocked section exists to prevent.
+     */
+    private static List<Signal> catHungSignals(Evidence source, String tag,
+                                               Applicability applicability, String groupId) {
+        String hanTu = String.valueOf(source.fact().get("hanTu"));
+        List<CatHungLexicon.Match> matches = CatHungLexicon.scan(hanTu);
+        List<Signal> signals = new ArrayList<>();
+        if (matches.isEmpty()) {
+            // 35% of the shipped texts carry no judgment vocabulary at all.
+            // That is a real reading — the text declines to pronounce — so it
+            // is reported as NEUTRAL rather than left as a silent gap.
+            signals.add(new Signal(UUID.randomUUID().toString(), ENGINE_ID, CatHungLexicon.SCHOOL,
+                    Dimension.OTHER, "ICHING_CAT_HUNG_" + tag + "_KHONG_PHAN_DINH",
+                    Polarity.NEUTRAL, Strength.WEAK, applicability, false,
+                    List.of(source.evidenceId()), groupId));
+            return signals;
+        }
+        for (CatHungLexicon.Match match : matches) {
+            signals.add(new Signal(UUID.randomUUID().toString(), ENGINE_ID, CatHungLexicon.SCHOOL,
+                    Dimension.OTHER, "ICHING_CAT_HUNG_" + tag + "_" + match.code(),
+                    match.polarity(), match.strength(), applicability, false,
+                    List.of(source.evidenceId()), groupId));
+        }
+        return signals;
+    }
+
+    /**
+     * Hào làm chủ (the governing line) for the original hexagram, or empty
+     * when the rule singles no line out.
+     *
+     * <p>Evidence only, never a Signal — see {@link HaoLamChu} for the two
+     * passages in which the source states that being the governing line says
+     * nothing about good or bad.
+     */
+    private static Optional<Evidence> haoLamChuEvidence(Hexagram hexagram, String groupId) {
+        return HaoLamChu.of(hexagram).map(position -> {
+            Map<String, Object> fact = new LinkedHashMap<>();
+            fact.put("hexagramNumber", hexagram.number());
+            fact.put("position", position);
+            fact.put("isYang", HaoLamChu.isYang(hexagram, position));
+            fact.put("rule", "眾以寡為主，多以少為尊 (chúng dĩ quả vi chủ, đa dĩ thiểu vi tôn)");
+            fact.put("sourcePage", 101);
+            fact.put("neutralityNoteVi", HaoLamChu.NEUTRALITY_NOTE_VI);
+            if (HaoLamChu.isSourceNamedException(hexagram.number())) {
+                fact.put("sourceNamedExceptionVi", HaoLamChu.EXCEPTION_NOTE_VI);
+            }
+            return new Evidence(UUID.randomUUID().toString(), ENGINE_ID, HaoLamChu.SCHOOL,
+                    "ICHING_HAO_LAM_CHU", HaoLamChu.RULE_VERSION, Dimension.OTHER, fact,
+                    "nguyen-hien-le-kinh-dich-dao-cua-nguoi-quan-tu", groupId, null);
+        });
     }
 
     /** Quẻ từ (卦辭) evidence for one hexagram, or empty if R24's table has no entry for it. */
@@ -348,11 +506,11 @@ public final class IChingEngine implements MetaphysicalEngine<IChingCastInput, I
         return HexagramJudgmentTable.byNumber(hexagram.number()).map(judgment -> {
             Map<String, Object> fact = new LinkedHashMap<>();
             fact.put("number", judgment.number());
+            fact.put("chineseName", judgment.chineseName());
             fact.put("hanTu", judgment.hanTu());
             fact.put("hanViet", judgment.hanViet());
             fact.put("nghia", judgment.nghia());
             fact.put("sourcePage", judgment.sourcePage());
-            fact.put("hanTuCrossChecked", judgment.hanTuCrossChecked());
             judgment.noteIfPresent().ifPresent(note -> fact.put("note", note));
             return new Evidence(UUID.randomUUID().toString(), ENGINE_ID, JUDGMENT_SCHOOL, ruleId,
                     JUDGMENT_RULE_VERSION, Dimension.OTHER, fact, "ngo-tat-to-kinh-dich-tron-bo",

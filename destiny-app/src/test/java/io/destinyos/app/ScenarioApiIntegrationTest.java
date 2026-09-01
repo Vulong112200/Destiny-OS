@@ -720,8 +720,8 @@ class ScenarioApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("A GENERAL_DECISION run with I Ching returns a real hexagram as evidence and no signal")
-    void ichingContributesHexagramEvidenceButNoSignals() {
+    @DisplayName("A GENERAL_DECISION run with I Ching returns a real hexagram plus cat/hung signals end to end")
+    void ichingContributesHexagramEvidenceAndCatHungSignals() {
         var request = new ScenarioRunRequest(null, null, null, null, null,
                 new io.destinyos.api.dto.IChingRequest("THREE_COINS", 42L, null, null));
 
@@ -743,16 +743,24 @@ class ScenarioApiIntegrationTest {
         assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
                 .contains("ICHING_CAST", "ICHING_ORIGINAL_HEXAGRAM", "ICHING_MOVING_LINES",
                         "ICHING_DRAWN_LINES", "ICHING_JUDGMENT_ORIGINAL",
-                        "ICHING_BLOCKED_LINE_SELECTION_RULE", "ICHING_BLOCKED_CAT_HUNG_POLARITY");
+                        "ICHING_BLOCKED_LINE_SELECTION_RULE");
+        assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
+                .as("CAT_HUNG_POLARITY closed 2026-09-01 - it must not still be advertised as blocked")
+                .doesNotContain("ICHING_BLOCKED_CAT_HUNG_POLARITY");
 
         assertThat(pillar(body.evidence(), "ICHING_CAST"))
                 .containsEntry("method", "THREE_COINS")
                 .containsEntry("seed", 42);
 
-        // Chart AND quẻ từ/hào từ evidence now (R24/R25) - still no vote yet,
-        // same as Bát Tự's chart half: real judgment text is not the same
-        // thing as a resolved cát/hung polarity (see IChingEngine's Javadoc).
-        assertThat(body.signals()).noneMatch(signal -> signal.engine().equals("ICHING"));
+        // Signals now reach Fusion end to end (CAT_HUNG_POLARITY closed
+        // 2026-09-01). This is the assertion that would have caught the whole
+        // layer being wired in the engine but dropped somewhere between the
+        // engine and the API response, which no unit test can see.
+        assertThat(body.signals())
+                .filteredOn(signal -> signal.engine().equals("ICHING"))
+                .as("Kinh Dịch must contribute real cát/hung signals to the scenario response")
+                .isNotEmpty()
+                .allSatisfy(signal -> assertThat(signal.tag()).startsWith("ICHING_CAT_HUNG_"));
     }
 
     @Test
