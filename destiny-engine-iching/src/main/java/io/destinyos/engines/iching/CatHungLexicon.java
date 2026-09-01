@@ -81,12 +81,12 @@ import java.util.Objects;
  * <h2>The ordering bug this class exists to avoid</h2>
  *
  * <p>Compounds are matched <strong>before</strong> the single characters they
- * contain, and this is load-bearing, not tidiness. Measured over the shipped
- * 450 entries: <strong>92 carry 无咎/無咎</strong> against only
- * <strong>7 carrying a bare 咎</strong>. A naive scan that saw 咎 first would
- * therefore report 92 entries as faulty when their text says the opposite —
- * "không có lỗi". 悔亡 (hối vong, the regret <em>disappears</em>) inverts 悔
- * the same way, in 19 entries.
+ * contain, and this is load-bearing, not tidiness. Measured over all 450 shipped
+ * texts (386 hào từ, including dụng cửu and dụng lục, plus 64 quẻ từ):
+ * <strong>93 carry 无咎/無咎</strong> against only <strong>7 carrying a bare
+ * 咎</strong>. A naive scan that saw 咎 first would therefore report those 93 as
+ * faulty when their text says the opposite — "không có lỗi". 悔亡 (hối vong, the
+ * regret <em>disappears</em>) inverts 悔 the same way, in 19 entries.
  *
  * <p>Both 无 and 無 are accepted. R24 §C1 recorded that the wikisource
  * edition writes 无; the shipped data also contains one 無咎 and one 無悔, so
@@ -94,7 +94,7 @@ import java.util.Objects;
  *
  * <h2>Multiple verdicts in one line are not averaged (Rule E)</h2>
  *
- * <p>28 of the 450 entries carry both a favourable and an unfavourable term.
+ * <p>28 texts carry both a favourable and an unfavourable term.
  * {@link #scan} returns <em>all</em> of them and never reduces them to a
  * single polarity; {@code IChingEngine} turns each into its own Signal and
  * lets the existing consensus/conflict machinery see the disagreement. A
@@ -230,8 +230,15 @@ public final class CatHungLexicon {
      * <p>Characters are claimed by at most one match, longest term first, so
      * a text containing 无咎 yields one 无咎 and no bare 咎. An empty result
      * means the text carries no verdict this lexicon recognises — a real
-     * finding (35% of the shipped 450 entries), reported as
+     * finding (158 of the 450 shipped texts, 35%), reported as
      * {@link Polarity#NEUTRAL} rather than guessed at.
+     *
+     * <p>A note on the two counts that appear in this class and its test, so
+     * they do not read as a contradiction: <strong>450</strong> is every shipped
+     * text (386 hào từ + 64 quẻ từ), while {@code CatHungLexiconTest} measures
+     * <strong>448</strong> because it walks positions 1-6 and so excludes the
+     * two dụng cửu / dụng lục lines. The ratios are the same to the percent
+     * either way; only the denominator differs.
      *
      * @param hanTu the Chinese judgment text; null or blank yields an empty list
      */

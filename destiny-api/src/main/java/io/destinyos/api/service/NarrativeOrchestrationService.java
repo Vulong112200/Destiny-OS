@@ -268,11 +268,21 @@ public class NarrativeOrchestrationService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    /**
+     * Engine ids are translated here, not downstream, for the same reason
+     * {@code typeLabelVi} already is: {@code destiny-ai} does not depend on
+     * {@code destiny-i18n}, so this service is the layer that owns labelling.
+     *
+     * <p>Without this, the deterministic fallback wrote a Vietnamese reflection
+     * question containing raw ids — "Giữa ICHING và TAROT, bạn thấy…" — and a
+     * free model given the same ids would echo them just as readily. Both are
+     * {@code CLAUDE.md} §9 breaches: a technical name shown to an end user.
+     */
     private NarrativeConflictItem toNarrativeConflictItem(ConflictEntity entity) {
         return new NarrativeConflictItem(
                 VietnameseLabels.of(entity.type()),
                 entity.dimension() == null ? null : VietnameseLabels.of(entity.dimension()),
-                entity.involvedEngines(),
+                entity.involvedEngines().stream().map(VietnameseLabels::engineName).toList(),
                 entity.description());
     }
 

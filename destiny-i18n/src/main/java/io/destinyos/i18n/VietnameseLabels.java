@@ -698,8 +698,50 @@ public final class VietnameseLabels {
      * output, which would put display text in the one layer that must stay
      * free of it (Evidence's own Javadoc: "structured finding, never prose").
      */
+    /**
+     * Engine ids to Vietnamese names.
+     *
+     * <p>Kept apart from {@link #allRegistries()} because an engine is
+     * identified by a {@code String} rather than an enum — {@code ENGINE_ID}
+     * on each engine class — so it cannot go in an enum-keyed registry and is
+     * not walkable by the coverage test the way the others are.
+     *
+     * <p>It exists because a raw engine id was reaching the user. A conflict
+     * carries {@code involvedEngines} as ids, and the result page rendered them
+     * verbatim: "Liên quan: ICHING, WESTERN_ASTROLOGY". That is
+     * {@code UI_UX_VIETNAMESE_SPEC.md} §1 being broken in the same way the
+     * narrative panel's fallback reason was — a technical name shown to an end
+     * user — except here the Vietnamese label did not exist at all rather than
+     * existing and being dropped.
+     *
+     * <p>Adding an engine without adding it here is caught by
+     * {@code VietnameseLabelsTest}, which walks the engine ids the modules
+     * actually declare.
+     */
+    private static final Map<String, String> ENGINE_NAME = Map.of(
+            "BAZI", "Bát Tự (Tứ Trụ)",
+            "TAROT", "Tarot",
+            "NUMEROLOGY_PYTHAGOREAN", "Thần số học (Pythagorean)",
+            "FENGSHUI_KUA", "Phong Thủy (Bát Trạch)",
+            "WESTERN_ASTROLOGY", "Chiêm tinh Tây phương",
+            "ICHING", "Kinh Dịch");
+
+    /** Vietnamese name for an engine id, or the id itself if it has no label yet. */
+    public static String engineName(String engineId) {
+        return ENGINE_NAME.getOrDefault(engineId, engineId);
+    }
+
+    /** Every engine id that carries a Vietnamese name. */
+    public static Map<String, String> engineNames() {
+        return ENGINE_NAME;
+    }
+
     public static Map<String, Map<String, String>> asStringRegistries() {
         Map<String, Map<String, String>> byType = new LinkedHashMap<>();
+        // Not an enum registry, so it is added by hand rather than by the loop
+        // below. The key is "Engine" so the frontend reads it the same way it
+        // reads labels.HeavenlyStem and the rest.
+        byType.put("Engine", ENGINE_NAME);
         for (Map<? extends Enum<?>, String> registry : allRegistries()) {
             Map<String, String> entries = new LinkedHashMap<>();
             String typeName = null;

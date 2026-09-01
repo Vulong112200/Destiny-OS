@@ -121,6 +121,40 @@ class LabelCoverageTest {
     }
 
     @Test
+    @DisplayName("Every engine the modules declare has a Vietnamese name")
+    void everyEngineHasAVietnameseName() {
+        // Engine ids are Strings, not an enum, so they cannot ride the registry
+        // walk above — which is precisely how a raw id reached the user: a
+        // conflict's involvedEngines was rendered verbatim as
+        // "Liên quan: ICHING, WESTERN_ASTROLOGY".
+        //
+        // Pinned by hand against the ENGINE_ID constants the engine modules
+        // actually declare. Adding a seventh engine without a Vietnamese name
+        // fails here rather than surfacing on a results page.
+        List<String> declaredEngineIds = List.of(
+                "BAZI", "TAROT", "NUMEROLOGY_PYTHAGOREAN",
+                "FENGSHUI_KUA", "WESTERN_ASTROLOGY", "ICHING");
+
+        assertThat(VietnameseLabels.engineNames().keySet())
+                .as("engine ids carrying a Vietnamese name")
+                .containsExactlyInAnyOrderElementsOf(declaredEngineIds);
+
+        for (String engineId : declaredEngineIds) {
+            String name = VietnameseLabels.engineName(engineId);
+            assertThat(name).as("name for %s", engineId).isNotBlank();
+            // engineName() falls back to the id itself when unlabelled, so an
+            // equal value means the label is missing rather than translated.
+            assertThat(name).as("name for %s must not be the id itself", engineId)
+                    .isNotEqualTo(engineId);
+        }
+
+        // The frontend reads labels.Engine the same way it reads
+        // labels.HeavenlyStem, so the registry map must carry it too.
+        assertThat(VietnameseLabels.asStringRegistries())
+                .containsKey("Engine");
+    }
+
+    @Test
     @DisplayName("Labels are non-empty and actually Vietnamese, not the enum name")
     void labelsAreRealTranslations() {
         for (Class<? extends Enum<?>> type : USER_FACING) {
@@ -230,7 +264,14 @@ class LabelCoverageTest {
                 .containsEntry("GIAP", "Giáp");
         assertThat(registries.get("EarthlyBranch")).hasSize(12);
         assertThat(registries.get("SolarTerm")).hasSize(24);
-        assertThat(registries).hasSize(VietnameseLabels.allRegistries().size());
+
+        // "Engine" is the one registry keyed by String rather than by an enum,
+        // so it is not in allRegistries() and has to be counted separately. It
+        // is here because a conflict's involvedEngines used to reach the page
+        // as raw ids ("Liên quan: ICHING, WESTERN_ASTROLOGY").
+        assertThat(registries).containsKey("Engine");
+        assertThat(registries.get("Engine")).containsEntry("ICHING", "Kinh Dịch");
+        assertThat(registries).hasSize(VietnameseLabels.allRegistries().size() + 1);
     }
 
     @Test
