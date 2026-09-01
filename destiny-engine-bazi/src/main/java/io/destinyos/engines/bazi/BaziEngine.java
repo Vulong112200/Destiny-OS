@@ -160,13 +160,26 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                     List.of("Phù ức Nhật Chủ", "Điều hậu (khí hậu theo mùa)",
                             "Thông quan (hòa giải xung khắc)", "Chuyên vượng / tòng cách")),
             new BlockedSection("NHAT_CHU_CUONG_DO",
-                    "Cường độ Nhật Chủ (thân cường / thân nhược)", "R3",
-                    "Không tồn tại thang điểm nào được công nhận chung để đo cường độ Nhật Chủ. "
-                            + "Mọi con số ở đây sẽ là thang điểm tự đặt ra — đúng loại kết quả "
-                            + "tự tin nhưng không thể kiểm chứng mà hệ thống này từ chối tạo ra. "
-                            + "Bảng đếm Ngũ Hành chỉ là số đếm thô, không phải đánh giá cường độ.",
-                    List.of("Đếm theo can", "Đếm theo can + chi", "Đếm cả tàng can",
-                            "Có/không trọng số theo mùa và theo vị trí trụ")),
+                    "Cường độ Nhật Chủ — thang điểm liên trường phái", "R3",
+                    "Cường độ Nhật Chủ đã được tính, nhưng theo đúng một trường phái có tên: "
+                            + "phép tính điểm độ vượng của Thiệu Vĩ Hoa & Trần Viên, ship dưới "
+                            + "methodology riêng BAZI_DAY_MASTER_STRENGTH_TVH và có golden test "
+                            + "theo chính các ví dụ trong sách (R3 chốt 2026-08-24). Cái chưa có "
+                            + "là một thang điểm dùng chung được giữa các trường phái: các "
+                            + "trường phái khác cân đo vượng/suy theo cách khác — có phái không "
+                            + "quy về điểm số — nên con số của phái này không so sánh được với "
+                            + "phái kia, và không tồn tại 'cường độ Nhật Chủ' chung để hiển thị "
+                            + "như một sự thật của lá số. Hai giới hạn phải đọc kèm kết quả đang "
+                            + "có: phương pháp này không phủ cách cục đặc biệt (chính sách gốc "
+                            + "loại trừ, và engine chưa nhận ra lá số nào thuộc loại đó), và tự "
+                            + "nó không mở được R1 — biết thân vượng hay nhược vẫn chưa suy ra "
+                            + "Dụng Thần. Bảng đếm Ngũ Hành ở trên vẫn là số đếm thô, không phải "
+                            + "điểm độ vượng.",
+                    List.of("Tính điểm định lượng (Thiệu Vĩ Hoa) — phái đang dùng",
+                            "Vượng suy định tính, không quy về điểm (Trích Thiên Tủy / "
+                                    + "Nhậm Thiết Tiều)",
+                            "Nhị phân vượng/nhược hay có thêm bậc trung hòa",
+                            "Có/không xử lý cách cục đặc biệt")),
             // R20-R22 were added on 2026-08-23. Before that they were absent
             // from this list entirely - not because the engine computed them,
             // but because no research id existed to name them, so a reader
@@ -175,38 +188,70 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
             // against Master Spec section 13 rather than against itself.
             new BlockedSection("HOP_XUNG_HINH_HAI_PHA",
                     "Quan hệ Hợp / Xung / Hình / Hại / Phá giữa các trụ", "R20",
-                    "Đây là tầng phân tích quan hệ giữa các Địa Chi (và Thiên Can) với nhau — "
-                            + "nằm giữa 'tám chữ' và mọi lời luận. Các trường phái bất đồng thật "
-                            + "sự ở những điểm quyết định: hợp có hóa giải được xung không, "
-                            + "khoảng cách giữa các trụ có tính không, và khi nhiều quan hệ cùng "
-                            + "xuất hiện thì cái nào thắng. Chưa chọn trường phái nên chưa tính. "
-                            + "Lưu ý: tầng này ảnh hưởng tới cách đọc chính những dữ liệu đang "
-                            + "hiển thị — một chi bị xung có thể coi như mất gốc, nên các bảng "
-                            + "đếm Ngũ Hành ở trên là số đếm thô theo đúng nghĩa đen.",
+                    "Một phần tầng này đã được tính, nhưng chỉ ở bên trong: Tam Hội, Tam Hợp, "
+                            + "Bán Tam Hợp, Lục Hợp (kèm điều kiện hóa và xử lý tranh hợp), Lục "
+                            + "Xung và Thiên Can Ngũ Hợp được tính trong phạm vi nội bộ để phục "
+                            + "vụ phép tính cường độ Nhật Chủ (R3) — cùng đúng thứ tự ưu tiên "
+                            + "Tam Hội > Tam Hợp > Bán Tam Hợp > Lục Hợp và luật 'tham hợp quên "
+                            + "xung' mà phương pháp đó dùng. Đó là một tập con hẹp chứ chưa phải "
+                            + "tầng phân tích quan hệ: Hình và Hại chưa tính; Phá đã được khai "
+                            + "báo ngoài phạm vi vì không có mặt trong hai cổ thư tham chiếu; "
+                            + "quan hệ giữa các trụ không liền kề chưa được xét (R20 chốt ghi "
+                            + "khoảng cách là một thuộc tính chứ không phải bộ lọc, nhưng không "
+                            + "nguồn nào cho hệ số suy giảm); và lá số có một cặp Lục Xung không "
+                            + "được hóa giải thì chính phép tính R3 cũng dừng thay vì đoán. Quan "
+                            + "trọng hơn: nửa đánh giá của tầng này — một quan hệ cụ thể là tốt "
+                            + "hay xấu cho lá số này — không chặn ở R20 mà chặn ở R1, vì cổ thư "
+                            + "phát biểu mọi phán xét đó bằng từ vựng Hỷ Thần / Kỵ Thần. Nên "
+                            + "phần đã tính vẫn nằm bên trong engine, chưa lộ ra thành mục đọc "
+                            + "riêng, và các bảng đếm Ngũ Hành ở trên vẫn là số đếm thô.",
                     List.of("Hợp giải được xung / xung phá được hợp",
                             "Chỉ trụ liền kề mới tác dụng / trụ cách xa vẫn tác dụng yếu hơn",
                             "Tam hội > Tam hợp > Lục hợp khi cùng xuất hiện",
-                            "Hợp có làm đổi Ngũ Hành của chi (hóa) hay không")),
+                            "Hợp có làm đổi Ngũ Hành của chi (hóa) hay không",
+                            "Tự hình gồm ba chi (Thìn, Ngọ, Dậu) hay bốn (thêm Hợi)")),
             new BlockedSection("LUU_NIEN",
                     "Lưu Niên / Lưu Nguyệt / Lưu Nhật (vận theo năm, tháng, ngày)", "R21",
                     "Đây là tầng nằm ngay trên Đại Vận: Đại Vận cho biết giai đoạn 10 năm, "
                             + "Lưu Niên cho biết một năm cụ thể trong giai đoạn đó tương tác thế "
-                            + "nào. Chưa nghiên cứu. Bản thân can chi của một năm/tháng/ngày thì "
-                            + "hệ thống đã tính được, nhưng cách nó tác động lên lá số gốc lại đi "
-                            + "qua đúng các quan hệ Hợp/Xung mà R20 chưa mở, và việc một năm là "
-                            + "tốt hay xấu thì cần Dụng Thần (R1).",
+                            + "nào. Đã nghiên cứu xong tầng năm, chưa có gì cho tầng tháng và "
+                            + "tầng ngày. Tầng năm: bộ quy tắc Chương 7 của sách Thiệu Vĩ Hoa đã "
+                            + "được đọc và dựng lại đúng cấu trúc ba danh sách (khi không có "
+                            + "tương tác / khi đang tương tác / sau khi tương tác xong), và thứ "
+                            + "tự đọc Lưu Niên → Đại Vận → Tiểu Vận đã được chốt. Nhưng gần như "
+                            + "mọi quy tắc trong đó kết luận bằng 'cát/hung theo Hỷ - Dụng - Kỵ "
+                            + "Thần', tức lấy đầu ra của R1 làm đầu vào; đúng một quy tắc (đủ "
+                            + "bốn chi Tý, Ngọ, Mão, Dậu) tính được mà không cần R1, và một quy "
+                            + "tắc lẻ thì chưa thành một tầng phân tích. Ngoài ra tương tác đi "
+                            + "qua các quan hệ Hợp/Xung mà R20 mới chỉ đặc tả xong ở tầng cơ "
+                            + "học. Tầng tháng và tầng ngày: bốn vòng nghiên cứu không tìm được "
+                            + "nguồn nào, và suy quy tắc của tầng năm xuống tháng/ngày chính là "
+                            + "bước nghe-có-lý mà mục này tồn tại để chặn. Can chi của một "
+                            + "năm/tháng/ngày thì hệ thống tính được từ lâu; cái thiếu là luật "
+                            + "đọc nó.",
                     List.of("Ba tầng năm/tháng/ngày đọc độc lập hay phân cấp",
                             "Tương tác với lá số gốc, với Đại Vận, hay với cả hai")),
             new BlockedSection("THAN_SAT",
                     "Thần Sát (các sao phụ: Đào Hoa, Dịch Mã, Thiên Ất Quý Nhân…)", "R22",
-                    "Chưa nghiên cứu — và khác các mục trên, đây chưa chắc đã là một khoảng "
-                            + "trống cần lấp: Master Spec ghi Thần Sát kèm điều kiện 'nếu "
-                            + "methodology hỗ trợ'. Một số trường phái dùng Thần Sát rất nhiều, "
-                            + "một số coi đây là phần thêm về sau và gần như không dùng. Vì vậy "
-                            + "câu hỏi đầu tiên là có dùng hay không, trước cả câu hỏi tính thế "
-                            + "nào — và câu trả lời 'không dùng' cũng là một kết luận hợp lệ.",
+                    "Khác các mục trên, câu hỏi đầu tiên ở đây là có dùng Thần Sát hay không, "
+                            + "trước cả câu hỏi tính thế nào — Master Spec ghi Thần Sát kèm điều "
+                            + "kiện 'nếu methodology hỗ trợ', vì một số trường phái dùng rất "
+                            + "nhiều còn một số coi đây là phần thêm về sau và gần như không "
+                            + "dùng. Câu hỏi đó đã được đặt và đã có câu trả lời cho trường phái "
+                            + "đang chọn: có dùng. Điều kiện tiên quyết Thai Nguyên / Cung Mệnh "
+                            + "đã có công thức và đã dò lại đúng theo ví dụ trong sách. Cái chặn "
+                            + "không còn là phương pháp mà là nền dẫn nguồn: 31 trong 33 bảng "
+                            + "sao vẫn chỉ dựa vào một nguồn duy nhất, mà nguồn đó dự án chỉ có "
+                            + "Quyển 1 nên 13 sao tra không ra bảng. Chỉ hai sao — Thiên Ất Quý "
+                            + "Nhân và Kình Dương — đủ điều kiện ship, và riêng bảng Kình Dương "
+                            + "là một biến thể thiểu số phải đi kèm quyết định chiều Trường Sinh "
+                            + "của can âm. Hai sao thì chưa thành một tầng Thần Sát, nên engine "
+                            + "chưa hiển thị tầng này. Với một trường phái khác, 'không dùng "
+                            + "Thần Sát' vẫn là một kết luận hợp lệ.",
                     List.of("Trường phái có dùng Thần Sát / không dùng",
-                            "Tập sao thay đổi theo nguồn, từ vài sao tới hơn một trăm")));
+                            "Tập sao thay đổi theo nguồn, từ vài sao tới hơn một trăm",
+                            "Kình Dương của can âm: theo chiều nghịch (Ất → Dần) hay theo bảng "
+                                    + "phổ thông (Ất → Thìn)")));
 
     @Override
     public EngineResult<BaziChart> calculate(BaziInput input, CalculationContext context) {

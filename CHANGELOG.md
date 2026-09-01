@@ -8,6 +8,173 @@ giải thích vì sao kết quả thay đổi.
 
 ## [Unreleased]
 
+### AI trên web — ba lỗi thật, và một chẩn đoán bác bỏ giả thuyết ban đầu
+
+Khiếu nại là "phần AI chưa chạy được ở web". **Chẩn đoán trực tiếp trên backend
+đang chạy đã bác bỏ nguyên nhân dễ đoán nhất:** tạo một calculation mới rồi gọi
+`POST /api/v1/calculations/{id}/narrative` trả về `source = AI_GENERATED`,
+provider `openrouter`, có model thật, trong **15 giây**. Backend không hỏng gì.
+Vấn đề nằm ở phía web và ở vòng đời dữ liệu — ba lỗi code, cả ba đều thất bại
+**im lặng**, nên từ trình duyệt cả ba trông y như nhau.
+
+**1. Một bản diễn giải fallback đã lưu bị đóng băng vĩnh viễn.**
+`getOrGenerateNarrative` chỉ gửi `POST` khi `GET` trả **404**. Nhưng
+`NarrativeRecorder` là **upsert và ghi cả kết quả fallback**. Nên một calculation
+từng sinh narrative lúc AI đang tắt sẽ được phục vụ bản fallback đó **mãi mãi** —
+bật AI sau cũng không đổi gì, và web không có cách nào yêu cầu tạo lại. Đây là
+nguyên nhân khớp nhất với triệu chứng "AI không chạy" trong khi backend vẫn tốt.
+Đã sửa: thấy `source === "FALLBACK"` thì `POST` lại; nếu `POST` thất bại thì
+**vẫn trả về bản fallback đang có** chứ không trả `null` — không làm mất thứ
+đang hiển thị được. Thêm nút **"Tạo lại phần diễn giải"**
+(`NarrativeRegenerateButton`, client component vì `NarrativePanel` là server
+component), chỉ hiện khi nguồn là fallback.
+
+**2. Không có hạn chờ nào ở phía web, trong khi backend tệ nhất là 200 giây.**
+`request()` không có `AbortSignal`, và chuỗi model của backend có trường hợp tệ
+nhất `2 lần thử × 4 model × 25s`. `NarrativePanel` là async server component và
+**không route segment nào export `maxDuration`**. Trên serverless (giới hạn
+10–15s) render bị kill → `getOrGenerateNarrative` trả `null` → người dùng thấy
+hộp "Không tạo được phần tổng kết". Đã sửa ở cả hai đầu: web có `AbortSignal`
+riêng cho lệnh gọi narrative và `maxDuration = 90` ở trang kết quả; backend đổi
+từ timeout **từng lượt gọi** sang **deadline tổng cho cả chuỗi model**
+(`DESTINY_AI_OPENROUTER_TOTAL_DEADLINE_MS`, mặc định 45s) — deadline được kiểm
+**giữa** các lượt, không giữa dòng, nên hạn chờ thực tế tối đa là
+`totalDeadlineMs + timeoutMs`, và javadoc nói rõ điều đó thay vì để người đọc tự
+suy.
+
+**3. Lý do fallback tiếng Việt bị nhận về rồi bỏ đi — vi phạm CLAUDE.md §9.**
+`NarrativeResponseDto.fallbackReason` là `LabeledValue` **đã có sẵn `labelVi`**
+("Phần diễn giải AI đang tắt", "Chưa cấu hình dịch vụ AI", …), nhưng panel chỉ
+nhét `fallbackReason.technical` vào thuộc tính `title=`. Tức thông tin duy nhất
+trả lời được câu hỏi "vì sao AI không chạy?" vừa bị ẩn sau thao tác hover, vừa
+hiện ra dưới dạng **enum kỹ thuật** — đúng thứ §9 cấm; còn ở nhánh `null` thì
+không có gì cả. Đã sửa: hiện `labelVi` thành chữ ngay trên panel khi nguồn là
+fallback. Việc này vừa sửa §9 vừa **biến chẩn đoán thành tính năng** — từ nay
+phân biệt được `AI_DISABLED` / `NO_API_KEY` / `RATE_LIMITED` / `MALFORMED_JSON`
+ngay trên trang, không cần mở log backend.
+
+**4. Bug nhỏ nhưng thật: CORS mất `.trim()`.** `WebCorsConfig` tách
+`allowedOrigins.split(",")` mà không trim, nên `"https://a.com, https://b.com"`
+— cách người ta thực sự gõ vào env panel — sinh origin thứ hai là `" https://b.com"`
+và im lặng không khớp. Đã trim và bỏ phần tử rỗng.
+
+**Phát hiện phụ khi chẩn đoán, cần chủ dự án xác minh:** model thực sự trả lời là
+`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`, tức chuỗi đã **rơi hết** ba
+model đứng trước trong `.env` và chỉ còn alias `openrouter/free` cứu được. Ba
+model chính đang thất bại (nhanh — tổng vẫn 15s). Nên xác minh lại danh mục model
+miễn phí; trường `model` trong response chính là chỗ để nhìn điều này.
+
+**README:** thêm mục deploy nêu **bốn cái bẫy im lặng** — container không tự có
+biến AI (`Dockerfile` không set `ENV`, `.dockerignore` loại `.env`); chạy jar sai
+thư mục (`spring-dotenv` đọc `.env` theo CWD); `NEXT_PUBLIC_API_BASE_URL` được
+nhúng lúc **build** nên đặt xong restart không có tác dụng; và bản fallback đã lưu
+không tự tạo lại — kèm bảng tra `source`/`fallbackReason` → nguyên nhân.
+
+
+### Kinh Dịch — cát/hung đã mở, engine lần đầu phát Signal (R24/R25, `CAT_HUNG_POLARITY`)
+
+Chủ dự án cung cấp cuốn thứ hai: **Nguyễn Hiến Lê, "Kinh Dịch — Đạo Của Người
+Quân Tử", NXB Văn Học**. Cuốn này đóng được mục đã chặn Kinh Dịch khỏi Fusion
+suốt từ đầu, và đóng bằng một cách khác hẳn cách trông có vẻ hiển nhiên.
+
+**`CAT_HUNG_POLARITY` → RESOLVED.** Methodology mới `ICHING_CAT_HUNG_LEXICAL`
+(`CatHungLexicon`). Cách đóng là một **phép đọc**, không phải công thức: các chữ
+吉/凶/悔/吝/无咎 có thật trong Hán văn đã ship (nguồn `zh.wikisource`, đã qua kiểm
+codepoint CJK), nên mỗi cực tính truy được về đúng một chữ ở đúng một vị trí
+trong đúng một câu — Evidence giữ lại chữ đã khớp và offset để kiểm toán lại.
+Nghĩa 5 chữ lấy **nguyên văn** bảng thuật ngữ tr.92 của ông, kể cả hai phân bậc
+đến từ chính lời ông chứ không từ chúng tôi: 凶 là *"xấu nhất"* nên là chữ duy
+nhất được `STRONG`, và 吝 là *"lỗi nhỏ"* so với 悔 nên hai chữ khác bậc thay vì
+bị làm phẳng thành một.
+
+**Đường suy theo VỊ HÀO đã bị bác, dù đếm được 100%.** Sách cho sẵn cả bộ máy:
+đắc trung là hào 2 và 5 bất kể âm/dương (tr.95–96), đắc chính là parity thể ==
+parity vị (tr.96), *tam đa hung ngũ đa công* (tr.104), và tr.173 còn phát biểu
+hẳn một pipeline 4 bước. Không dùng, vì **chính tr.101 tự phủ định**: *"trong
+Dịch, không có qui tắc gì luôn luôn đúng, có rất nhiều lệ ngoại, phải tùy thời
+mà xét"* — và cùng trang nêu luôn phản ví dụ (hai hào đều bất chính mà nghĩa
+tốt; ca khác đều chính mà nghĩa xấu). Ghi lại dài dòng trong `DECISION_LOG.md`
+vì đây là loại quyết định mà người đọc sách nhưng không đọc log sẽ tưởng là bỏ sót.
+
+**Cố ý không tính:** tứ đức 元/亨/利/貞 (tr.173 định nghĩa trinh là *"chính và
+bền"* tức đức tính **có điều kiện**, và tr.90–92 nêu 5 cách đọc cạnh tranh a–đ
+trong đó cách đ của Cao Hanh phủ định cách a mà chính tác giả chọn); 孚 vì không
+phải phán định; 厲 vì không nguồn nào tra nghĩa. 10 dạng ghép (元吉, 大吉, 中吉,
+終吉, 貞吉, 小吉, 終凶, 征凶, 无悔, 悔亡) **là suy dẫn của dự án**, khai báo tường
+minh trên methodology chứ không giả làm trích dẫn (Rule D).
+
+**Điều kiện đúng đắn dễ mất nhất:** quét chuỗi dài trước chuỗi ngắn. Đo được
+**92** entry mang 无咎/無咎 so với **7** entry mang 咎 trần — quét ngắn trước sẽ
+gán **ngược** cực tính cho 92 entry, tức đảo dấu trên một phần năm corpus, và
+không test hoàn chỉnh nào nhìn thấy. 悔亡 đảo 悔 y như vậy ở 19 entry.
+
+**Tự kiểm chéo bằng nguồn thứ hai đã có sẵn:** bảng valence được đối chiếu với
+chính bản dịch Ngô Tất Tố nằm cùng record — 吉 được ông dịch "tốt" ở 113/119
+entry (95%), 咎 → "lỗi" 88/91 (97%), 吝 → "tiếc" 19/20 (95%). Khẳng định thành
+test, nên ai lặng lẽ đảo một cực tính sẽ làm build đỏ.
+
+**Độ phủ nói thẳng:** 65% trong 448 văn bản có ít nhất một chữ phán định; **35%
+còn lại báo `NEUTRAL`** — đó là văn bản từ chối phán, không phải khoảng trống bị
+lấp liếm. **28 entry mang đồng thời chữ tốt và chữ xấu** → theo Rule E phát nhiều
+Signal đối cực **riêng biệt**, để máy consensus/conflict sẵn có tự nhận ra, tuyệt
+đối không lấy trung bình.
+
+**Hào làm chủ — mục mới, `ICHING_HAO_LAM_CHU_NGUYENHIENLE`, chỉ Evidence.**
+Qui tắc 眾以寡為主 (tr.101) xác định hoàn toàn bằng cấu trúc quẻ. **Không phát
+Signal**, vì sách phủ định hai lần rằng làm chủ hàm ý tốt/xấu (tr.102 và
+tr.102–103), và hai ví dụ của nó cố ý đối nghịch nhau về cực tính. Lệ ngoại sách
+tự nêu (quẻ 44 Cấu, tr.103) được **ship kèm** kết quả chứ không biên dịch thành
+nhánh `if` ẩn — hàm vẫn trả hào 1 vì đó đúng là điều qui tắc phát biểu. Đây là
+**golden test đầu tiên của Kinh Dịch** theo nghĩa của dự án (quẻ 16 → hào 4,
+quẻ 43 → hào 6, đáp án in ở tr.102), lấp gạch đầu dòng thứ ba ở
+`VERIFICATION_OPUS_R24.md` §E.
+
+**`LINE_SELECTION_RULE` vẫn treo, và nguồn này đã bị loại tường minh.** tr.104
+ông tuyên bố *"chúng tôi không có ý khảo về môn bói"*; tr.106–107 chỉ nói mọi
+hào động đổi **cùng một lượt** cho **đúng một** quẻ biến, đếm tới *"hai, ba hào
+cùng biến"* rồi dừng, không hề nhắc 4/5/6 hào động. Ghi vào
+`RESEARCH_BLOCKERS.md` để vòng sau không mở lại nguồn này. Hệ quả trong code: có
+nhiều hơn một hào động thì Signal của mỗi hào bị hạ `Applicability` xuống
+`MEDIUM`, và **không Signal nào được đánh `critical`** — engine không thể khẳng
+định chữ 凶 nào mới là câu trả lời cho câu hỏi đã đặt. `EngineStatus` vẫn
+`PARTIAL`, không nâng lên `SUCCESS`.
+
+### Kinh Dịch — 27 entry sai nội dung, và cùng một điểm mù hình-dạng-test lặp lại ở trường khác
+
+`VERIFICATION_OPUS_R24.md` §B3 đã ghi rằng bộ test khẳng định `isNotBlank()` PASS
+trong khi 287/386 entry mang **Hán văn** sai. Bản sửa hôm đó dựng lại Hán văn và
+viết lại test thành phép suy dẫn — nhưng **chỉ cho những trường từng sai**.
+Trường `nghia` chưa ai soi lại, và nó mang đúng loại lỗi đó:
+
+- **26 entry** có lời bình GIẢI NGHĨA của sách chạy tràn vào `nghia` **không dấu
+  phân cách** — quẻ 1 hào 1 dài ~2000 ký tự trong khi lời dịch thật chỉ 32
+  ("Hào Chín Đầu: Rồng lặn chớ dùng.");
+- **1 entry** (quẻ 16 hào 6) mang lời **Tượng truyện** thay cho lời dịch hào,
+  trong khi `hanTu` lại đúng là hào từ;
+- **1 lỗi in** "Háo"/"Hào" (quẻ 45 hào 6).
+
+Cả 28 đều thỏa `isNotBlank()`.
+
+**Cách sửa:** cắt tại chính mốc section của lời bình — cơ học, nên không cần lập
+luận từng ca — và giữ nguyên câu chữ Ngô Tất Tố ở phần còn lại (R24 §C1). Mọi
+entry bị sửa đều có `note` ghi đã cắt gì.
+
+**Bốn entry cố ý để nguyên:** 2/6, 38/5, 47/5, 53/2 không có nhãn vị trí vì sách
+vốn không in nhãn ở đó. Đó là dữ kiện về ấn bản, không phải khuyết tật, và không
+được thêm chữ vào lời dịch để bảng trông đều. Bộ bốn được **ghim trong test**, nên
+không ai "sửa" một trong bốn ca đó về sau.
+
+**Test mới để loại lỗi này không tái diễn im lặng:** `nghia` không chứa marker
+lời bình; mở đầu bằng nhãn suy được từ `position` + âm/dương; độ dài bám số chữ
+Hán; và **đếm bảng == 386**. `LineJudgmentTable` nay **ném lỗi ngay khi trùng
+khoá** thay vì để entry sau ghi đè — khoá phẳng `hex*10+pos` trước đây khiến hai
+entry trùng sẽ mất một cái mà mọi phép tra và mọi khẳng định hoàn chỉnh vẫn xanh.
+`HexagramTable.byNumber` nay chặn biên 1–64 thay vì để `IndexOutOfBoundsException`
+của list nói thay.
+
+Module Kinh Dịch: **46 → 80 test**, toàn bộ dự án 696 test PASS.
+
+
 ### Web — bố cục dashboard, câu hỏi của người dùng đi hết luồng, và lời luận giải bám chủ đề
 
 Ba khiếu nại của chủ dự án, và cả ba đều truy được về nguyên nhân cụ thể trong
