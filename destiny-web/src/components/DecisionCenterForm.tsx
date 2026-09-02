@@ -6,6 +6,9 @@ import { ApiError, runScenario } from "@/lib/api";
 import { findVnProvince, VN_PROVINCES } from "@/lib/vnProvinces";
 import { SCENARIO_META } from "@/lib/scenarioMeta";
 import { ScenarioPicker } from "./ScenarioPicker";
+import { TarotDeckPicker } from "./TarotDeckPicker";
+// Giá trị, không phải kiểu — nên tách khỏi khối `import type` bên dưới.
+import { TAROT_MAX_CARDS } from "@/lib/types";
 import type {
   CompassDirectionName,
   IChingCastingMethod,
@@ -20,11 +23,32 @@ const ICHING_METHOD_OPTIONS: { value: IChingCastingMethod; label: string }[] = [
   { value: "MAI_HOA_TIME", label: "Mai Hoa — theo thời điểm hiện tại" },
 ];
 
-const SPREAD_OPTIONS: { value: TarotSpreadName; label: string; cardCount: number }[] = [
+/**
+ * `cardCount: null` nghĩa là spread không có số lá của riêng nó — chỉ `FREE_FORM`,
+ * và người dùng phải tự chọn.
+ */
+const SPREAD_OPTIONS: {
+  value: TarotSpreadName;
+  label: string;
+  cardCount: number | null;
+  note?: string;
+}[] = [
   { value: "PAST_PRESENT_FUTURE", label: "Quá khứ – Hiện tại – Tương lai", cardCount: 3 },
   { value: "CHOICE_A_B", label: "Lựa chọn A – B", cardCount: 2 },
   { value: "SITUATION_CHALLENGE_ADVICE", label: "Tình huống – Thử thách – Lời khuyên", cardCount: 3 },
+  { value: "HORSESHOE_FIVE", label: "Móng ngựa", cardCount: 5 },
+  { value: "CELTIC_CROSS", label: "Thập tự Celtic", cardCount: 10 },
+  {
+    value: "FREE_FORM",
+    label: "Tự do — bạn chọn số lá",
+    cardCount: null,
+    note: "Không gán ý nghĩa cho vị trí nào cả.",
+  },
 ];
+
+function spreadMeta(value: TarotSpreadName) {
+  return SPREAD_OPTIONS.find((o) => o.value === value) ?? SPREAD_OPTIONS[0];
+}
 
 /**
  * Region matters only for births between 1955 and 1975, when North and South
@@ -105,6 +129,13 @@ export function DecisionCenterForm() {
   // --- Từng hệ: chỉ còn field đặc thù của hệ đó ---
   const [useTarot, setUseTarot] = useState(true);
   const [spread, setSpread] = useState<TarotSpreadName>("PAST_PRESENT_FUTURE");
+  const [freeFormCount, setFreeFormCount] = useState(3);
+  const [pickedPositions, setPickedPositions] = useState<number[]>([]);
+  const [pickCardsMyself, setPickCardsMyself] = useState(false);
+
+  // Số lá lượt bốc này sẽ lật. FREE_FORM lấy từ người dùng, còn lại là thuộc
+  // tính của spread — nên chỉ có một chỗ tính, không nhân đôi giữa form và payload.
+  const tarotCardsNeeded = spreadMeta(spread).cardCount ?? freeFormCount;
   // Lifted out of the Tarot section: the question is about the whole run, and
   // burying it there meant a user who did not enable Tarot was never asked
   // what they wanted to know. UI_UX_VIETNAMESE_SPEC §3 always had it as its
@@ -182,7 +213,23 @@ export function DecisionCenterForm() {
         numerology: hasNumerology ? { fullName: fullName.trim(), birthDate } : null,
         // Still sent on the Tarot payload as well: `TarotRequest.question`
         // predates the request-level context and other callers may rely on it.
-        tarot: useTarot ? { spread, seed: null, question: trimmedQuestion || null } : null,
+        tarot: useTarot
+          ? {
+              spread,
+              seed: null,
+              question: trimmedQuestion || null,
+              // Chỉ FREE_FORM cần số lá; gửi kèm cho spread khác thì backend bỏ
+              // qua, nhưng gửi null cho đúng ý nghĩa.
+              cardCount: spread === "FREE_FORM" ? freeFormCount : null,
+              // Chỉ gửi khi người dùng thực sự đã chọn đủ. Gửi một danh sách
+              // thiếu sẽ bị backend từ chối kèm lý do — đúng, nhưng ở đây ta
+              // biết trước nên không bắt họ đi một vòng lỗi.
+              pickedPositions:
+                pickCardsMyself && pickedPositions.length === tarotCardsNeeded
+                  ? pickedPositions
+                  : null,
+            }
+          : null,
         bazi: hasBazi
           ? {
               birthDate,
@@ -435,11 +482,75 @@ export function DecisionCenterForm() {
               >
                 {SPREAD_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label} ({opt.cardCount} lá)
+                    {opt.label} ({opt.cardCount === null ? "1–10 lá, bạn chọn" : `${opt.cardCount} lá`})
                   </option>
                 ))}
               </select>
             </label>
+
+            {spread === "FREE_FORM" && (
+              <div className="space-y-2 rounded-md border border-slate-200 bg-white p-3">
+                <label className="block text-sm">
+                  <span className="mb-1 block text-slate-600">Số lá muốn bốc</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={TAROT_MAX_CARDS}
+                    value={freeFormCount}
+                    onChange={(e) => {
+                      const next = Number(e.target.value);
+                      const clamped = Math.min(TAROT_MAX_CARDS, Math.max(1, next || 1));
+                      setFreeFormCount(clamped);
+                      // Số lá đổi thì lựa chọn cũ không còn hợp lệ. Cắt bớt thay
+                      // vì để người dùng gửi đi rồi nhận lỗi từ backend.
+                      setPickedPositions((prev) => prev.slice(0, clamped));
+                    }}
+                    className="w-24 rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                  />
+                </label>
+                <p className="text-xs leading-relaxed text-slate-600">
+                  Kiểu này <strong>không gán ý nghĩa cho vị trí nào</strong>. Các kiểu khác đặt tên
+                  cho từng vị trí — ví dụ &ldquo;Quá khứ&rdquo; — tức là nhận rằng hệ thống biết quá
+                  khứ của bạn. Nó không biết. Chọn kiểu tự do nếu bạn không muốn bố cục nói thay mình.
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2 rounded-md border border-slate-200 bg-white p-3">
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={pickCardsMyself}
+                  onChange={(e) => {
+                    setPickCardsMyself(e.target.checked);
+                    if (!e.target.checked) setPickedPositions([]);
+                  }}
+                  className="mt-0.5"
+                />
+                <span className="text-slate-700">
+                  Tôi tự chọn lá
+                  <span className="ml-1 text-slate-500">
+                    (mặc định: hệ thống lấy từ trên bộ đã xào xuống)
+                  </span>
+                </span>
+              </label>
+
+              {pickCardsMyself && (
+                <TarotDeckPicker
+                  cardsNeeded={tarotCardsNeeded}
+                  picked={pickedPositions}
+                  onChange={setPickedPositions}
+                />
+              )}
+
+              {pickCardsMyself && pickedPositions.length !== tarotCardsNeeded && (
+                <p className="text-xs text-amber-700">
+                  Còn thiếu {tarotCardsNeeded - pickedPositions.length} lá. Nếu gửi bây giờ, hệ thống
+                  sẽ lấy từ trên bộ xuống thay vì dùng lựa chọn của bạn.
+                </p>
+              )}
+            </div>
+
             <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
               Tarot là hệ duy nhất hiện có bản diễn giải tiếng Việt riêng cho từng chiều (sự
               nghiệp, tài chính, quan hệ, quyết định) — nên nó là hệ đóng góp nhiều nhất vào
@@ -486,10 +597,35 @@ export function DecisionCenterForm() {
         </legend>
         {useFengShui && (
           <div className="space-y-3">
-            <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              Dùng ngày sinh, giới tính và vùng sinh ở mục Thông tin cá nhân để tính cung phi.
-              Nhập thêm <span className="font-medium">hướng nhà/phòng</span> dưới đây thì hệ
-              thống mới đánh giá được hướng đó và góp tín hiệu vào kết luận tổng hợp.
+            {/*
+              Câu này trước đây nói đúng nhưng quá nhẹ, và chủ dự án đã bỏ qua ô
+              hướng nhà rồi kết luận Phong Thủy "không có luận giải". Engine
+              KHÔNG thiếu luận giải — nó cố ý im lặng khi chưa có hướng, vì số
+              Cung Phi một mình là một hồ sơ chứ không phải một phán định. Cái
+              thiếu là nói ra hệ quả, nên hệ quả nay được nói bằng màu và bằng chữ.
+            */}
+            <p
+              className={
+                "rounded-md px-3 py-2 text-xs " +
+                (fsFacing === ""
+                  ? "border border-amber-300 bg-amber-50 text-amber-900"
+                  : "bg-slate-50 text-slate-600")
+              }
+            >
+              {fsFacing === "" ? (
+                <>
+                  <span className="font-medium">Chưa chọn hướng nhà.</span> Phong Thủy sẽ chỉ trả
+                  về <span className="font-medium">Cung Phi</span> của bạn và{" "}
+                  <span className="font-medium">không đưa ra lời luận giải nào</span> — vì một số
+                  Cung Phi tự nó chưa phải một đánh giá tốt/xấu, phải có hướng để so mới đánh giá
+                  được. Chọn hướng ở ô ngay dưới nếu muốn có phần luận giải.
+                </>
+              ) : (
+                <>
+                  Dùng ngày sinh, giới tính và vùng sinh ở mục Thông tin cá nhân để tính Cung Phi,
+                  rồi đối chiếu với hướng bạn chọn để đánh giá và góp tín hiệu vào kết luận tổng hợp.
+                </>
+              )}
             </p>
             <label className="block text-sm">
               <span className="mb-1 block text-slate-600">Hướng nhà / phòng (tùy chọn)</span>

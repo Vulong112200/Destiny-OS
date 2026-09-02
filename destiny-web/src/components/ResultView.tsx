@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
-import { asSupportedScenario } from "@/lib/scenarioMeta";
+import { asSupportedScenario, SCENARIO_META } from "@/lib/scenarioMeta";
 import { AstrologyChartCard } from "./AstrologyChartCard";
 import { BaziChartCard } from "./BaziChartCard";
 import { BatTrachCard } from "./BatTrachCard";
@@ -59,6 +59,31 @@ export function ResultView({
   return (
     <div className="space-y-8">
       <ScenarioAnswer result={result} scenario={scenario} />
+
+      {/*
+        Đặt TRƯỚC phần diễn giải, không phải cuối trang. Nếu một hệ người dùng
+        chọn đã bị bỏ thì đó là điều đầu tiên họ cần biết — nếu không, họ đọc cả
+        trang mà tưởng đây là toàn bộ câu trả lời. Đây chính là ca chủ dự án gặp:
+        chọn Tarot cho "Mua sắm", nhận về chiêm tinh và phong thủy, không dòng nào
+        nói lượt bốc Tarot đã bị bỏ.
+      */}
+      {result.enginesOutsideScenario?.length > 0 && (
+        <section className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <h2 className="mb-1 text-sm font-semibold text-amber-900">
+            Có hệ bạn đã nhập nhưng kịch bản này không dùng
+          </h2>
+          <p className="text-sm text-amber-900">
+            {result.enginesOutsideScenario.map((id) => engineName(id, labels)).join(", ")} không
+            nằm trong kịch bản{" "}
+            <span className="font-medium">{scenario ? SCENARIO_META[scenario].labelVi : result.scenarioId}</span>{" "}
+            nên đã không được chạy. Dữ liệu bạn nhập cho (những) hệ đó không bị dùng vào đâu cả.
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            Muốn dùng chúng thì chọn một kịch bản có nêu tên hệ đó — hoặc{" "}
+            <span className="font-medium">Quyết định chung</span>, kịch bản dùng nhiều hệ nhất.
+          </p>
+        </section>
+      )}
 
       {narrativeSlot}
 

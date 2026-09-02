@@ -125,6 +125,13 @@ export interface ScenarioRunResponse {
   dimensions?: LabeledValue[] | null;
   engines: EngineOutcomeDto[];
   unavailableEngines: string[];
+  /**
+   * Hệ mà người dùng ĐÃ nhập dữ liệu nhưng kịch bản đang chọn không dùng, nên
+   * không chạy. Khác `unavailableEngines` (kịch bản muốn nhưng request không có
+   * dữ liệu). Có từ 2026-09-01: trước đó phần input bị bỏ không xuất hiện ở đâu
+   * cả, nên người chọn Tarot cho "Mua sắm" mất lượt bốc mà không được báo.
+   */
+  enginesOutsideScenario: string[];
   evidence: EvidenceDto[];
   signals: SignalDto[];
   fusion: FusionResultDto | null;
@@ -224,12 +231,38 @@ export interface NumerologyNumberFact {
   meaning?: NumerologyMeaningFact;
 }
 
-export type TarotSpreadName = "PAST_PRESENT_FUTURE" | "CHOICE_A_B" | "SITUATION_CHALLENGE_ADVICE";
+export type TarotSpreadName =
+  | "PAST_PRESENT_FUTURE"
+  | "CHOICE_A_B"
+  | "SITUATION_CHALLENGE_ADVICE"
+  | "HORSESHOE_FIVE"
+  | "CELTIC_CROSS"
+  | "FREE_FORM";
+
+/** Số lá tối đa một lượt bốc — bằng `TarotSpread.CELTIC_CROSS`, spread lớn nhất. */
+export const TAROT_MAX_CARDS = 10;
+
+/** Bộ bài đầy đủ. `pickedPositions` là các ô trong bộ này. */
+export const TAROT_DECK_SIZE = 78;
 
 export interface TarotRequestInput {
   spread: TarotSpreadName;
   seed: number | null;
   question: string | null;
+  /**
+   * Bắt buộc với `FREE_FORM` (1–10), bị bỏ qua với mọi spread khác — số lá của
+   * chúng là thuộc tính của spread, không phải lựa chọn của người gọi.
+   */
+  cardCount?: number | null;
+  /**
+   * Các ô 1-based trong bộ 78 lá **đã xào**, không trùng nhau, đúng bằng số lá
+   * spread bốc. Bỏ trống = hệ thống lấy từ trên xuống.
+   *
+   * Bộ vẫn được xào từ seed nên người chọn **không biết ô đó là lá gì** — mức
+   * ngẫu nhiên y như cũ; cái khác là ai đã chọn. Đây không phải cách gọi tên
+   * một lá: chọn ô 47 không nói gì về ô 47 chứa lá gì.
+   */
+  pickedPositions?: number[] | null;
 }
 
 export interface BaziRequestInput {
