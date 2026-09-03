@@ -1,3 +1,7 @@
+"use client";
+
+import { m, useReducedMotion } from "framer-motion";
+
 const BAR_WIDTH = 96;
 const BAR_HEIGHT = 10;
 const GAP = 10;
@@ -22,11 +26,16 @@ function isMoving(value: string): boolean {
  * `ICHING_DRAWN_LINES.lines` (`IChingChartCard.tsx`'s pre-existing
  * `flex-col-reverse` rendering makes the same assumption).
  *
- * Purely a drawing of the cast hexagram — no line/hexagram meaning text
- * here or anywhere it is used; that stays R12-blocked (CLAUDE.md Rule C).
+ * Chỉ vẽ quẻ đã gieo — bản thân component này không mang lời quẻ/lời hào.
+ * Từ R24/R25 (2026-08-31), lời quẻ/lời hào đã có nội dung thật và được hiển
+ * thị ở `IChingChartCard.tsx`, ngay dưới hình vẽ này, không phải trong SVG.
+ * Từng hào hiện lần lượt từ hào 1 (dưới) lên hào 6 (trên) — đúng thứ tự gieo
+ * quẻ cổ truyền — thay vì hiện cùng lúc; tắt hiệu ứng chuyển động thì hiện
+ * thẳng tại chỗ, không mất gì.
  */
 export function HexagramSvg({ lines, className }: { lines: string[]; className?: string }) {
   const height = lines.length * ROW_HEIGHT - GAP;
+  const reduce = useReducedMotion();
 
   return (
     <svg
@@ -46,7 +55,12 @@ export function HexagramSvg({ lines, className }: { lines: string[]; className?:
         const moving = isMoving(value);
         const fill = moving ? "#b45309" : "#1e293b"; // amber-700 : slate-800
         return (
-          <g key={i}>
+          <m.g
+            key={i}
+            initial={reduce ? false : { opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={reduce ? { duration: 0 } : { delay: i * 0.12, duration: 0.35, ease: "easeOut" }}
+          >
             {yang ? (
               <rect x={0} y={y} width={BAR_WIDTH} height={BAR_HEIGHT} rx={2} fill={fill} />
             ) : (
@@ -63,9 +77,16 @@ export function HexagramSvg({ lines, className }: { lines: string[]; className?:
               </>
             )}
             {moving && (
-              <circle cx={BAR_WIDTH / 2} cy={y + BAR_HEIGHT / 2} r={2.5} fill="#fef3c7" />
+              <m.circle
+                cx={BAR_WIDTH / 2}
+                cy={y + BAR_HEIGHT / 2}
+                r={2.5}
+                fill="#fef3c7"
+                animate={reduce ? undefined : { opacity: [1, 0.4, 1] }}
+                transition={reduce ? undefined : { delay: i * 0.12 + 0.4, duration: 1.6, repeat: Infinity }}
+              />
             )}
-          </g>
+          </m.g>
         );
       })}
     </svg>
