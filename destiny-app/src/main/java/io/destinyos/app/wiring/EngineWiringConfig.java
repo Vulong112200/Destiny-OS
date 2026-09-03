@@ -10,11 +10,11 @@ import io.destinyos.engines.numerology.NumerologyEngine;
 import io.destinyos.engines.tarot.TarotEngine;
 import io.destinyos.execution.EngineExecutor;
 import io.destinyos.execution.EngineMetrics;
-import io.destinyos.execution.ExecutionPolicy;
 import io.destinyos.fusion.FusionEngine;
 import io.destinyos.scenario.ScenarioEngine;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Configuration;
  * only ever sees the SPI types this class hands out as beans.
  */
 @Configuration
+@EnableConfigurationProperties(ExecutionProperties.class)
 public class EngineWiringConfig {
 
     @Bean
@@ -97,8 +98,9 @@ public class EngineWiringConfig {
      * production.
      */
     @Bean
-    public EngineExecutor engineExecutor(EngineMetrics engineMetrics) {
-        return new EngineExecutor(ExecutionPolicy.defaults(), engineMetrics);
+    public EngineExecutor engineExecutor(EngineMetrics engineMetrics,
+                                         ExecutionProperties executionProperties) {
+        return new EngineExecutor(executionProperties.toPolicy(), engineMetrics);
     }
 
     @Bean

@@ -287,7 +287,63 @@ public final class FengShuiKuaEngine implements MetaphysicalEngine<FengShuiKuaIn
             evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
                     "FENGSHUI_BAT_TRACH_DIRECTIONS", RULE_VERSION, Dimension.HOME,
                     directionsFact, "bat-bien-du-nien-derivation", groupId, null));
+
+            // The authored meaning of each relation, so the reader is told what
+            // Sinh Khí actually is rather than being shown a coloured badge and
+            // left to search the web for it. Same route the Tarot card meanings
+            // already take: authored content, versioned, carried on evidence -
+            // never generated, and never through the AI narrative stage.
+            //
+            // Gated on `agree` along with the table above, and that matters:
+            // publishing the wording for relations the engine is deliberately
+            // withholding would leak the Lap Xuan answer's interpretation while
+            // pretending to withhold the answer.
+            Map<String, Object> relationMeanings = new LinkedHashMap<>();
+            profile.directions().values().stream().distinct().forEach(relation -> {
+                BatTrachRelationMeanings.Meaning meaning = BatTrachRelationMeanings.of(relation);
+                if (meaning == null) {
+                    return;
+                }
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("natureVi", meaning.natureVi());
+                entry.put("tendencyVi", meaning.tendencyVi());
+                entry.put("domainsVi", meaning.domainsVi());
+                relationMeanings.put(relation.name(), entry);
+            });
+            Map<String, Object> meaningsFact = new LinkedHashMap<>();
+            meaningsFact.put("relationMeanings", relationMeanings);
+            meaningsFact.put("contentVersion", BatTrachRelationMeanings.CONTENT_VERSION);
+            meaningsFact.put("sourceNoteVi", BatTrachRelationMeanings.SOURCE_NOTE_VI);
+            evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
+                    "FENGSHUI_RELATION_MEANINGS", RULE_VERSION, Dimension.HOME,
+                    meaningsFact, "bat-trach-relation-meanings", groupId, null));
         }
+
+        // The applied half of Bát Trạch - which direction to sleep facing, to
+        // put a desk in, to point a front door - is not implemented and has no
+        // verified source in this repository. Master Spec §20 files it under
+        // "Advanced" and, until 2026-09-03, assigned it no research id at all,
+        // so it was invisible in every status table this project keeps: this
+        // was the only chart engine with no blocked section, which read as
+        // "nothing is missing here". Reporting it is ADR D7 - a gap is
+        // displayed with its reason, never omitted.
+        Map<String, Object> appliedFact = new LinkedHashMap<>();
+        appliedFact.put("sectionId", "BAT_TRACH_APPLICATION");
+        appliedFact.put("displayNameVi",
+                "Ứng dụng theo phòng và vật dụng (hướng ngủ, hướng bàn làm việc, hướng cửa chính)");
+        appliedFact.put("researchId", "R26");
+        appliedFact.put("reasonVi",
+                "Chưa có nguồn Bát Trạch nào được xác minh cho việc gán từng du niên vào công năng "
+                        + "cụ thể của phòng hay vật dụng. Riêng việc phân biệt tọa và hướng đã đủ "
+                        + "để một bảng nghe hợp lý sai một nửa số dòng, nên phần này bỏ trống có "
+                        + "chủ đích thay vì đoán.");
+        appliedFact.put("knownVariants", List.of(
+                "Quy ước tọa (hướng lưng tựa) và quy ước hướng (hướng mặt nhìn) cho ra kết quả ngược nhau",
+                "Có nguồn gán quy tắc cho vật dụng, có nguồn gán cho người ngồi hoặc nằm",
+                "Chưa thống nhất lấy cung phi của ai làm chuẩn cho một không gian dùng chung"));
+        evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
+                "FENGSHUI_BLOCKED_BAT_TRACH_APPLICATION", RULE_VERSION, Dimension.HOME,
+                appliedFact, "research-blocker", groupId, null));
 
         if (profile.facingRelation() != null) {
             Map<String, Object> facingFact = new LinkedHashMap<>();

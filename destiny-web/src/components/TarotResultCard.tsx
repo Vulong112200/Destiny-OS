@@ -4,7 +4,9 @@ import { useState } from "react";
 import type { EvidenceDto } from "@/lib/types";
 import { tarotCardNameVi, tarotPositionLabelVi } from "@/lib/tarotCards";
 import { asSupportedScenario, tarotMeaningKeyFor } from "@/lib/scenarioMeta";
-import { TarotCard } from "./TarotCard";
+import { TarotSpreadStage } from "./tarot/TarotSpreadStage";
+import type { StageDraw } from "./tarot/TarotSpreadStage";
+import { inferSpread } from "@/lib/tarotLayout";
 
 interface TarotMeaning {
   uprightKeywords?: string[];
@@ -71,6 +73,7 @@ export function TarotResultCard({
 }) {
   const draws = evidence.filter((e) => e.engine === "TAROT" && e.ruleId === "TAROT_SEEDED_DRAW");
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const [revealAllToken, setRevealAllToken] = useState(0);
 
   if (draws.length === 0) {
     return null;
@@ -80,11 +83,38 @@ export function TarotResultCard({
     setRevealed((prev) => new Set(prev).add(evidenceId));
   }
 
+  // Tăng một token thay vì lật sạch ngay: sân khấu dùng nó để chạy chuỗi lật
+  // có độ trễ, nên mười lá của Thập tự Celtic mở ra lần lượt chứ không cùng
+  // một khung hình.
   function revealAll() {
-    setRevealed(new Set(draws.map((d) => d.evidenceId)));
+    setRevealAllToken((n) => n + 1);
   }
 
   const allRevealed = revealed.size >= draws.length;
+
+  const stageDraws: (StageDraw & { rawPosition: string })[] = draws.map((ev) => {
+    const fact = ev.fact as {
+      position?: string;
+      positionHasMeaning?: boolean;
+      deckSlot?: number;
+      selectionMode?: string;
+      cardId?: string;
+      cardName?: string;
+      orientation?: string;
+    };
+    const rawPosition = String(fact.position ?? "");
+    return {
+      evidenceId: ev.evidenceId,
+      cardId: String(fact.cardId ?? ""),
+      cardName: String(fact.cardName ?? ""),
+      orientation: String(fact.orientation ?? "UPRIGHT"),
+      positionLabel: rawPosition ? tarotPositionLabelVi(rawPosition) : undefined,
+      positionHasMeaning: fact.positionHasMeaning !== false,
+      deckSlot: typeof fact.deckSlot === "number" ? fact.deckSlot : undefined,
+      selectionMode: fact.selectionMode,
+      rawPosition,
+    };
+  });
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -105,29 +135,13 @@ export function TarotResultCard({
         lá (hoặc &quot;Lật tất cả&quot;) để xem — đây chỉ là diễn lại phần rút bài cho bạn thấy,
         không phải rút lại.
       </p>
-      <div className="flex flex-wrap justify-center gap-6">
-        {draws.map((ev) => {
-          const fact = ev.fact as {
-            position?: string;
-            cardId?: string;
-            cardName?: string;
-            orientation?: string;
-            meaning?: TarotMeaning;
-          };
-          const isRevealed = revealed.has(ev.evidenceId);
-          return (
-            <TarotCard
-              key={ev.evidenceId}
-              cardId={String(fact.cardId ?? "")}
-              cardName={String(fact.cardName ?? "")}
-              orientation={String(fact.orientation ?? "UPRIGHT")}
-              positionLabel={fact.position ? tarotPositionLabelVi(fact.position) : undefined}
-              revealed={isRevealed}
-              onReveal={() => reveal(ev.evidenceId)}
-            />
-          );
-        })}
-      </div>
+      <TarotSpreadStage
+        spread={inferSpread(stageDraws.map((d) => d.rawPosition)) ?? "FREE_FORM"}
+        draws={stageDraws}
+        revealed={revealed}
+        onReveal={reveal}
+        revealAllToken={revealAllToken}
+      />
 
       {allRevealed && (
         <div className="mt-6 space-y-4 border-t border-slate-100 pt-4">

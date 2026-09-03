@@ -1,4 +1,5 @@
 import type { EvidenceDto, LabelRegistries } from "@/lib/types";
+import { BlockedSectionList } from "./BlockedSectionList";
 
 /**
  * Renders the Western astrology chart (Sun, Midheaven, Ascendant, Whole Sign
@@ -15,8 +16,8 @@ import type { EvidenceDto, LabelRegistries } from "@/lib/types";
 const POINT_ORDER = ["SUN", "MIDHEAVEN", "ASCENDANT"] as const;
 const POINT_LABELS: Record<(typeof POINT_ORDER)[number], string> = {
   SUN: "Mặt Trời",
-  MIDHEAVEN: "Thiên Đỉnh (MC)",
-  ASCENDANT: "Cung Mọc (Ascendant)",
+  MIDHEAVEN: "Thiên Đỉnh",
+  ASCENDANT: "Cung Mọc",
 };
 
 const HOUSE_ORDER = Array.from({ length: 12 }, (_, i) => `HOUSE_${i + 1}`);
@@ -30,9 +31,6 @@ function factOf(evidence: EvidenceDto[], ruleId: string): Record<string, unknown
   return evidence.find((e) => e.ruleId === ruleId)?.fact ?? null;
 }
 
-function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
-}
 
 function degreesText(fact: Record<string, unknown>): string {
   const value = Number(fact.degreesIntoSign ?? NaN);
@@ -58,6 +56,7 @@ export function AstrologyChartCard({
 
   const houses = factOf(astroEvidence, "ASTROLOGY_WHOLE_SIGN_HOUSES");
   const frame = factOf(astroEvidence, "ASTROLOGY_FRAME");
+  const houseThemes = factOf(astroEvidence, "ASTROLOGY_HOUSE_THEMES");
   const blocked = astroEvidence.filter((e) => e.ruleId.startsWith("ASTROLOGY_BLOCKED_"));
 
   return (
@@ -117,7 +116,18 @@ export function AstrologyChartCard({
             ))}
           </tbody>
         </table>
+        {/*
+          Nêu một lần ở đây thay vì gắn "(MC)" và "(Ascendant)" vào từng nhãn.
+          Người đọc tài liệu chiêm tinh nước ngoài cần hai ký hiệu này, nhưng
+          chúng không phải là tên của điểm — chúng là chú thích.
+        */}
+        <p className="mt-2 text-[11px] text-slate-400">
+          Ký hiệu thường gặp trong tài liệu nước ngoài: Thiên Đỉnh là MC (Midheaven), Cung Mọc là
+          AC (Ascendant).
+        </p>
       </div>
+
+      <PointMeanings points={points} />
 
       {houses && (
         <div>
@@ -139,41 +149,109 @@ export function AstrologyChartCard({
         </div>
       )}
 
-      {blocked.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">
-            Phần luận giải chưa được cung cấp ({blocked.length})
-          </h3>
-          <p className="mb-2 text-xs text-slate-500">
-            Những phần dưới đây bị bỏ trống có chủ đích, không phải do lỗi hay thiếu dữ liệu của
-            bạn.
-          </p>
-          <ul className="space-y-2">
-            {blocked.map((item) => (
-              <li key={item.evidenceId} className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm font-medium text-amber-900">
-                    {String(item.fact.displayNameVi ?? "")}
-                  </span>
-                  <span
-                    title={`Mục nghiên cứu ${String(item.fact.researchId ?? "")}`}
-                    className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900"
-                  >
-                    Cần xác minh thuật toán · {String(item.fact.researchId ?? "")}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-amber-900">{String(item.fact.reasonVi ?? "")}</p>
-                {asStringArray(item.fact.knownVariants).length > 0 && (
-                  <p className="mt-1 text-xs text-amber-800">
-                    Các cách làm khác nhau đang tồn tại:{" "}
-                    {asStringArray(item.fact.knownVariants).join(" · ")}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {houseThemes && <HouseThemes fact={houseThemes} labels={labels} houses={houses} />}
+
+      <BlockedSectionList items={blocked} />
     </section>
+  );
+}
+
+/**
+ * Từ khóa của cung, và ý nghĩa của chính điểm đó.
+ *
+ * <p>Nội dung soạn sẵn ở `AstrologyMeanings` phía backend, đi ra qua evidence.
+ * Trước đây thẻ này chỉ có tọa độ: Mặt Trời ở Kim Ngưu 23,94 độ, nhà 12 — đúng
+ * và không nói gì cả.
+ *
+ * <p>Thiên Đỉnh có từ khóa cung nhưng **không** có đoạn nói về chính nó, và
+ * chỗ đó ghi rõ là chưa soạn chứ không bịa một câu cho đủ hình thức.
+ */
+function PointMeanings({
+  points,
+}: {
+  points: { name: string; fact: Record<string, unknown> | null }[];
+}) {
+  const withMeaning = points.filter((p) => p.fact !== null);
+  if (withMeaning.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-slate-900">Ba điểm này nói về điều gì</h3>
+      <ul className="mt-2 space-y-2">
+        {withMeaning.map(({ name, fact }) => {
+          const keywords = Array.isArray(fact!.signKeywordsVi)
+            ? (fact!.signKeywordsVi as unknown[]).filter((k): k is string => typeof k === "string")
+            : [];
+          const pointMeaning =
+            typeof fact!.pointMeaningVi === "string" ? fact!.pointMeaningVi : null;
+          return (
+            <li key={name} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-medium text-slate-900">{POINT_LABELS[name as (typeof POINT_ORDER)[number]] ?? name}</p>
+              {pointMeaning ? (
+                <p className="mt-1 text-sm leading-relaxed text-slate-700">{pointMeaning}</p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">
+                  Chưa có đoạn diễn giải riêng cho điểm này — phần nội dung đã soạn và qua rà soát
+                  chỉ bao gồm Mặt Trời và Cung Mọc. Bỏ trống có chủ đích, không phải lỗi.
+                </p>
+              )}
+              {keywords.length > 0 && (
+                <p className="mt-1.5 text-xs text-slate-600">
+                  Từ khóa của cung: <span className="font-medium">{keywords.join(" · ")}</span>
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** Chủ đề của mười hai Nhà, kèm cung tương ứng trong lá số này. */
+function HouseThemes({
+  fact,
+  labels,
+  houses,
+}: {
+  fact: Record<string, unknown>;
+  labels: LabelRegistries;
+  houses: Record<string, unknown> | null;
+}) {
+  const themes = fact.houseThemesVi;
+  if (typeof themes !== "object" || themes === null) return null;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-slate-900">Mười hai Nhà nói về điều gì</h3>
+      {typeof fact.houseSystemNoteVi === "string" && (
+        <p className="mb-2 text-xs text-slate-500">{fact.houseSystemNoteVi}</p>
+      )}
+      <ul className="grid gap-1.5 sm:grid-cols-2">
+        {HOUSE_ORDER.map((house) => {
+          const theme = (themes as Record<string, unknown>)[house];
+          if (typeof theme !== "string") return null;
+          const sign = houses?.[house];
+          return (
+            <li key={house} className="rounded-md border border-slate-200 bg-white p-2.5">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-sm font-medium text-slate-900">
+                  {label(labels, "AstrologicalHouse", house)}
+                </span>
+                {typeof sign === "string" && (
+                  <span className="text-xs text-slate-500">
+                    {label(labels, "ZodiacSign", sign)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-700">{theme}</p>
+            </li>
+          );
+        })}
+      </ul>
+      {typeof fact.sourceNoteVi === "string" && (
+        <p className="mt-2 text-[11px] text-slate-400">{fact.sourceNoteVi}</p>
+      )}
+    </div>
   );
 }

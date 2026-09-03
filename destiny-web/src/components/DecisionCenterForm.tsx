@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ApiError, runScenario } from "@/lib/api";
+import { runScenario } from "@/lib/api";
+import { describeApiError } from "@/lib/labels";
+import { UNBUILT_SYSTEMS } from "@/lib/systemInventory";
+import { pushLog } from "@/lib/logBuffer";
 import { findVnProvince, VN_PROVINCES } from "@/lib/vnProvinces";
 import { SCENARIO_META } from "@/lib/scenarioMeta";
 import { ScenarioPicker } from "./ScenarioPicker";
-import { TarotDeckPicker } from "./TarotDeckPicker";
+import { TarotRitual } from "./tarot/TarotRitual";
 // Giá trị, không phải kiểu — nên tách khỏi khối `import type` bên dưới.
 import { TAROT_MAX_CARDS } from "@/lib/types";
 import type {
@@ -152,7 +156,15 @@ export function DecisionCenterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasNumerology = fullName.trim() !== "" && birthDate !== "";
+  /**
+   * Thần số học từng là hệ duy nhất **không có ô chọn**: nó tự bật khi người
+   * dùng nhập đủ họ tên và ngày sinh. Đúng về hành vi, nhưng nó khiến mục "Hệ
+   * thống áp dụng" chỉ đếm được 5 ô trong khi backend có 6 engine — người dùng
+   * không có cách nào biết hệ thứ sáu tồn tại, chứ đừng nói tắt nó đi.
+   */
+  const [useNumerology, setUseNumerology] = useState(true);
+  const numerologyDataReady = fullName.trim() !== "" && birthDate !== "";
+  const hasNumerology = useNumerology && numerologyDataReady;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -195,7 +207,7 @@ export function DecisionCenterForm() {
     const hasIChing = useIChing;
     if (!hasNumerology && !useTarot && !hasBazi && !hasFengShui && !hasAstrology && !hasIChing) {
       setError(
-        "Cần ít nhất một hệ thống: nhập họ tên + ngày sinh (có Thần số học), bật rút bài Tarot, bật Bát Tự, bật Bát Trạch, bật Chiêm tinh phương Tây, hoặc bật Kinh Dịch.",
+        "Cần bật ít nhất một hệ thống ở mục 4, và điền đủ dữ liệu hệ đó cần.",
       );
       return;
     }
@@ -277,7 +289,36 @@ export function DecisionCenterForm() {
       });
       router.push(`/ket-qua/${result.calculationId}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Không thể kết nối tới hệ thống tính toán.");
+      // Trước đây chỗ này là `err instanceof ApiError ? err.message : "..."`,
+      // vứt sạch cả mã HTTP lẫn mã lỗi. Nên một lần hết hạn chờ hiện ra đúng
+      // một câu, không có gì để lần ra, và người dùng không có cách nào báo
+      // lại cho ai chuyện gì đã xảy ra.
+      const { message, code, status } = describeApiError(err);
+      pushLog({
+        level: "error",
+        origin: "client",
+        kind: "action",
+        message,
+        code: code ?? undefined,
+        status: status ?? undefined,
+        detail: {
+          scenarioType,
+          // Chỉ tên các hệ được bật. Không bao giờ là nội dung người dùng nhập.
+          enginesRequested: [
+            hasNumerology ? "NUMEROLOGY_PYTHAGOREAN" : null,
+            useTarot ? "TAROT" : null,
+            useBazi ? "BAZI" : null,
+            useFengShui ? "FENGSHUI_KUA" : null,
+            useAstrology ? "WESTERN_ASTROLOGY" : null,
+            useIChing ? "ICHING" : null,
+          ].filter(Boolean),
+        },
+      });
+      setError(
+        [message, code ? `mã lỗi: ${code}` : null, status ? `HTTP ${status}` : null]
+          .filter(Boolean)
+          .join(" · "),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -446,11 +487,6 @@ export function DecisionCenterForm() {
           </label>
         )}
 
-        {hasNumerology && (
-          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-            Đủ họ tên + ngày sinh — Thần số học sẽ tự động chạy cùng lần tính này.
-          </p>
-        )}
       </fieldset>
 
       <div className="space-y-3">
@@ -459,6 +495,31 @@ export function DecisionCenterForm() {
           Bật hệ nào thì hệ đó chạy. Mỗi hệ nói rõ nó đang cung cấp được gì và còn thiếu gì —
           không hệ nào được bật sẵn để trông cho đầy.
         </p>
+
+      <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+        <legend className="px-1 text-sm font-semibold text-slate-900">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useNumerology}
+              onChange={(e) => setUseNumerology(e.target.checked)}
+            />
+            Thần số học — Pythagoras
+          </label>
+        </legend>
+        {useNumerology &&
+          (numerologyDataReady ? (
+            <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+              Đủ họ tên và ngày sinh — hệ này sẽ chạy cùng lần tính này. Nó chỉ cần hai thông tin
+              đó, không cần giờ sinh hay nơi sinh.
+            </p>
+          ) : (
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Cần họ tên và ngày sinh ở mục <span className="font-medium">Thông tin cá nhân</span>{" "}
+              phía trên. Chưa đủ thì hệ này không chạy.
+            </p>
+          ))}
+      </fieldset>
 
       <fieldset className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-sm font-semibold text-slate-900">
@@ -536,7 +597,7 @@ export function DecisionCenterForm() {
               </label>
 
               {pickCardsMyself && (
-                <TarotDeckPicker
+                <TarotRitual
                   cardsNeeded={tarotCardsNeeded}
                   picked={pickedPositions}
                   onChange={setPickedPositions}
@@ -742,13 +803,43 @@ export function DecisionCenterForm() {
         )}
       </fieldset>
 
+      {/*
+        Ba hệ trong đặc tả chưa có engine. Nêu tên và làm mờ thì đọc ra là "đã
+        biết, chưa làm"; giấu đi thì đọc ra là "không tồn tại" — và đó chính là
+        lý do chủ dự án đếm được năm hệ rồi hỏi phần còn lại đâu.
+      */}
+      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+        <h3 className="text-sm font-medium text-slate-700">Có trong đặc tả nhưng chưa chạy được</h3>
+        <ul className="mt-2 space-y-1.5">
+          {UNBUILT_SYSTEMS.map((sys) => (
+            <li key={sys.id} className="text-xs text-slate-500">
+              <span className="font-medium text-slate-600">{sys.nameVi}</span> — {sys.stateVi}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs text-slate-500">
+          Toàn bộ 9 hệ trong đặc tả và trạng thái thật của từng hệ nằm ở{" "}
+          <Link href="/he-thong" className="font-medium underline underline-offset-2">
+            trang Hệ thống
+          </Link>
+          .
+        </p>
+      </div>
+
       </div>
       </div>
 
       {error && (
-        <p role="alert" className="rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {error}
-        </p>
+        <div role="alert" className="rounded-md bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <p>{error}</p>
+          <p className="mt-1 text-xs">
+            Chi tiết đầy đủ nằm ở{" "}
+            <Link href="/nhat-ky" className="font-medium underline underline-offset-2">
+              Nhật ký
+            </Link>{" "}
+            — trang đó có nút sao chép toàn bộ để gửi đi khi cần báo lỗi.
+          </p>
+        </div>
       )}
 
       {/*

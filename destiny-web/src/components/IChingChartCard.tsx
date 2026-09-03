@@ -1,4 +1,5 @@
 import type { EvidenceDto, LabelRegistries } from "@/lib/types";
+import { BlockedSectionList } from "./BlockedSectionList";
 import { changedLineValues, HexagramSvg } from "./HexagramSvg";
 
 /**
@@ -124,35 +125,7 @@ export function IChingChartCard({
         )}
       </p>
 
-      {blocked.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">
-            Phần luận giải chưa được cung cấp ({blocked.length})
-          </h3>
-          <p className="mb-2 text-xs text-slate-500">
-            Những phần dưới đây bị bỏ trống có chủ đích, không phải do lỗi hay thiếu dữ liệu của
-            bạn.
-          </p>
-          <ul className="space-y-2">
-            {blocked.map((item) => (
-              <li key={item.evidenceId} className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm font-medium text-amber-900">
-                    {String(item.fact.displayNameVi ?? "")}
-                  </span>
-                  <span
-                    title={`Mục nghiên cứu ${String(item.fact.researchId ?? "")}`}
-                    className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900"
-                  >
-                    Cần xác minh thuật toán · {String(item.fact.researchId ?? "")}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-amber-900">{String(item.fact.reasonVi ?? "")}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <BlockedSectionList items={blocked} />
     </section>
   );
 }

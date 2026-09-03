@@ -61,15 +61,43 @@ const RANK_NAME_VI: Record<string, string> = {
   "14": "Vua",
 };
 
+/**
+ * Nhãn tiếng Việt cho từng vị trí trong các kiểu trải bài.
+ *
+ * <p>Bảng này từng chỉ có 8 mục — đủ cho ba kiểu trải nhỏ. Móng ngựa 5 lá và
+ * Thập tự Celtic 10 lá thì rơi hết xuống nhánh lùi và in ra tên enum:
+ * `SIGNIFICATOR`, `HOPES_FEARS`, `RECENT_PAST`. Tức là hai kiểu trải công phu
+ * nhất lại là hai kiểu hiển thị tệ nhất. Danh sách vị trí lấy từ
+ * `TarotSpread.java`; sáu kiểu trải ở đó nay đã được phủ đủ.
+ */
 const POSITION_LABEL_VI: Record<string, string> = {
+  // PAST_PRESENT_FUTURE
   PAST: "Quá khứ",
   PRESENT: "Hiện tại",
   FUTURE: "Tương lai",
+  // CHOICE_A_B
   CHOICE_A: "Lựa chọn A",
   CHOICE_B: "Lựa chọn B",
+  // SITUATION_CHALLENGE_ADVICE
   SITUATION: "Tình huống",
   CHALLENGE: "Thử thách",
   ADVICE: "Lời khuyên",
+  // HORSESHOE_FIVE
+  OBSTACLE: "Trở ngại",
+  SUPPORT: "Điểm tựa",
+  ACTION: "Hành động khả thi",
+  TENDENCY: "Xu thế",
+  // CELTIC_CROSS
+  SIGNIFICATOR: "Cốt lõi sự việc",
+  CROSSING: "Yếu tố giao cắt",
+  FOUNDATION: "Nền tảng",
+  RECENT_PAST: "Vừa qua",
+  CROWN: "Điều đang hướng tới",
+  NEAR_FUTURE: "Sắp tới",
+  SELF: "Bản thân bạn",
+  ENVIRONMENT: "Hoàn cảnh xung quanh",
+  HOPES_FEARS: "Hy vọng và lo sợ",
+  OUTCOME: "Kết cục có thể",
 };
 
 /** e.g. "MINOR_WANDS_01_ACE" -> "Ách Gậy". Falls back to the raw id if it doesn't parse. */
@@ -85,8 +113,20 @@ export function tarotCardNameVi(cardId: string, englishName: string): string {
   return englishName;
 }
 
+/**
+ * Nhãn của một vị trí.
+ *
+ * <p>Kiểu trải tự do báo vị trí là `CARD_1 … CARD_n` — một chỉ số, không phải
+ * một ý nghĩa. Đổi nó thành "Lá thứ n" thay vì để `CARD_3`, nhưng người gọi
+ * vẫn phải trình bày nó nhạt đi: cả điểm của kiểu trải tự do là từ chối gán ý
+ * nghĩa cho vị trí (`positionHasMeaning` trong `fact` nói đúng điều đó).
+ */
 export function tarotPositionLabelVi(position: string): string {
-  return POSITION_LABEL_VI[position] ?? position;
+  const known = POSITION_LABEL_VI[position];
+  if (known) return known;
+  const freeForm = /^CARD_(\d+)$/.exec(position);
+  if (freeForm) return `Lá thứ ${freeForm[1]}`;
+  return position;
 }
 
 /** Local public-domain scan for this card, or null if none was bundled. */

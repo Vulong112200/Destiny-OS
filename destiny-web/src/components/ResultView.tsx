@@ -5,6 +5,9 @@ import { AstrologyChartCard } from "./AstrologyChartCard";
 import { BaziChartCard } from "./BaziChartCard";
 import { BatTrachCard } from "./BatTrachCard";
 import { IChingChartCard } from "./IChingChartCard";
+import { engineName } from "@/lib/labels";
+import { EngineName, EngineNameList } from "./EngineName";
+import { RawFactDetails } from "./RawFactDetails";
 import { LabeledBadge } from "./LabeledBadge";
 import { NumerologyResultCard } from "./NumerologyResultCard";
 import { ScenarioAnswer } from "./ScenarioAnswer";
@@ -41,9 +44,6 @@ import { TarotResultCard } from "./TarotResultCard";
  * chính id khi chưa có nhãn là có chủ đích: mất nhãn thì trang phải suy giảm
  * thành tên kỹ thuật, không được biến thành khoảng trắng.
  */
-function engineName(engineId: string, labels?: LabelRegistries): string {
-  return labels?.Engine?.[engineId] ?? engineId;
-}
 
 export function ResultView({
   result,
@@ -58,7 +58,7 @@ export function ResultView({
 
   return (
     <div className="space-y-8">
-      <ScenarioAnswer result={result} scenario={scenario} />
+      <ScenarioAnswer result={result} scenario={scenario} labels={labels} />
 
       {/*
         Đặt TRƯỚC phần diễn giải, không phải cuối trang. Nếu một hệ người dùng
@@ -73,7 +73,7 @@ export function ResultView({
             Có hệ bạn đã nhập nhưng kịch bản này không dùng
           </h2>
           <p className="text-sm text-amber-900">
-            {result.enginesOutsideScenario.map((id) => engineName(id, labels)).join(", ")} không
+            <EngineNameList ids={result.enginesOutsideScenario} labels={labels} /> không
             nằm trong kịch bản{" "}
             <span className="font-medium">{scenario ? SCENARIO_META[scenario].labelVi : result.scenarioId}</span>{" "}
             nên đã không được chạy. Dữ liệu bạn nhập cho (những) hệ đó không bị dùng vào đâu cả.
@@ -161,14 +161,26 @@ export function ResultView({
             {result.evidence.map((ev) => (
               <div key={ev.evidenceId} className="rounded-md bg-slate-50 p-3 text-sm">
                 <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span className="font-medium text-slate-700">{ev.engine}</span>
+                  <EngineName
+                    id={ev.engine}
+                    labels={labels}
+                    className="font-medium text-slate-700"
+                  />
                   {ev.school && <span>· {ev.school}</span>}
                   {ev.dimension && <LabeledBadge value={ev.dimension} />}
-                  <span>· quy tắc {ev.ruleId} (v{ev.ruleVersion})</span>
+                  {/*
+                    `ruleId` là định danh kỹ thuật của một luật tính toán
+                    (~40 mã, không có bảng nhãn tiếng Việt và cũng không nên
+                    có: chúng là thứ để đối chiếu với mã nguồn, không phải để
+                    đọc). Ghi rõ nó là mã kỹ thuật, thay vì in trần ra như thể
+                    một từ tiếng Việt vừa bị quên dịch.
+                  */}
+                  <span className="text-slate-400">
+                    · mã kỹ thuật{" "}
+                    <code className="font-mono">{ev.ruleId}</code> (phiên bản {ev.ruleVersion})
+                  </span>
                 </div>
-                <pre className="max-h-64 overflow-auto text-xs text-slate-600">
-                  {JSON.stringify(ev.fact, null, 2)}
-                </pre>
+                <RawFactDetails fact={ev.fact} labels={labels} />
                 {ev.source && <p className="mt-1 text-xs text-slate-400">Nguồn: {ev.source}</p>}
               </div>
             ))}
@@ -184,7 +196,11 @@ export function ResultView({
               {result.signals.map((sig) => (
                 <div key={sig.signalId} className="rounded-md bg-slate-50 p-3 text-xs">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-medium text-slate-700">{sig.engine}</span>
+                    <EngineName
+                      id={sig.engine}
+                      labels={labels}
+                      className="font-medium text-slate-700"
+                    />
                     <LabeledBadge value={sig.dimension} />
                     <LabeledBadge value={sig.polarity} />
                     <LabeledBadge value={sig.strength} />

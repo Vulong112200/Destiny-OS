@@ -1,8 +1,9 @@
-import type { ScenarioRunResponse, SupportedScenarioType } from "@/lib/types";
+import type { LabelRegistries, ScenarioRunResponse, SupportedScenarioType } from "@/lib/types";
 import { DIMENSION_LABELS, SCENARIO_META, isRelevantDimension } from "@/lib/scenarioMeta";
 import type { DimensionName } from "@/lib/scenarioMeta";
 import { buildReading, groupByDimension, sortByWeight } from "@/lib/reading";
 import type { ReadingItem } from "@/lib/reading";
+import { EngineName, EngineNameList } from "./EngineName";
 import { LabeledBadge } from "./LabeledBadge";
 
 /**
@@ -26,9 +27,16 @@ import { LabeledBadge } from "./LabeledBadge";
 export function ScenarioAnswer({
   result,
   scenario,
+  labels,
 }: {
   result: ScenarioRunResponse;
   scenario: SupportedScenarioType | null;
+  /**
+   * Vietnamese labels from `GET /api/v1/labels`. This component rendered five
+   * separate raw engine-id lists without them - the per-signal "Nguồn:" line
+   * and the Ủng hộ / Thận trọng / Không thuận footer of every dimension card.
+   */
+  labels?: LabelRegistries;
 }) {
   const meta = scenario ? SCENARIO_META[scenario] : null;
   const reading = buildReading(result, scenario);
@@ -94,6 +102,7 @@ export function ScenarioAnswer({
                 cautionEngines={dim.cautionEngines}
                 negativeEngines={dim.negativeEngines}
                 items={sortByWeight(byDimension.get(dim.dimension.technical) ?? [])}
+                labels={labels}
                 emphasis
               />
             ))}
@@ -133,6 +142,7 @@ export function ScenarioAnswer({
                   cautionEngines={dim.cautionEngines}
                   negativeEngines={dim.negativeEngines}
                   items={sortByWeight(byDimension.get(dim.dimension.technical) ?? [])}
+                  labels={labels}
                 />
               ))}
             </div>
@@ -150,6 +160,7 @@ function DimensionAnswerCard({
   cautionEngines,
   negativeEngines,
   items,
+  labels,
   emphasis = false,
 }: {
   label: string;
@@ -158,6 +169,7 @@ function DimensionAnswerCard({
   cautionEngines: string[];
   negativeEngines: string[];
   items: ReadingItem[];
+  labels?: LabelRegistries;
   emphasis?: boolean;
 }) {
   const withText = items.filter((i) => i.text !== null);
@@ -194,7 +206,9 @@ function DimensionAnswerCard({
                   Từ khóa: {item.keywords.join(" · ")}
                 </p>
               )}
-              <p className="mt-1 text-[11px] text-slate-400">Nguồn: {item.engine}</p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Nguồn: <EngineName id={item.engine} labels={labels} />
+              </p>
             </li>
           ))}
         </ul>
@@ -210,7 +224,8 @@ function DimensionAnswerCard({
       {withoutText.length > 0 && (
         <p className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
           Còn {withoutText.length} tín hiệu nữa ở chiều này chưa có phần luận giải bằng lời (
-          {[...new Set(withoutText.map((i) => i.engine))].join(", ")}) — đã tính vào kết luận,
+          <EngineNameList ids={[...new Set(withoutText.map((i) => i.engine))]} labels={labels} />)
+          — đã tính vào kết luận,
           nhưng chưa có nội dung được biên soạn để hiển thị.
         </p>
       )}
@@ -218,15 +233,21 @@ function DimensionAnswerCard({
       <footer className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
         <div>
           <dt className="font-semibold text-slate-700">Ủng hộ</dt>
-          <dd>{supportingEngines.join(", ") || "—"}</dd>
+          <dd>
+            <EngineNameList ids={supportingEngines} labels={labels} />
+          </dd>
         </div>
         <div>
           <dt className="font-semibold text-slate-700">Thận trọng</dt>
-          <dd>{cautionEngines.join(", ") || "—"}</dd>
+          <dd>
+            <EngineNameList ids={cautionEngines} labels={labels} />
+          </dd>
         </div>
         <div>
           <dt className="font-semibold text-slate-700">Không thuận</dt>
-          <dd>{negativeEngines.join(", ") || "—"}</dd>
+          <dd>
+            <EngineNameList ids={negativeEngines} labels={labels} />
+          </dd>
         </div>
       </footer>
     </article>

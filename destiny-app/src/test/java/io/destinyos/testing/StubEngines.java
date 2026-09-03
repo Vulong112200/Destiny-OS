@@ -61,6 +61,26 @@ public final class StubEngines {
         };
     }
 
+    /**
+     * Succeeds, but only after {@code duration} - so a test can distinguish an
+     * engine that is genuinely over budget from one that merely waited its
+     * turn for a concurrency permit.
+     */
+    public static MetaphysicalEngine<String, String> slowSucceeding(String engineId,
+                                                                    java.time.Duration duration) {
+        return new Stub(engineId) {
+            @Override
+            public EngineResult<String> calculate(String input, CalculationContext context) {
+                try {
+                    TimeUnit.NANOSECONDS.sleep(duration.toNanos());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return EngineResult.success("ok:" + input, List.of(), List.of());
+            }
+        };
+    }
+
     /** Throws, to exercise Rule F isolation. */
     public static MetaphysicalEngine<String, String> throwing(String engineId) {
         return new Stub(engineId) {

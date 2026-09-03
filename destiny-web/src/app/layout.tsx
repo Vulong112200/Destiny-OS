@@ -1,18 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Geist_Mono } from "next/font/google";
 import { Disclaimer } from "@/components/Disclaimer";
 import { NavLink } from "@/components/NavLink";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+/**
+ * Be Vietnam Pro, not Geist.
+ *
+ * Geist was loaded with `subsets: ["latin"]`, which does not cover Vietnamese
+ * diacritics - so every ế, ữ and ọ on a Vietnamese-first product fell back to
+ * a system font mid-sentence. (It never actually rendered at all, because
+ * globals.css also set `font-family: Arial` on body and won; fixing only that
+ * would have surfaced the subset problem instead of the Arial one.) Be Vietnam
+ * Pro is drawn for this language and covers it properly.
+ */
+const sans = Be_Vietnam_Pro({
+  variable: "--font-be-vietnam",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
+/** Kept for calculation ids and hashes, which are hex and never Vietnamese. */
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -27,7 +41,9 @@ export const metadata: Metadata = {
 const NAV_ITEMS: { href: string; label: string }[] = [
   { href: "/", label: "Tổng quan" },
   { href: "/trung-tam-quyet-dinh", label: "Trung tâm quyết định" },
+  { href: "/he-thong", label: "Hệ thống" },
   { href: "/lich-su", label: "Lịch sử" },
+  { href: "/nhat-ky", label: "Nhật ký" },
 ];
 
 const COMING_SOON_ITEMS = [
@@ -47,9 +63,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${sans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-slate-50 text-slate-900">
+      <body className="flex min-h-full flex-col bg-slate-50 font-sans text-slate-900">
         {/*
           Sticky, because the result page is long by nature - it carries a
           chart, an evidence trail and a conflict list that a user is meant to

@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
@@ -82,6 +83,10 @@ public final class EngineExecutor {
 
             for (EngineTask<?, ?> task : tasks) {
                 String engineId = task.engineId();
+                // Seeded with the submit time so a task that never gets a
+                // permit still has a deadline; overwritten with the real start
+                // the moment one is acquired.
+                var startedAt = new AtomicLong(System.nanoTime());
                 Callable<EngineResult<?>> callable = () -> {
                     // Measured inside the task, around the acquire only: this is
                     // queueing time, and it is the difference between "the engine
@@ -89,16 +94,17 @@ public final class EngineExecutor {
                     // under load silently includes both.
                     long queuedAt = System.nanoTime();
                     permits.acquire();
+                    long runningAt = System.nanoTime();
+                    startedAt.set(runningAt);
                     record(() -> metrics.recordConcurrencyWait(engineId,
-                            Duration.ofNanos(System.nanoTime() - queuedAt)));
+                            Duration.ofNanos(runningAt - queuedAt)));
                     try {
                         return task.run(context);
                     } finally {
                         permits.release();
                     }
                 };
-                pending.add(new PendingTask(engineId, executor.submit(callable),
-                        System.nanoTime()));
+                pending.add(new PendingTask(engineId, executor.submit(callable), startedAt));
             }
 
             for (PendingTask task : pending) {
@@ -115,13 +121,36 @@ public final class EngineExecutor {
         return new ExecutionOutcome(executions);
     }
 
+    /**
+     * Waits for one task, bounded by its own budget measured from the moment
+     * it started running.
+     *
+     * <p><strong>Why an absolute deadline rather than a relative wait.</strong>
+     * Tasks are submitted all at once and then awaited in order, so a plain
+     * {@code future.get(budget)} restarts the clock for every task: with six
+     * engines on a five-second budget the batch could take thirty seconds
+     * before returning, even though every engine ran concurrently and none was
+     * individually over budget. That is how a request exceeds a caller's
+     * timeout with no engine reporting one - the failure looks like nothing at
+     * all from inside the harness. Anchoring on {@code startedAtNanos} makes
+     * the batch cost roughly one budget, not the sum of them.
+     *
+     * <p>The anchor is the moment a concurrency permit was taken, not the
+     * moment of submission. Those differ only when tasks outnumber
+     * {@code maxConcurrency}, and using submission there would report
+     * {@code ENGINE_TIMEOUT} for an engine that had not yet been allowed to
+     * start - blaming an engine for the harness's queue, and recording that
+     * lie in the metrics.
+     */
     private EngineExecution await(PendingTask pending) {
         Duration budget = policy.timeoutFor(pending.engineId());
-        long startedAt = pending.startedAtNanos();
+        long startedAt = pending.startedAtNanos().get();
+        long remainingNanos = startedAt + budget.toNanos() - System.nanoTime();
 
         try {
-            EngineResult<?> result = pending.future().get(budget.toMillis(), TimeUnit.MILLISECONDS);
-            Duration elapsed = elapsedSince(startedAt);
+            EngineResult<?> result =
+                    pending.future().get(Math.max(0, remainingNanos), TimeUnit.NANOSECONDS);
+            Duration elapsed = elapsedSince(pending.startedAtNanos().get());
 
             // A null return is a defect in that engine. Isolate it here rather
             // than letting a NullPointerException surface somewhere unrelated.
@@ -138,10 +167,19 @@ public final class EngineExecutor {
             return new EngineExecution(pending.engineId(), result, elapsed, false);
 
         } catch (TimeoutException e) {
+            // The task may only have acquired its permit while we were waiting,
+            // in which case the deadline we just used was the queued one and
+            // this engine has not actually had its budget yet. Re-anchor once
+            // and wait again rather than reporting a timeout it did not earn.
+            long anchorNow = pending.startedAtNanos().get();
+            if (anchorNow != startedAt) {
+                return await(pending);
+            }
             // Cancel with interrupt so a cooperative engine can stop working.
             pending.future().cancel(true);
             Duration elapsed = elapsedSince(startedAt);
-            log.warn("Engine {} timed out after {} ms.", pending.engineId(), elapsed.toMillis());
+            log.warn("Engine {} timed out after {} ms (budget {} ms).",
+                    pending.engineId(), elapsed.toMillis(), budget.toMillis());
             return new EngineExecution(pending.engineId(),
                     EngineResult.failedRecoverable(
                             EngineError.timeout(pending.engineId(), budget.toMillis())),
@@ -150,7 +188,7 @@ public final class EngineExecutor {
         } catch (ExecutionException e) {
             // The engine threw. Isolate it - Rule F requires that a fault in
             // one engine leaves the others untouched.
-            Duration elapsed = elapsedSince(startedAt);
+            Duration elapsed = elapsedSince(pending.startedAtNanos().get());
             Throwable cause = e.getCause() == null ? e : e.getCause();
             log.warn("Engine {} threw {}: {}", pending.engineId(),
                     cause.getClass().getSimpleName(), cause.getMessage());
@@ -170,7 +208,7 @@ public final class EngineExecutor {
                             "ENGINE_INTERRUPTED",
                             "Execution was interrupted.",
                             pending.engineId())),
-                    elapsedSince(startedAt), false);
+                    elapsedSince(pending.startedAtNanos().get()), false);
         }
     }
 
@@ -196,6 +234,13 @@ public final class EngineExecutor {
         }
     }
 
+    /**
+     * @param startedAtNanos when this task actually began running, set by the
+     *                       task itself the moment it takes a concurrency
+     *                       permit. Mutable because the deadline in
+     *                       {@link #await} must be measured from that instant
+     *                       rather than from submission - see that method.
+     */
     private record PendingTask(String engineId, Future<EngineResult<?>> future,
-                               long startedAtNanos) { }
+                               AtomicLong startedAtNanos) { }
 }

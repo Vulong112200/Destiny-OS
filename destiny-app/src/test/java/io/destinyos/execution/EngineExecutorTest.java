@@ -191,6 +191,58 @@ class EngineExecutorTest {
     }
 
     @Test
+    @DisplayName("Six hanging engines cost one budget, not six: the batch deadline is wall-clock")
+    void hangingEnginesDoNotAccumulateTheirBudgets() {
+        // The regression test for the defect that produced the user-visible
+        // symptom. Tasks are submitted concurrently but awaited in order, and
+        // await() used to call future.get(budget) - a *relative* wait restarted
+        // for every task. Six engines on a 5s budget could therefore hold the
+        // request open for 30s while each of them individually stayed inside
+        // its budget, so nothing anywhere reported a timeout and the caller
+        // simply gave up first. Anchoring the deadline on when each task
+        // started running makes the batch cost roughly one budget.
+        var started = new CountDownLatch(1);
+        var policy = new ExecutionPolicy(Duration.ofMillis(300), Map.of(), 16);
+
+        var tasks = List.<EngineTask<?, ?>>of(
+                EngineTask.of(StubEngines.hanging("A", started), "in"),
+                EngineTask.of(StubEngines.hanging("B", started), "in"),
+                EngineTask.of(StubEngines.hanging("C", started), "in"),
+                EngineTask.of(StubEngines.hanging("D", started), "in"),
+                EngineTask.of(StubEngines.hanging("E", started), "in"),
+                EngineTask.of(StubEngines.hanging("F", started), "in"));
+
+        long startedAt = System.nanoTime();
+        var outcome = new EngineExecutor(policy).runAll(tasks, context());
+        Duration wallClock = Duration.ofNanos(System.nanoTime() - startedAt);
+
+        assertThat(outcome.timedOut()).hasSize(6);
+        // Six budgets would be 1800ms. Generous headroom for a loaded CI box,
+        // but far below the sum this is guarding against.
+        assertThat(wallClock).isLessThan(Duration.ofMillis(1200));
+    }
+
+    @Test
+    @DisplayName("A queued engine's budget starts when it gets a permit, not when it was submitted")
+    void queuedEngineIsNotChargedForTimeItSpentWaiting() {
+        // With maxConcurrency below the task count, later tasks sit waiting for
+        // a permit. Measuring their deadline from submission would report
+        // ENGINE_TIMEOUT for an engine the harness had not yet allowed to run -
+        // blaming an engine for the queue, and recording that in the metrics.
+        var policy = new ExecutionPolicy(Duration.ofMillis(400), Map.of(), 1);
+
+        var tasks = List.<EngineTask<?, ?>>of(
+                EngineTask.of(StubEngines.slowSucceeding("FIRST", Duration.ofMillis(250)), "in"),
+                EngineTask.of(StubEngines.slowSucceeding("SECOND", Duration.ofMillis(250)), "in"));
+
+        var outcome = new EngineExecutor(policy).runAll(tasks, context());
+
+        assertThat(outcome.forEngine("FIRST").status()).isEqualTo(EngineStatus.SUCCESS);
+        assertThat(outcome.forEngine("SECOND").status()).isEqualTo(EngineStatus.SUCCESS);
+        assertThat(outcome.timedOut()).isEmpty();
+    }
+
+    @Test
     @DisplayName("Per-engine timeout overrides the default")
     void perEngineTimeoutOverride() {
         var started = new CountDownLatch(1);

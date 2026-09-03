@@ -1,8 +1,39 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-be-vietnam);
   --font-mono: var(--font-geist-mono);
+
+  /*
+   * Ngũ Hành. Traditional correspondences, used by the element charts and the
+   * Tứ Trụ pillars so a colour means the same thing everywhere it appears.
+   * Thổ is a clay yellow rather than literal earth-brown, and Kim a warm grey
+   * rather than literal white, because white on a white card is not a colour.
+   */
+  --color-moc: #15803d;
+  --color-moc-soft: #dcfce7;
+  --color-hoa: #b91c1c;
+  --color-hoa-soft: #fee2e2;
+  --color-tho: #a16207;
+  --color-tho-soft: #fef3c7;
+  --color-kim: #57534e;
+  --color-kim-soft: #f5f5f4;
+  --color-thuy: #1d4ed8;
+  --color-thuy-soft: #dbeafe;
+
+  /*
+   * Cát / hung. One definition, shared by the Bát Trạch compass and the Du
+   * Niên table - the two used to carry their own copies of green and red and
+   * could drift apart while both looked fine in isolation.
+   */
+  --color-cat: #047857;
+  --color-cat-soft: #d1fae5;
+  --color-hung: #be123c;
+  --color-hung-soft: #ffe4e6;
+
+  /* Mặt lưng lá bài: gold on navy, defined once. */
+  --color-la-vien: #d4af37;
+  --color-la-nen: #0f172a;
 }
 
 /*
@@ -16,7 +47,25 @@
  * near-black background on a visitor's dark-mode OS while every card
  * stayed light. Removed rather than fixed to stay light-only: fine, since
  * <body> already carries the real colors as Tailwind classes.
+ *
+ * This block also used to set `font-family: Arial, Helvetica, sans-serif`,
+ * which overrode the webfont loaded in layout.tsx - the font was downloaded
+ * on every page view and then never used. The font now comes from the
+ * `font-sans` utility on <body>, which resolves through --font-sans above.
  */
-body {
-  font-family: Arial, Helvetica, sans-serif;
+
+/*
+ * Anyone who has asked their system for less motion gets none. The Tarot
+ * ritual and the result-page reveal are the only heavy animations here, and
+ * both are decoration over information that is fully present without them.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,4 +1,6 @@
-import type { ScenarioRunResponse } from "@/lib/types";
+import type { LabelRegistries, ScenarioRunResponse } from "@/lib/types";
+import { fusionRuleNames } from "@/lib/labels";
+import { EngineName, EngineNameList } from "./EngineName";
 import { LabeledBadge } from "./LabeledBadge";
 import { RetentionNotice } from "./RetentionNotice";
 
@@ -17,10 +19,21 @@ import { RetentionNotice } from "./RetentionNotice";
 export function ResultSidebar({
   result,
   sections,
+  labels,
 }: {
   result: ScenarioRunResponse;
   /** Anchor targets rendered as a jump list; `id` must match a section's DOM id. */
   sections: { id: string; label: string }[];
+  /**
+   * Vietnamese labels from `GET /api/v1/labels`.
+   *
+   * <p>This component did not take them at all, which is why it was the single
+   * worst §9 offender on the page: it rendered every engine id raw, so the
+   * "Hệ thống đã chạy" list read `TAROT`, `NUMEROLOGY_PYTHAGOREAN`,
+   * `FENGSHUI_KUA`. The page already fetched the labels and handed them to
+   * `ResultView`; they simply never reached the sidebar beside it.
+   */
+  labels?: LabelRegistries;
 }) {
   const ranCount = result.engines.length;
 
@@ -60,7 +73,7 @@ export function ResultSidebar({
         <ul className="space-y-1.5">
           {result.engines.map((engine) => (
             <li key={engine.engine} className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-slate-800">{engine.engine}</span>
+              <EngineName id={engine.engine} labels={labels} className="text-slate-800" />
               <LabeledBadge value={engine.status} />
             </li>
           ))}
@@ -68,7 +81,11 @@ export function ResultSidebar({
         {result.unavailableEngines.length > 0 && (
           <p className="mt-3 border-t border-slate-100 pt-2 text-xs text-slate-500">
             Không áp dụng cho lần chạy này:{" "}
-            <span className="text-slate-600">{result.unavailableEngines.join(", ")}</span>
+            <EngineNameList
+              ids={result.unavailableEngines}
+              labels={labels}
+              className="text-slate-600"
+            />
           </p>
         )}
       </section>
@@ -93,7 +110,9 @@ export function ResultSidebar({
           {result.fusion && result.fusion.rulesApplied.length > 0 && (
             <div>
               <dt className="text-slate-500">Quy tắc tổng hợp đã áp dụng</dt>
-              <dd className="mt-0.5 text-slate-700">{result.fusion.rulesApplied.join(", ")}</dd>
+              <dd className="mt-0.5 text-slate-700">
+                {fusionRuleNames(result.fusion.rulesApplied)}
+              </dd>
             </div>
           )}
         </dl>

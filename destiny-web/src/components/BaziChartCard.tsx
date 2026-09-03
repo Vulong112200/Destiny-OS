@@ -1,4 +1,6 @@
 import type { EvidenceDto, LabelRegistries } from "@/lib/types";
+import { BlockedSectionList } from "./BlockedSectionList";
+import { NguHanhWheel } from "./charts/NguHanhWheel";
 
 /**
  * Renders the Bát Tự Tứ Trụ chart as hard data, reconstructed from the
@@ -243,7 +245,30 @@ export function BaziChartCard({
             trường phái không thống nhất đếm cái gì, nên một con số tổng sẽ là chọn giúp bạn một
             trường phái. Đây là số đếm thô, không phải đánh giá cường độ Ngũ Hành (R3).
           </p>
-          <div className="overflow-x-auto">
+          {/*
+            Ba vòng riêng, không phải một. Xem Javadoc của NguHanhWheel: gộp
+            chúng lại là dựng lại bằng hình đúng phép cộng mà dữ liệu vừa từ
+            chối ngay ở đoạn trên.
+          */}
+          <div className="mb-3 flex flex-wrap items-start justify-center gap-2">
+            <NguHanhWheel title="Theo Thiên Can" counts={asCounts(tally.stems)} labels={labels} />
+            <NguHanhWheel title="Theo Địa Chi" counts={asCounts(tally.branches)} labels={labels} />
+            <NguHanhWheel
+              title="Theo Tàng Can"
+              counts={asCounts(tally.hiddenStems)}
+              labels={labels}
+            />
+          </div>
+          <p className="mb-2 text-center text-[11px] text-slate-400">
+            Đơn vị: số lần xuất hiện. Vòng ngoài là quan hệ tương sinh, đường đứt bên trong là
+            tương khắc. Diện tích hình tròn tỉ lệ với số đếm.
+          </p>
+
+          <details className="rounded-md border border-slate-200 bg-slate-50 p-3">
+            <summary className="cursor-pointer text-xs font-medium text-slate-600">
+              Xem dạng bảng
+            </summary>
+            <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[28rem] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
@@ -281,7 +306,8 @@ export function BaziChartCard({
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </details>
         </div>
       )}
 
@@ -425,41 +451,7 @@ export function BaziChartCard({
         </div>
       )}
 
-      {blocked.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">
-            Phần luận giải chưa được cung cấp ({blocked.length})
-          </h3>
-          <p className="mb-2 text-xs text-slate-500">
-            Những phần dưới đây bị bỏ trống có chủ đích, không phải do lỗi hay thiếu dữ liệu của
-            bạn.
-          </p>
-          <ul className="space-y-2">
-            {blocked.map((item) => (
-              <li key={item.evidenceId} className="rounded-md border border-amber-200 bg-amber-50 p-3">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm font-medium text-amber-900">
-                    {String(item.fact.displayNameVi ?? "")}
-                  </span>
-                  <span
-                    title={`Mục nghiên cứu ${String(item.fact.researchId ?? "")}`}
-                    className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-900"
-                  >
-                    Cần xác minh thuật toán · {String(item.fact.researchId ?? "")}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-amber-900">{String(item.fact.reasonVi ?? "")}</p>
-                {asStringArray(item.fact.knownVariants).length > 0 && (
-                  <p className="mt-1 text-xs text-amber-800">
-                    Các cách làm khác nhau đang tồn tại:{" "}
-                    {asStringArray(item.fact.knownVariants).join(" · ")}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <BlockedSectionList items={blocked} />
     </section>
   );
 }

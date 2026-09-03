@@ -210,6 +210,17 @@ public final class WesternAstrologyEngine
                         "houseSystem", "WHOLE_SIGN"));
     }
 
+    /** Authored meaning of a point itself, or {@code null} where none exists. */
+    private static String pointMeaningVi(WesternAstrologyChart chart, ChartPoint point) {
+        if (point == chart.sun()) {
+            return AstrologyMeanings.SUN_MEANING_VI;
+        }
+        if (point == chart.ascendant()) {
+            return AstrologyMeanings.ASCENDANT_MEANING_VI;
+        }
+        return null;
+    }
+
     private static List<Evidence> buildEvidence(WesternAstrologyChart chart) {
         List<Evidence> evidence = new ArrayList<>();
         String groupId = "WESTERN_ASTROLOGY_CHART";
@@ -223,6 +234,25 @@ public final class WesternAstrologyEngine
         evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
                 "ASTROLOGY_WHOLE_SIGN_HOUSES", RULE_VERSION, Dimension.OTHER, housesFact,
                 "whole-sign-derivation", groupId, null));
+
+        // What the twelve houses are about. Authored content (AstrologyMeanings,
+        // from the reviewed draft §B3), carried on evidence the same way the
+        // Tarot card meanings are - never generated, never through the AI stage.
+        // The house system travels with it because §B3's source requires it:
+        // Placidus divides houses differently, so a theme without its system is
+        // a claim about a chart the reader may not have.
+        Map<String, Object> houseThemesFact = new LinkedHashMap<>();
+        Map<String, Object> themes = new LinkedHashMap<>();
+        AstrologyMeanings.allHouseThemes()
+                .forEach((house, theme) -> themes.put(house.name(), theme));
+        houseThemesFact.put("houseThemesVi", themes);
+        houseThemesFact.put("houseSystem", chart.houseSystem());
+        houseThemesFact.put("houseSystemNoteVi", AstrologyMeanings.HOUSE_SYSTEM_NOTE_VI);
+        houseThemesFact.put("sourceNoteVi", AstrologyMeanings.SOURCE_NOTE_VI);
+        houseThemesFact.put("contentVersion", AstrologyMeanings.CONTENT_VERSION);
+        evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL,
+                "ASTROLOGY_HOUSE_THEMES", RULE_VERSION, Dimension.OTHER, houseThemesFact,
+                "astrology-house-themes", groupId, null));
 
         Map<String, Object> anglesFact = new LinkedHashMap<>();
         anglesFact.put("obliquityDegrees", chart.obliquityDegrees());
@@ -254,6 +284,26 @@ public final class WesternAstrologyEngine
         fact.put("eclipticLongitudeDegrees", point.eclipticLongitudeDegrees());
         fact.put("sign", point.sign().name());
         fact.put("degreesIntoSign", point.degreesIntoSign());
+
+        // The authored meaning of the sign this point falls in, plus - for the
+        // Sun and the Ascendant only - what that point itself stands for.
+        //
+        // The Midheaven gets the sign keywords and `pointMeaningAuthored:
+        // false`. The reviewed draft's §B header names the MC, but §B1 and §B2
+        // author text only for the Sun and the Ascendant, and writing an MC
+        // paragraph to fill the shape would be inventing content (Rule C). An
+        // honest absent field beats a plausible sentence nobody reviewed.
+        var signMeaning = AstrologyMeanings.ofSign(point.sign());
+        if (signMeaning != null) {
+            fact.put("signKeywordsVi", signMeaning.keywordsVi());
+        }
+        String pointMeaning = pointMeaningVi(chart, point);
+        fact.put("pointMeaningAuthored", pointMeaning != null);
+        if (pointMeaning != null) {
+            fact.put("pointMeaningVi", pointMeaning);
+        }
+        fact.put("meaningSourceNoteVi", AstrologyMeanings.SOURCE_NOTE_VI);
+        fact.put("meaningContentVersion", AstrologyMeanings.CONTENT_VERSION);
         if (point != chart.ascendant()) {
             // House 1's cusp is the Ascendant itself, so reporting a house
             // for it would be trivially circular; every other point's house

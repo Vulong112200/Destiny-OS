@@ -60,9 +60,15 @@ public class MethodologyRegistrySeeder {
      */
     @Transactional
     public void seed() {
+        // Every already-seeded (methodologyId, version) pair, from one query.
+        // This loop used to call registry.allVersions(id) per entry, so a boot
+        // against a fully seeded database cost one query per registry entry to
+        // discover there was nothing to do.
+        Set<String> alreadySeeded = registry.seededVersionKeys();
+
         for (Entry entry : ENTRIES) {
-            boolean versionAlreadySeeded = registry.allVersions(entry.methodologyId).stream()
-                    .anyMatch(v -> v.version().equals(entry.version));
+            boolean versionAlreadySeeded =
+                    alreadySeeded.contains(entry.methodologyId + "@" + entry.version);
             if (!versionAlreadySeeded) {
                 registry.register(entry.methodologyId, entry.displayNameVi, entry.domain,
                         entry.version, entry.status, entry.school, entry.source, entry.researchIds,

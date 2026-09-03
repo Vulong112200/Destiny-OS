@@ -9,7 +9,35 @@ import type {
   SupportedScenarioType,
 } from "./types";
 
+import { pushLog } from "./logBuffer";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+
+/**
+ * `request()` chạy ở cả hai phía: trình duyệt (form Trung tâm quyết định) và
+ * máy chủ Next (các trang RSC). Ghi rõ phía nào, vì trang nhật ký chỉ thấy
+ * trực tiếp phía trình duyệt.
+ */
+const ON_SERVER = typeof window === "undefined";
+
+/**
+ * Ghi một mục nhật ký, và với phía máy chủ thì in thêm ra stdout của Next.
+ *
+ * <p>Trước đây file này không ghi gì cả và nuốt lỗi ở bốn chỗ, nên một lần
+ * `fetchLabels` hỏng làm cả trang kết quả tụt xuống hiển thị enum thô mà không
+ * để lại dấu vết nào.
+ */
+function log(entry: Parameters<typeof pushLog>[0]) {
+  if (ON_SERVER) {
+    const { level, message, ...rest } = entry;
+    const line = `[destiny-web] ${level}: ${message} ${JSON.stringify(rest)}`;
+    if (level === "error") console.error(line);
+    else if (level === "warn") console.warn(line);
+    else console.log(line);
+    return;
+  }
+  pushLog(entry);
+}
 
 /**
  * Hạn chờ mặc định cho mọi lệnh gọi API — đủ rộng cho một lần chạy kịch bản
@@ -52,6 +80,8 @@ async function request<T>(
   init?: RequestInit,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<T> {
+  const method = init?.method ?? "GET";
+  const startedAt = Date.now();
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
@@ -66,29 +96,107 @@ async function request<T>(
       cache: "no-store",
     });
   } catch (error) {
+    const durationMs = Date.now() - startedAt;
     // Hạn chờ được quy về `504` dạng ApiError chứ không để `TimeoutError` thô
     // rò lên UI: mọi nơi trong web đã biết cách xử lý ApiError, và thông điệp
     // tiếng Việt là thứ người dùng có thể đọc được (CLAUDE.md §9).
     if (error instanceof DOMException && error.name === "TimeoutError") {
-      throw new ApiError(504, {
+      const message = `Hệ thống tính toán không phản hồi trong ${Math.round(timeoutMs / 1000)} giây.`;
+      log({
+        level: "error",
+        origin: ON_SERVER ? "server" : "client",
+        kind: "api",
+        method,
+        url: path,
+        durationMs,
         code: "REQUEST_TIMEOUT",
-        message: `Hệ thống tính toán không phản hồi trong ${Math.round(timeoutMs / 1000)} giây.`,
+        message,
+        detail: { timeoutMs },
       });
+      throw new ApiError(504, { code: "REQUEST_TIMEOUT", message });
     }
+    // `next build` thăm dò mỗi route bằng cách thử render tĩnh, và `cache:
+    // "no-store"` ở trên khiến Next ném DynamicServerError để đánh dấu route
+    // là động. Đó là hoạt động bình thường của khung, không phải sự cố — ghi
+    // nó thành "error" sẽ làm bản build in ra hai dòng đỏ vô hại và dạy người
+    // đọc bỏ qua nhật ký.
+    if (isNextDynamicUsage(error)) {
+      throw error;
+    }
+    log({
+      level: "error",
+      origin: ON_SERVER ? "server" : "client",
+      kind: "error",
+      method,
+      url: path,
+      durationMs,
+      code: error instanceof Error ? error.name : undefined,
+      message:
+        error instanceof Error
+          ? `Lệnh gọi thất bại trước khi có phản hồi: ${error.message}`
+          : "Lệnh gọi thất bại trước khi có phản hồi.",
+    });
     throw error;
   }
+
+  const durationMs = Date.now() - startedAt;
 
   if (!response.ok) {
     let body: ErrorResponse | null = null;
     try {
       body = (await response.json()) as ErrorResponse;
     } catch {
-      // response body wasn't JSON - body stays null, ApiError falls back to a generic message
+      // Thân phản hồi không phải JSON. Trước đây trường hợp này bị nuốt hoàn
+      // toàn và ApiError lùi về một câu chung chung, nên một lỗi hạ tầng (proxy
+      // trả HTML) trông y hệt một lỗi nghiệp vụ.
+      log({
+        level: "warn",
+        origin: ON_SERVER ? "server" : "client",
+        kind: "api",
+        method,
+        url: path,
+        status: response.status,
+        durationMs,
+        message: "Máy chủ trả lỗi nhưng thân phản hồi không phải JSON.",
+      });
     }
+    log({
+      level: "error",
+      origin: ON_SERVER ? "server" : "client",
+      kind: "api",
+      method,
+      url: path,
+      status: response.status,
+      durationMs,
+      code: body?.code,
+      message: body?.message ?? `Yêu cầu tới API thất bại (HTTP ${response.status}).`,
+    });
     throw new ApiError(response.status, body);
   }
 
-  return (await response.json()) as T;
+  const parsed = (await response.json()) as T;
+  log({
+    level: "info",
+    origin: ON_SERVER ? "server" : "client",
+    kind: "api",
+    method,
+    url: path,
+    status: response.status,
+    durationMs,
+    message: "Thành công.",
+    calculationId:
+      typeof parsed === "object" && parsed !== null && "calculationId" in parsed
+        ? String((parsed as { calculationId?: unknown }).calculationId ?? "")
+        : undefined,
+  });
+  return parsed;
+}
+
+/** Next dùng ngoại lệ này làm tín hiệu nội bộ, không phải để báo hỏng. */
+function isNextDynamicUsage(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const digest = (error as { digest?: unknown }).digest;
+  return typeof digest === "string" && digest.startsWith("DYNAMIC_SERVER_USAGE");
 }
 
 export function listMethodologies(): Promise<MethodologyDto[]> {
@@ -107,6 +215,18 @@ export async function fetchLabels(): Promise<LabelRegistries> {
   try {
     return await request<LabelRegistries>("/api/v1/labels");
   } catch {
+    // Hành vi không đổi - vẫn suy giảm chứ không làm trắng trang. Cái đổi là
+    // nó không còn im lặng: đây là thất bại duy nhất tự tay tạo ra vi phạm §9
+    // trên khắp trang kết quả (mọi enum hiện ra dưới dạng tên kỹ thuật), và
+    // trước đây không có gì ở đâu nói vì sao.
+    log({
+      level: "warn",
+      origin: ON_SERVER ? "server" : "client",
+      kind: "api",
+      url: "/api/v1/labels",
+      message:
+        "Không tải được bảng nhãn tiếng Việt; trang kết quả sẽ hiển thị tên kỹ thuật thay cho nhãn Việt.",
+    });
     return {};
   }
 }
@@ -190,6 +310,13 @@ export async function getOrGenerateNarrative(
     }
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 404) {
+      log({
+        level: "warn",
+        origin: ON_SERVER ? "server" : "client",
+        kind: "api",
+        url: path,
+        message: "Không đọc được phần diễn giải đã lưu; bỏ qua và không sinh lại.",
+      });
       return null;
     }
   }
@@ -200,6 +327,13 @@ export async function getOrGenerateNarrative(
       NARRATIVE_TIMEOUT_MS,
     );
   } catch {
+    log({
+      level: "warn",
+      origin: ON_SERVER ? "server" : "client",
+      kind: "api",
+      url: path,
+      message: "Sinh diễn giải thất bại; giữ nguyên bản dự phòng đã có nếu có.",
+    });
     return existing;
   }
 }

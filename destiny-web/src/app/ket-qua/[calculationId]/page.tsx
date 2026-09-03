@@ -94,7 +94,7 @@ export default async function ResultPage({
             }
           />
         </div>
-        <ResultSidebar result={result} sections={sections} />
+        <ResultSidebar result={result} sections={sections} labels={labels} />
       </div>
     </div>
   );

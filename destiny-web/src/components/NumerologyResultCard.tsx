@@ -31,11 +31,11 @@ const NUMBER_ORDER = [
  * comes from `evidence.fact.meaning`, never authored here.
  */
 const NUMBER_LABELS_VI: Record<string, string> = {
-  NUMEROLOGY_LIFE_PATH: "Số Chủ Đạo (Life Path)",
-  NUMEROLOGY_EXPRESSION: "Số Sứ Mệnh (Expression)",
-  NUMEROLOGY_SOUL_URGE: "Số Linh Hồn (Soul Urge)",
-  NUMEROLOGY_PERSONALITY: "Số Nhân Cách (Personality)",
-  NUMEROLOGY_BIRTHDAY: "Số Ngày Sinh (Birthday)",
+  NUMEROLOGY_LIFE_PATH: "Số Chủ Đạo",
+  NUMEROLOGY_EXPRESSION: "Số Sứ Mệnh",
+  NUMEROLOGY_SOUL_URGE: "Số Linh Hồn",
+  NUMEROLOGY_PERSONALITY: "Số Nhân Cách",
+  NUMEROLOGY_BIRTHDAY: "Số Ngày Sinh",
 };
 
 function label(labels: LabelRegistries, type: string, key: unknown): string {
@@ -84,7 +84,7 @@ export function NumerologyResultCard({
                 <div className="flex items-center gap-2">
                   {fact.isMasterNumber && (
                     <span
-                      title="Số Bậc Thầy (Master Number) — không rút gọn về 1 chữ số"
+                      title="Số Bậc Thầy — không rút gọn về 1 chữ số"
                       className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
                     >
                       Số Bậc Thầy
@@ -121,7 +121,20 @@ export function NumerologyResultCard({
         })}
       </div>
 
-      <p className="mt-5 border-t border-slate-100 pt-3 text-xs text-slate-400">
+      {/*
+        Tên tiếng Anh được nêu một lần ở đây thay vì gắn vào từng nhãn.
+        Trước đây mỗi nhãn mang theo phần tiếng Anh trong ngoặc — "Số Chủ Đạo
+        (Life Path)" — nên năm dòng đầu của thẻ này đọc như một bảng song ngữ
+        chứ không phải một trang tiếng Việt. Vẫn giữ lại vì chúng là thứ người
+        đọc cần khi đối chiếu với tài liệu nước ngoài, chỉ là không đặt ở chỗ
+        chen ngang.
+      */}
+      <p className="mt-4 text-[11px] text-slate-400">
+        Tên tiếng Anh để đối chiếu tài liệu nước ngoài: Life Path, Expression, Soul Urge,
+        Personality, Birthday; Số Bậc Thầy là Master Number.
+      </p>
+
+      <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
         Ý nghĩa theo hệ thống Thần số học Pythagoras — kho tàng diễn giải hội tụ theo các nguồn
         tiêu chuẩn (không dùng Chaldean, vì chưa có cách quy đổi chữ cái tiếng Việt được xác minh —
         xem mục nghiên cứu R8) — đây là ý nghĩa con số, không phải AI viết riêng cho bạn.

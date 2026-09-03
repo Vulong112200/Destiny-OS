@@ -8,6 +8,8 @@ import io.destinyos.execution.EngineExecution;
 import io.destinyos.execution.ExecutionOutcome;
 import io.destinyos.fusion.FusionResult;
 import io.destinyos.persistence.retention.RetentionClassifier;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,27 +39,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CalculationRecorder {
 
-    private final CalculationRepository calculations;
-    private final CalculationEngineResultRepository engineResults;
-    private final EvidenceRepository evidenceRepo;
-    private final SignalRepository signalRepo;
-    private final FusionResultRepository fusionResultRepo;
-    private final ConflictRepository conflictRepo;
     private final RetentionClassifier retentionClassifier;
 
-    public CalculationRecorder(CalculationRepository calculations,
-                               CalculationEngineResultRepository engineResults,
-                               EvidenceRepository evidenceRepo,
-                               SignalRepository signalRepo,
-                               FusionResultRepository fusionResultRepo,
-                               ConflictRepository conflictRepo,
-                               RetentionClassifier retentionClassifier) {
-        this.calculations = calculations;
-        this.engineResults = engineResults;
-        this.evidenceRepo = evidenceRepo;
-        this.signalRepo = signalRepo;
-        this.fusionResultRepo = fusionResultRepo;
-        this.conflictRepo = conflictRepo;
+    /**
+     * Used instead of the repositories' {@code save()} for the rows this
+     * class inserts.
+     *
+     * <p>Every entity written here has an <strong>assigned</strong>
+     * {@code String} id and none of them implement {@code Persistable}, so
+     * Spring Data's {@code save()} sees {@code isNew() == false} and calls
+     * {@code EntityManager#merge} - which issues a SELECT before every
+     * INSERT to find out whether the row already exists. This class is the
+     * only writer of these rows and it creates them moments earlier, so
+     * that question is already answered: they are new by construction.
+     *
+     * <p>The cost was not theoretical. Against a remote database one Tarot
+     * Celtic Cross run writes ~60 evidence and signal rows, and the doubled
+     * round trips put a six-engine scenario at ~21s - past the web client's
+     * budget, surfacing to the user as a timeout with no failing engine to
+     * blame. {@code persist} states the knowledge this class already has.
+     */
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public CalculationRecorder(RetentionClassifier retentionClassifier) {
         this.retentionClassifier = retentionClassifier;
     }
 
@@ -127,32 +132,32 @@ public class CalculationRecorder {
         calculation.setScenarioId(scenarioId);
         calculation.applyRequestContext(requestContext);
         context.seedIfPresent().ifPresent(calculation::setSeed);
-        calculations.save(calculation);
+        entityManager.persist(calculation);
 
         for (EngineExecution exec : execution.executions()) {
             var engineResultEntity = new CalculationEngineResultEntity(
                     context.calculationId(), exec.engineId(), exec.status(),
                     exec.result().errors().isEmpty() ? null : exec.result().errors().get(0).code(),
                     exec.duration().toMillis(), exec.timedOut());
-            engineResults.save(engineResultEntity);
+            entityManager.persist(engineResultEntity);
 
             // Evidence must be persisted before the signals that cite it
             // (signal_evidence_refs has a foreign key to evidence).
             for (Evidence evidence : exec.result().evidence()) {
-                evidenceRepo.save(new EvidenceEntity(evidence.evidenceId(),
+                entityManager.persist(new EvidenceEntity(evidence.evidenceId(),
                         context.calculationId(), evidence));
             }
             for (Signal signal : exec.result().signals()) {
-                signalRepo.save(new SignalEntity(context.calculationId(), signal));
+                entityManager.persist(new SignalEntity(context.calculationId(), signal));
             }
         }
 
         String resultHash = computeResultHash(context, fusion);
 
         if (fusion != null) {
-            fusionResultRepo.save(new FusionResultEntity(context.calculationId(), fusion));
+            entityManager.persist(new FusionResultEntity(context.calculationId(), fusion));
             fusion.conflicts().forEach(conflict ->
-                    conflictRepo.save(new ConflictEntity(context.calculationId(), conflict)));
+                    entityManager.persist(new ConflictEntity(context.calculationId(), conflict)));
         }
 
         Instant completedAt = Instant.now();
@@ -167,7 +172,12 @@ public class CalculationRecorder {
         var decision = retentionClassifier.classify(scenarioId, completedAt);
         calculation.applyRetention(decision.retentionClass(), decision.expiresAt());
 
-        return calculations.save(calculation);
+        // No second save: `calculation` has been managed since the persist
+        // above, so the two mutations after it (markCompleted, applyRetention)
+        // are flushed by dirty checking at commit. The previous
+        // `calculations.save(calculation)` here was a second merge - another
+        // SELECT plus an UPDATE - for a row already in the persistence context.
+        return calculation;
     }
 
     /**

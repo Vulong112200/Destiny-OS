@@ -58,18 +58,65 @@ public class MethodologyRegistryService {
         return versions.save(entity);
     }
 
-    /** The most recently created version row for a methodology, if any is registered. */
+    /**
+     * The most recently created version row for a methodology, if any is
+     * registered.
+     *
+     * <p>{@code @Transactional(readOnly = true)} on every read here is not
+     * decoration. With {@code open-in-view: false} an untransacted repository
+     * call opens its own connection, begins, selects and commits - so a caller
+     * that asked about eighteen methodologies paid eighteen begin/commit round
+     * trips on top of the eighteen selects. Against a database in another
+     * region that was most of the six seconds {@code GET /api/v1/methodologies}
+     * took to answer.
+     */
+    @Transactional(readOnly = true)
     public Optional<MethodologyVersionEntity> latestVersion(String methodologyId) {
         return versions.findByMethodology_MethodologyId(methodologyId).stream()
                 .max(java.util.Comparator.comparing(MethodologyVersionEntity::createdAt));
     }
 
+    @Transactional(readOnly = true)
     public List<MethodologyVersionEntity> allVersions(String methodologyId) {
         return versions.findByMethodology_MethodologyId(methodologyId);
     }
 
+    @Transactional(readOnly = true)
     public List<MethodologyEntity> allMethodologies() {
         return methodologies.findAll();
+    }
+
+    /**
+     * Every registered version row, in one query.
+     *
+     * <p>Exists so callers that need the latest version of <em>every</em>
+     * methodology stop asking one methodology at a time. {@link #latestVersion}
+     * in a loop is the N+1 that made the registry endpoint the slowest thing
+     * in the system despite reading eighteen rows of static configuration.
+     */
+    @Transactional(readOnly = true)
+    public List<MethodologyVersionEntity> allVersions() {
+        return versions.findAll();
+    }
+
+    /**
+     * Every registered {@code methodologyId@version} pair, in one query.
+     *
+     * <p>Returns plain strings rather than entities on purpose. The caller is
+     * {@code MethodologyRegistrySeeder}, whose {@code seed()} is reached by
+     * self-invocation from its {@code ApplicationReadyEvent} listener - so
+     * Spring's transactional proxy does not apply and there is no session open
+     * on the way back. Handing it entities would mean it had to touch
+     * {@code MethodologyVersionEntity#methodology}, a lazy association, outside
+     * any transaction. Doing the association walk here, where the transaction
+     * is real, is what keeps that from being a
+     * {@code LazyInitializationException} at startup.
+     */
+    @Transactional(readOnly = true)
+    public Set<String> seededVersionKeys() {
+        return versions.findAll().stream()
+                .map(v -> v.methodology().methodologyId() + "@" + v.version())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     /**
@@ -81,12 +128,14 @@ public class MethodologyRegistryService {
      * {@code RESEARCH_REQUIRED} (ADR D7: absence and an honest block must
      * both read as "cannot calculate", never as "assume it is fine").
      */
+    @Transactional(readOnly = true)
     public boolean isCalculable(String methodologyId) {
         return latestVersion(methodologyId)
                 .map(v -> v.status().mayCalculate())
                 .orElse(false);
     }
 
+    @Transactional(readOnly = true)
     public List<String> researchIdsBlocking(String methodologyId) {
         return latestVersion(methodologyId)
                 .filter(v -> !v.status().mayCalculate())

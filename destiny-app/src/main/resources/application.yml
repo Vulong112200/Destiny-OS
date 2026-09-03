@@ -18,10 +18,62 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    # The pool had no configuration at all until now, so every value below was
+    # whatever HikariCP defaults to. The defaults are reasonable for a database
+    # on the same network; this one is in another region, where re-opening a
+    # connection costs a TCP handshake, a TLS handshake and authentication -
+    # roughly 4-5 round trips - before a query is even sent. The values that
+    # matter here are the lifetime ones: max-lifetime retires a connection
+    # before an unseen middlebox or server-side reaper drops it, and
+    # keepalive-time stops an idle one being silently dropped in between. A
+    # connection killed out from under the pool surfaces as one inexplicably
+    # slow request in ten, which is the least diagnosable thing this system can
+    # do to whoever is reading the result page.
+    hikari:
+      pool-name: destiny-pool
+      # Deliberately small. The Supabase session pooler caps the whole
+      # project at 15 clients ("max clients reached in session mode - max
+      # clients are limited to pool_size: 15"), and that budget is shared with
+      # Flyway on startup, any other running instance, and any psql session a
+      # developer left open. Sizing the pool near the cap turns an ordinary
+      # restart into a startup failure - which is exactly how this value was
+      # found. Engines run concurrently but only the recorder touches the
+      # database, so a large pool buys nothing here anyway.
+      maximum-pool-size: ${DESTINY_DB_POOL_MAX:5}
+      minimum-idle: ${DESTINY_DB_POOL_MIN_IDLE:2}
+      # Fail fast rather than letting a request queue behind an exhausted pool
+      # until the client's own budget expires - a timeout with no cause is the
+      # failure mode this whole block exists to make diagnosable.
+      connection-timeout: 10000
+      idle-timeout: 600000
+      # Below any sane server-side idle timeout, so the pool retires a
+      # connection before the server does it unannounced.
+      max-lifetime: 1500000
+      keepalive-time: 120000
+      data-source-properties:
+        tcpKeepAlive: true
   jpa:
     hibernate:
       ddl-auto: none
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          # One scenario run writes one calculation row, one row per engine,
+          # and one row per evidence and per signal - a Tarot Celtic Cross
+          # alone produces ~60. Unbatched, each is its own round trip.
+          #
+          # Note this only helps the tables with assigned ids (evidence,
+          # signals - the high-volume ones). calculation_engine_results,
+          # conflicts and fusion_results use GenerationType.IDENTITY, which
+          # disables JDBC batching for them; at 6, 0-5 and 1 rows that is not
+          # worth a schema migration to change.
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        # Collapses an eager @ElementCollection (MethodologyVersionEntity's
+        # researchIds) from one query per parent into one query per batch.
+        default_batch_fetch_size: 64
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -35,8 +87,22 @@ app:
 
 destiny:
   execution:
-    default-timeout: 5s
-    max-concurrency: 16
+    # Bound by ExecutionProperties. Until that class existed these two keys were
+    # read by nothing at all - see its Javadoc.
+    default-timeout: ${DESTINY_EXECUTION_DEFAULT_TIMEOUT:5s}
+    max-concurrency: ${DESTINY_EXECUTION_MAX_CONCURRENCY:16}
+    # Keyed by engine id. ExecutionPolicy has supported per-engine budgets since
+    # it was written, but with nothing binding this section there was no way to
+    # reach the feature from configuration. Tarot and Thần số học are pure
+    # in-memory arithmetic and have no business taking seconds; the ones that
+    # walk the calendar keep the full default.
+    per-engine-timeouts:
+      TAROT: ${DESTINY_EXECUTION_TIMEOUT_TAROT:2s}
+      NUMEROLOGY_PYTHAGOREAN: ${DESTINY_EXECUTION_TIMEOUT_NUMEROLOGY:2s}
+      ICHING: ${DESTINY_EXECUTION_TIMEOUT_ICHING:3s}
+      BAZI: ${DESTINY_EXECUTION_TIMEOUT_BAZI:5s}
+      FENGSHUI_KUA: ${DESTINY_EXECUTION_TIMEOUT_FENGSHUI:5s}
+      WESTERN_ASTROLOGY: ${DESTINY_EXECUTION_TIMEOUT_ASTROLOGY:5s}
   # Retention (CLAUDE.md section 7, DATA_MODEL_AND_RETENTION.md sections 8 and 11).
   # Disabled by default: a scheduled job that deletes rows must be switched on
   # deliberately by whoever runs the system, not arrive switched on. Durations
