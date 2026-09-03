@@ -91,7 +91,7 @@ export function TarotSpreadStage({
     <LazyMotion features={domAnimation} strict>
       <TarotBackDefs />
       <div
-        className="relative mx-auto w-full max-w-3xl"
+        className="@container relative mx-auto w-full max-w-3xl"
         style={{ aspectRatio: String(spreadAspect(spread)) }}
       >
         {draws.map((d, i) => {
@@ -123,7 +123,16 @@ export function TarotSpreadStage({
                   : { type: "spring", stiffness: 220, damping: 24, delay: i * 0.09 }
               }
             >
-              <div className="scale-[0.62] sm:scale-75 md:scale-90 lg:scale-100">
+              {/*
+                Tỉ lệ phải theo bề rộng THẬT của khung chứa (container query
+                cqw), không theo breakpoint viewport — khung chứa bị chặn cứng
+                ở max-w-3xl (768px) nên từ viewport ~1024px trở lên, scale kiểu
+                cũ (sm/md/lg) vẫn tăng dù khung không lớn thêm, làm các lá đè
+                lên nhau. 0.62 là tỉ lệ tham chiếu đã tính khớp với bố cục ở
+                đúng 768px; nhân theo cqw giữ tỉ lệ đó không đổi ở mọi kích
+                thước khung, kể cả khi hẹp hơn 768px.
+              */}
+              <div className="origin-center [scale:calc(100cqw/768px*0.62)]">
                 <Card draw={d} revealed={revealed.has(d.evidenceId)} onReveal={onReveal} />
               </div>
             </m.div>
