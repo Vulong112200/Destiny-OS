@@ -58,7 +58,7 @@ class BaziEngineTest {
         }
 
         @Test
-        @DisplayName("Dụng Thần and Day Master strength are reported as blocked, not absent")
+        @DisplayName("Điều Hầu/Thông Quan and Day Master strength cross-school comparability are reported as blocked, not absent")
         void blockedSectionsAreNamedWithTheirResearchIds() {
             BaziChart chart = run(LocalDateTime.of(1990, 5, 20, 9, 30)).data();
 
@@ -66,11 +66,15 @@ class BaziEngineTest {
             // joined it on 2026-08-23, when an audit against Master Spec §13
             // found three named components with no research id at all — and
             // therefore no way for the engine to admit they were missing.
-            // The list is asserted exactly, not as a subset, so a section can
-            // neither appear nor disappear without a test changing on purpose.
+            // DUNG_THAN itself left 2026-09-03 when R1 was decided and
+            // BaziDungThanResolver shipped for 8/10 cách phổ thông; what
+            // remains named here is the narrower residual (Điều Hầu/Thông
+            // Quan), not the whole topic. The list is asserted exactly, not
+            // as a subset, so a section can neither appear nor disappear
+            // without a test changing on purpose.
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::sectionId)
-                    .containsExactlyInAnyOrder("DUNG_THAN", "NHAT_CHU_CUONG_DO",
+                    .containsExactlyInAnyOrder("DUNG_THAN_DIEU_HAU_TONG_QUAN", "NHAT_CHU_CUONG_DO",
                             "HOP_XUNG_HINH_HAI_PHA", "LUU_NIEN", "THAN_SAT");
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::researchId)
@@ -108,14 +112,20 @@ class BaziEngineTest {
             // covers it. What matters here is that it is no longer blocked.
             assertThat(blockedIds).as("Da Yun is computed since R2 closed")
                     .doesNotContain("DAI_VAN");
+            // Dụng Thần itself (as opposed to its Điều Hầu/Thông Quan
+            // residual) is computed since R1 closed 2026-09-03, for 8/10
+            // cách phổ thông - BaziDungThanResolverGoldenTest covers whether
+            // any given chart's cách resolves or refuses.
+            assertThat(blockedIds).as("Dụng Thần itself is computed since R1 closed 2026-09-03")
+                    .doesNotContain("DUNG_THAN");
 
             // Not computed - and each must therefore be named as blocked.
             assertThat(blockedIds).contains(
-                    "HOP_XUNG_HINH_HAI_PHA",  // combinations/clashes/harm/punishment/break
-                    "NHAT_CHU_CUONG_DO",      // strength methodology
-                    "DUNG_THAN",              // Useful/Favorable/Unfavorable Element
-                    "LUU_NIEN",               // Liu Nian / Liu Yue / Liu Ri
-                    "THAN_SAT");              // Shen Sha (conditional in the spec)
+                    "HOP_XUNG_HINH_HAI_PHA",           // combinations/clashes/harm/punishment/break
+                    "NHAT_CHU_CUONG_DO",                // strength methodology
+                    "DUNG_THAN_DIEU_HAU_TONG_QUAN",     // Điều Hầu/Thông Quan, the residual of Useful Element
+                    "LUU_NIEN",                          // Liu Nian / Liu Yue / Liu Ri
+                    "THAN_SAT");                         // Shen Sha (conditional in the spec)
         }
 
         @Test
@@ -354,7 +364,7 @@ class BaziEngineTest {
             assertThat(evidence).extracting(io.destinyos.core.evidence.Evidence::ruleId)
                     .contains("BAZI_PILLAR_YEAR", "BAZI_PILLAR_MONTH", "BAZI_PILLAR_DAY",
                             "BAZI_PILLAR_HOUR", "BAZI_BOUNDARY", "BAZI_ELEMENT_TALLY",
-                            "BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_NHAT_CHU_CUONG_DO")
+                            "BAZI_BLOCKED_DUNG_THAN_DIEU_HAU_TONG_QUAN", "BAZI_BLOCKED_NHAT_CHU_CUONG_DO")
                     // Đại Vận moved from a blocked section to real evidence
                     // (R2, 2026-08-22) — but only when a gender was supplied,
                     // and this fixture supplies none, so neither rule id is

@@ -25,6 +25,13 @@ import java.util.Objects;
  *                          {@code SolarPosition})
  * @param midheaven         the MC
  * @param ascendant         the Ascendant, i.e. House 1's cusp under Whole Sign
+ * @param bodies            the Moon and the seven planets Mercury..Neptune
+ *                          (R5, VSOP87/ELP2000-82B), keyed by name
+ *                          ({@code "MOON"}, {@code "MERCURY"}, ...
+ *                          {@code "NEPTUNE"}) — Pluto is deliberately not a
+ *                          key here, see {@code BlockedSection("PLUTO_POSITION")}
+ * @param aspects           every aspect found among Sun/Moon/the seven
+ *                          planets within R6's orb policy
  * @param houses            all twelve Whole Sign houses, keyed by house number
  * @param obliquityDegrees  the obliquity of the ecliptic used, for audit
  * @param ramcDegrees       the right ascension of the meridian used, for audit
@@ -34,13 +41,15 @@ import java.util.Objects;
  *                          every chart
  * @param houseSystem       always {@code "WHOLE_SIGN"} for now (R6)
  * @param blockedSections   reading sections this engine refuses to
- *                          approximate (planets beyond the Sun; aspects)
+ *                          approximate (Pluto's position)
  * @param uncertainties     conditions that must reach the user (ADR D3)
  */
 public record WesternAstrologyChart(
         ChartPoint sun,
         ChartPoint midheaven,
         ChartPoint ascendant,
+        Map<String, BodyPosition> bodies,
+        List<Aspect> aspects,
         Map<AstrologicalHouse, ZodiacSign> houses,
         double obliquityDegrees,
         double ramcDegrees,
@@ -55,9 +64,23 @@ public record WesternAstrologyChart(
         Objects.requireNonNull(ascendant, "ascendant");
         Objects.requireNonNull(zodiacSystem, "zodiacSystem");
         Objects.requireNonNull(houseSystem, "houseSystem");
+        bodies = bodies == null ? Map.of() : Map.copyOf(bodies);
+        aspects = aspects == null ? List.of() : List.copyOf(aspects);
         houses = houses == null ? Map.of() : Map.copyOf(houses);
         blockedSections = blockedSections == null ? List.of() : List.copyOf(blockedSections);
         uncertainties = uncertainties == null ? List.of() : List.copyOf(uncertainties);
+    }
+
+    /**
+     * One of the eight non-Sun bodies this chart carries — its tropical
+     * ecliptic point (sign, degrees) plus the raw ecliptic latitude and
+     * geocentric distance, kept for audit even though only the longitude
+     * feeds signs/houses/aspects.
+     */
+    public record BodyPosition(ChartPoint point, double eclipticLatitudeDegrees, double distanceAu) {
+        public BodyPosition {
+            Objects.requireNonNull(point, "point");
+        }
     }
 
     /** Which house a given sign falls in, under this chart's Whole Sign houses. */

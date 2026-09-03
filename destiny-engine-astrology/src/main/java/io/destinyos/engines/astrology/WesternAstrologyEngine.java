@@ -23,21 +23,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Western astrology — chart angles and the Sun's position (Phase 11,
- * research items R5/R6).
+ * Western astrology — chart angles, the Sun, the Moon, the seven planets
+ * Mercury..Neptune, and the five Ptolemaic aspects between them (Phase 11,
+ * research items R5/R6, R5 planets/Moon closed 2026-09-03).
  *
  * <p><strong>School (Rule D).</strong> Tropical zodiac, Whole Sign houses —
  * both owner decisions recorded 2026-08-23 in {@code docs/RESEARCH_BLOCKERS.md}
  * R6. Nothing here computes a sidereal position or an ayanamsa, and nothing
- * here divides a house by time (as Placidus/Koch would); nothing here
- * fabricates an aspect set either, since the orb policy is not yet decided.
+ * here divides a house by time (as Placidus/Koch would).
  *
- * <p><strong>What is verified and what is not.</strong> Three things are
- * pure spherical astronomy, each independently checkable and checked before
- * being trusted here:
+ * <p><strong>What is verified and what is not.</strong> Every position on this
+ * chart is pure spherical astronomy, each independently checkable and checked
+ * before being trusted here:
  * <ul>
  *   <li>the obliquity of the ecliptic and Greenwich Mean Sidereal Time
  *       ({@link SiderealTime}), against Jean Meeus's own textbook worked
@@ -53,35 +54,61 @@ import java.util.UUID;
  *       calendar and Bát Tự. Its ~0.01° accuracy limit, which research item
  *       R19 correctly calls disqualifying for Bát Tự's month boundaries, is
  *       roughly two orders of magnitude finer than astrology's narrowest
- *       orb, so no additional precision work was needed to reuse it here.</li>
+ *       orb, so no additional precision work was needed to reuse it here;</li>
+ *   <li>the Moon and the seven planets ({@link Vsop87PlanetPosition},
+ *       {@link Elp2000MoonPosition}) — VSOP87 (IMCCE/Bretagnon &amp; Francou)
+ *       and ELP2000-82B (IMCCE/Chapront-Touzé &amp; Chapront), both
+ *       cross-checked against JPL Horizons (DE441), an independent
+ *       third-party ephemeris; the measured discrepancy (arcseconds to a few
+ *       tens of arcseconds for the Moon) matches the discrepancy predicted
+ *       from the one accepted simplification (no light-time/aberration
+ *       correction), not an unexplained error;</li>
+ *   <li>aspects ({@link AspectFinder}) — pure geometry (angular separation
+ *       against R6's declared orb table) once every body's longitude is
+ *       known, so nothing further to verify beyond the positions above.</li>
  * </ul>
  *
  * <p><strong>What is deliberately not computed, and reported as blocked
  * rather than silently absent</strong> (ADR D7, the same device Bát Tự uses
- * for Dụng Thần and Day Master strength):
- * <ul>
- *   <li>the Moon and the seven other planets — these need VSOP87 (planets)
- *       and ELP2000 (Moon) coefficient tables sourced and cross-checked with
- *       the same two-independent-source rigor {@code SolarPosition} already
- *       has, which has not been done;</li>
- *   <li>aspects between chart points — blocked on R6's aspect-set/orb
- *       decision, which remains open.</li>
- * </ul>
+ * for Dụng Thần and Day Master strength): <strong>Pluto's position.</strong>
+ * VSOP87 does not cover Pluto (its orbit needs a different theory — Pluto is
+ * in a 3:2 mean-motion resonance with Neptune and is not well modelled by a
+ * Fourier-series planetary theory the way the eight VSOP87 bodies are), and
+ * no source for one has been evaluated. See
+ * {@code BlockedSection("PLUTO_POSITION")}.
  *
  * <p>Emits no signals for the same reason Bát Tự's Phase 8a does not: a
  * signal needs interpretive content (favourable/unfavourable meaning per
- * sign/house), which has not been authored, and a natal chart missing nine
- * of ten planetary positions has nothing to interpret yet regardless.
+ * sign/house/aspect), which has not been authored for anything beyond the
+ * Sun and Ascendant ({@link AstrologyMeanings}) — the chart is real hard data
+ * now for nine of ten bodies and every aspect among them, but still nothing
+ * to fuse into a reading.
  */
 public final class WesternAstrologyEngine
         implements MetaphysicalEngine<WesternAstrologyInput, WesternAstrologyChart> {
 
     public static final String ENGINE_ID = "WESTERN_ASTROLOGY";
     public static final String METHODOLOGY_ID = "WESTERN_ASTROLOGY_CHART_ANGLES";
-    public static final String METHODOLOGY_VERSION = "1.0";
+    public static final String METHODOLOGY_VERSION = "2.0";
     public static final String RULE_VERSION = "1.0";
     public static final String SCHOOL =
             "Chiêm tinh phương Tây — Hoàng đạo Tropical, hệ nhà Whole Sign";
+
+    /** R5's own methodology (Rule D) for the Moon + seven planets — a named data source, not this engine's chart-angle methodology. */
+    public static final String PLANETS_METHODOLOGY_ID = "WESTERN_ASTROLOGY_PLANETS_VSOP87_ELP2000";
+    public static final String PLANETS_METHODOLOGY_VERSION = "1.0";
+    public static final String PLANETS_SCHOOL =
+            "VSOP87 (Bretagnon & Francou 1988, qua gói Mahooti BSD-3) cho 7 hành tinh; "
+                    + "ELP2000-82B (Chapront-Touzé & Chapront 1988/1983, qua IMCCE) cho Mặt Trăng";
+
+    /** R6's own methodology (Rule D) for aspects — a named orb convention, not this engine's chart-angle methodology. */
+    public static final String ASPECTS_METHODOLOGY_ID = "WESTERN_ASTROLOGY_ASPECTS_MODERN_FLAT_ORB";
+    public static final String ASPECTS_METHODOLOGY_VERSION = "1.0";
+    public static final String ASPECTS_SCHOOL =
+            "Năm góc chiếu Ptolemaic, orb phẳng kiểu Sakoian & Acker (1973) với biên độ rộng "
+                    + "hơn cho Mặt Trời/Mặt Trăng — không phải moiety cổ điển (Lilly), xem R6";
+
+    private static final Set<String> LUMINARIES = Set.of("SUN", "MOON");
 
     public static final String SOURCE =
             "Obliquity of the ecliptic and Greenwich Mean Sidereal Time: Jean Meeus, "
@@ -100,7 +127,18 @@ public final class WesternAstrologyEngine
                     + "docs/RESEARCH_BLOCKERS.md R6 (Whole Sign chosen for correctness at "
                     + "every latitude, including inside the polar circle where Placidus/Koch "
                     + "are undefined; tropical chosen to match this project's own "
-                    + "'Western Astrology' methodology name, which needs no ayanamsa).";
+                    + "'Western Astrology' methodology name, which needs no ayanamsa). "
+                    + "Moon and seven planets: VSOP87 (Bretagnon & Francou 1988, IMCCE data via "
+                    + "the Mahooti/Ofek BSD-3-licensed package) and ELP2000-82B (Chapront-Touze "
+                    + "& Chapront 1988/1983, transcribed directly from IMCCE's own reference "
+                    + "Fortran, docs/research_drafts/R5_vsop87_elp2000_data_spec.md); geometric "
+                    + "geocentric positions, no light-time/aberration correction, cross-checked "
+                    + "against JPL Horizons (DE441) with measured error consistent with that "
+                    + "one documented simplification, see Vsop87PlanetPosition/"
+                    + "Elp2000MoonPosition. Aspects: five Ptolemaic aspects, flat orbs with a "
+                    + "luminary allowance, owner decision 2026-08-30 (docs/RESEARCH_BLOCKERS.md "
+                    + "R6); applying/separating computed from a finite-difference longitude "
+                    + "derivative, not looked up.";
 
     private static final EngineMetadata METADATA = new EngineMetadata(
             ENGINE_ID,
@@ -135,27 +173,26 @@ public final class WesternAstrologyEngine
                     LocalDate.of(2100, 12, 31)))
             .build();
 
+    /** Order fixed here (not alphabetical) so the frontend can render a stable, sensible row order. */
+    private static final List<Vsop87PlanetPosition.Planet> PLANET_ORDER = List.of(
+            Vsop87PlanetPosition.Planet.MERCURY, Vsop87PlanetPosition.Planet.VENUS,
+            Vsop87PlanetPosition.Planet.MARS, Vsop87PlanetPosition.Planet.JUPITER,
+            Vsop87PlanetPosition.Planet.SATURN, Vsop87PlanetPosition.Planet.URANUS,
+            Vsop87PlanetPosition.Planet.NEPTUNE);
+
     private static final List<BlockedSection> BLOCKED_SECTIONS = List.of(
-            new BlockedSection("PLANETS_BEYOND_SUN",
-                    "Vị trí Mặt Trăng và 7 hành tinh còn lại", "R5",
-                    "Cần bảng hệ số VSOP87 (hành tinh) và ELP2000 (Mặt Trăng) được đối chiếu "
-                            + "độc lập với cùng mức nghiêm ngặt như vị trí Mặt Trời đã có — việc "
-                            + "này chưa làm. Tự chép lại các bảng hệ số đó từ tóm tắt web có rủi "
-                            + "ro sai số cao đúng loại kết quả tự tin nhưng sai mà hệ thống này "
-                            + "từ chối tạo ra.",
-                    List.of("VSOP87 rút gọn (độ chính xác ~1 giây cung, đủ dùng)",
-                            "VSOP87 đầy đủ (~0.1 giây cung, dư thừa)",
-                            "Swiss Ephemeris (cân nhắc rồi bị loại vì AGPL, xem R5)")),
-            new BlockedSection("ASPECTS",
-                    "Góc chiếu giữa các điểm trong lá số (hợp, đối, vuông góc…)", "R6",
-                    "Bộ góc chiếu chính (hợp/lục hợp/vuông/tam hợp/đối) đã đồng thuận rộng "
-                            + "rãi, nhưng độ rộng orb (biên độ sai số cho phép) chưa chốt — hai "
-                            + "nguồn tìm được cho hai cách tiếp cận khác hẳn nhau (orb cố định "
-                            + "theo kiểu trình bày, hay orb khác nhau theo từng loại góc chiếu "
-                            + "và theo từng thiên thể). Chưa kể góc chiếu giữa hai điểm nào cũng "
-                            + "cần cả hai điểm đó được tính trước — 9/10 thiên thể còn thiếu.",
-                    List.of("Orb cố định theo kiểu trình bày (vd 10° cho mọi góc chính)",
-                            "Orb phân cấp theo loại góc chiếu + rộng hơn cho Mặt Trời/Mặt Trăng")));
+            new BlockedSection("PLUTO_POSITION",
+                    "Vị trí Sao Diêm Vương (Pluto)", "R5",
+                    "VSOP87 không phủ Sao Diêm Vương — quỹ đạo của nó nằm trong cộng hưởng 3:2 "
+                            + "với Sao Hải Vương nên không mô hình hóa tốt bằng một chuỗi Fourier "
+                            + "kiểu VSOP87 như 8 thiên thể còn lại; cần một lý thuyết/nguồn dữ "
+                            + "liệu khác hẳn (ví dụ khớp số từ JPL), chưa được khảo sát. Mặt "
+                            + "Trăng và 7 hành tinh Mercury-Neptune đã có (VSOP87/ELP2000-82B, "
+                            + "R5 đóng 2026-09-03) nên Sao Diêm Vương là phần duy nhất còn thiếu "
+                            + "để đủ 10 thiên thể cổ điển.",
+                    List.of("Bộ hệ số khớp số (Chebyshev) kiểu JPL — chưa khảo sát",
+                            "Các yếu tố quỹ đạo gần đúng (vd. Meeus ch.37) — độ chính xác thấp "
+                                    + "hơn, chưa khảo sát")));
 
     @Override
     public EngineResult<WesternAstrologyChart> calculate(WesternAstrologyInput input,
@@ -179,7 +216,35 @@ public final class WesternAstrologyEngine
         ChartPoint ascendant = ChartPoint.of(ascLongitude);
         Map<AstrologicalHouse, ZodiacSign> houses = WholeSignHouses.cusps(ascendant.sign());
 
-        var chart = new WesternAstrologyChart(sun, midheaven, ascendant, houses,
+        Map<String, WesternAstrologyChart.BodyPosition> bodies = new LinkedHashMap<>();
+        Map<String, Double> longitudesNow = new LinkedHashMap<>();
+        Map<String, Double> longitudesShortlyAfter = new LinkedHashMap<>();
+        longitudesNow.put("SUN", sunLongitudeDegrees);
+        longitudesShortlyAfter.put("SUN",
+                Math.toDegrees(SolarPosition.longitudeRadians(julianDateUt + 1.0)));
+
+        EclipticPosition moonNow = Elp2000MoonPosition.geocentric(julianDateUt);
+        bodies.put("MOON", new WesternAstrologyChart.BodyPosition(
+                ChartPoint.of(moonNow.longitudeDegrees()), moonNow.latitudeDegrees(),
+                moonNow.distanceAu()));
+        longitudesNow.put("MOON", moonNow.longitudeDegrees());
+        longitudesShortlyAfter.put("MOON",
+                Elp2000MoonPosition.geocentric(julianDateUt + 1.0).longitudeDegrees());
+
+        for (Vsop87PlanetPosition.Planet planet : PLANET_ORDER) {
+            String name = planet.name();
+            EclipticPosition position = Vsop87PlanetPosition.geocentric(planet, julianDateUt);
+            bodies.put(name, new WesternAstrologyChart.BodyPosition(
+                    ChartPoint.of(position.longitudeDegrees()), position.latitudeDegrees(),
+                    position.distanceAu()));
+            longitudesNow.put(name, position.longitudeDegrees());
+            longitudesShortlyAfter.put(name,
+                    Vsop87PlanetPosition.geocentric(planet, julianDateUt + 1.0).longitudeDegrees());
+        }
+
+        List<Aspect> aspects = AspectFinder.findAll(longitudesNow, longitudesShortlyAfter, LUMINARIES);
+
+        var chart = new WesternAstrologyChart(sun, midheaven, ascendant, bodies, aspects, houses,
                 obliquity, ramc, "TROPICAL", "WHOLE_SIGN", BLOCKED_SECTIONS, List.of());
 
         List<EngineWarning> warnings = new ArrayList<>();
@@ -199,13 +264,17 @@ public final class WesternAstrologyEngine
                 List.copyOf(warnings),
                 List.of(),
                 new ResearchReference("R5", "Chiêm tinh phương Tây",
-                        "Góc lá số (Ascendant, Midheaven, 12 nhà) và vị trí Mặt Trời đã lập "
-                                + "xong và là dữ liệu thật. Mặt Trăng, 7 hành tinh còn lại và "
-                                + "góc chiếu chưa có nên engine không phát sinh tín hiệu nào cho "
-                                + "Fusion.",
+                        "Góc lá số (Ascendant, Midheaven, 12 nhà), vị trí Mặt Trời, Mặt Trăng, 7 "
+                                + "hành tinh (Mercury-Neptune) và mọi góc chiếu giữa chúng đã lập "
+                                + "xong và là dữ liệu thật (R5/R6 đóng 2026-09-03). Còn thiếu Sao "
+                                + "Diêm Vương (BlockedSection riêng) và toàn bộ phần luận giải ý "
+                                + "nghĩa — engine vẫn không phát sinh tín hiệu nào cho Fusion vì "
+                                + "chưa có nội dung diễn giải cho các thiên thể/góc chiếu mới.",
                         "docs/RESEARCH_BLOCKERS.md R5/R6",
-                        List.of("R5 nguồn ephemeris cho các hành tinh", "R6 bộ orb góc chiếu")),
+                        List.of("Sao Diêm Vương", "Nội dung luận giải cho 8 thiên thể + góc chiếu mới")),
                 Map.of("methodologyId", METHODOLOGY_ID,
+                        "planetsMethodologyId", PLANETS_METHODOLOGY_ID,
+                        "aspectsMethodologyId", ASPECTS_METHODOLOGY_ID,
                         "zodiacSystem", "TROPICAL",
                         "houseSystem", "WHOLE_SIGN"));
     }
@@ -228,6 +297,21 @@ public final class WesternAstrologyEngine
         evidence.add(pointEvidence(chart, "ASTROLOGY_SUN", chart.sun(), groupId));
         evidence.add(pointEvidence(chart, "ASTROLOGY_MIDHEAVEN", chart.midheaven(), groupId));
         evidence.add(pointEvidence(chart, "ASTROLOGY_ASCENDANT", chart.ascendant(), groupId));
+
+        // Moon and the seven planets - a different methodology (R5, VSOP87/
+        // ELP2000-82B) from the chart-angle Sun/MC/Asc above, so a different
+        // school string travels on this evidence, the same device BaziEngine
+        // uses to keep BAZI_DAY_MASTER_STRENGTH_TVH's evidence distinguishable
+        // from BAZI_TUBINH_CHART's.
+        for (Vsop87PlanetPosition.Planet planet : PLANET_ORDER) {
+            evidence.add(bodyEvidence(chart, "ASTROLOGY_" + planet.name(),
+                    chart.bodies().get(planet.name()), groupId));
+        }
+        evidence.add(bodyEvidence(chart, "ASTROLOGY_MOON", chart.bodies().get("MOON"), groupId));
+
+        for (Aspect aspect : chart.aspects()) {
+            evidence.add(aspectEvidence(aspect, groupId));
+        }
 
         Map<String, Object> housesFact = new LinkedHashMap<>();
         chart.houses().forEach((house, sign) -> housesFact.put(house.name(), sign.name()));
@@ -312,6 +396,48 @@ public final class WesternAstrologyEngine
         }
         return new Evidence(UUID.randomUUID().toString(), ENGINE_ID, SCHOOL, ruleId, RULE_VERSION,
                 Dimension.OTHER, fact, "spherical-astronomy", groupId, null);
+    }
+
+    /** Same shape as {@link #pointEvidence}, plus latitude/distance, for a Moon/planet body. */
+    private static Evidence bodyEvidence(WesternAstrologyChart chart, String ruleId,
+                                         WesternAstrologyChart.BodyPosition body, String groupId) {
+        ChartPoint point = body.point();
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("eclipticLongitudeDegrees", point.eclipticLongitudeDegrees());
+        fact.put("eclipticLatitudeDegrees", body.eclipticLatitudeDegrees());
+        fact.put("distanceAu", body.distanceAu());
+        fact.put("sign", point.sign().name());
+        fact.put("degreesIntoSign", point.degreesIntoSign());
+        var signMeaning = AstrologyMeanings.ofSign(point.sign());
+        if (signMeaning != null) {
+            fact.put("signKeywordsVi", signMeaning.keywordsVi());
+        }
+        // No authored point meaning for these yet (AstrologyMeanings only
+        // covers the Sun and Ascendant) - honest absence, not a filled-in
+        // placeholder, same device pointEvidence already uses for the MC.
+        fact.put("pointMeaningAuthored", false);
+        fact.put("meaningSourceNoteVi", AstrologyMeanings.SOURCE_NOTE_VI);
+        fact.put("meaningContentVersion", AstrologyMeanings.CONTENT_VERSION);
+        fact.put("house", chart.houseOf(point.sign()).name());
+        return new Evidence(UUID.randomUUID().toString(), ENGINE_ID, PLANETS_SCHOOL, ruleId,
+                PLANETS_METHODOLOGY_VERSION, Dimension.OTHER, fact, "vsop87-elp2000-82b",
+                groupId, null);
+    }
+
+    private static Evidence aspectEvidence(Aspect aspect, String groupId) {
+        Map<String, Object> fact = new LinkedHashMap<>();
+        fact.put("bodyA", aspect.bodyA());
+        fact.put("bodyB", aspect.bodyB());
+        fact.put("aspectType", aspect.type().name());
+        fact.put("exactAngleDegrees", aspect.exactAngleDegrees());
+        fact.put("actualAngleDegrees", aspect.actualAngleDegrees());
+        fact.put("orbDegrees", aspect.orbDegrees());
+        fact.put("orbLimitDegrees", aspect.orbLimitDegrees());
+        fact.put("applying", aspect.applying());
+        return new Evidence(UUID.randomUUID().toString(), ENGINE_ID, ASPECTS_SCHOOL,
+                "ASTROLOGY_ASPECT_" + aspect.bodyA() + "_" + aspect.bodyB() + "_" + aspect.type().name(),
+                ASPECTS_METHODOLOGY_VERSION, Dimension.OTHER, fact, "ptolemaic-flat-orb",
+                groupId, null);
     }
 
     @Override

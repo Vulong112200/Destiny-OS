@@ -82,6 +82,12 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
             "Thiệu Vĩ Hoa & Trần Viên — phương pháp tính điểm độ vượng Ngũ Hành "
                     + "(\"Dự đoán theo Tứ Trụ\", Chương 11)";
 
+    /** R1's own methodology (Rule D decision, {@code docs/DECISION_LOG.md} "R1 decided") — a named school, not this engine's. */
+    public static final String DUNG_THAN_METHODOLOGY_ID = "BAZI_DUNG_THAN_TVH";
+    public static final String DUNG_THAN_SCHOOL =
+            "Thiệu Vĩ Hoa & Trần Viên — Dụng Thần theo 8/10 \"cách phổ thông\" "
+                    + "(\"Dự đoán theo Tứ Trụ\", Chương 11 mục IV.1)";
+
     public static final String SOURCE =
             "Pillar arithmetic reused from destiny-calendar (Ngu Ho Don month stem, Ngu Thu "
                     + "Don hour stem, continuous 60-day cycle), itself golden-tested against "
@@ -152,13 +158,20 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
 
     /** The three sections R1/R2/R3 gate, reported as blocked rather than omitted. */
     private static final List<BlockedSection> BLOCKED_SECTIONS = List.of(
-            new BlockedSection("DUNG_THAN", "Dụng Thần / Hỷ Thần / Kỵ Thần", "R1",
-                    "Các trường phái Bát Tự chọn Dụng Thần theo những cách khác nhau và cho ra "
-                            + "kết quả trái ngược nhau trên cùng một lá số. Hệ thống chưa chọn "
-                            + "trường phái nào, nên không đưa ra Dụng Thần thay vì đưa ra một "
-                            + "đáp án nghe có lý.",
-                    List.of("Phù ức Nhật Chủ", "Điều hậu (khí hậu theo mùa)",
-                            "Thông quan (hòa giải xung khắc)", "Chuyên vượng / tòng cách")),
+            new BlockedSection("DUNG_THAN_DIEU_HAU_TONG_QUAN",
+                    "Dụng Thần Điều Hầu (theo mùa) và Thông Quan (hòa giải xung khắc)", "R1",
+                    "Chủ dự án đã chọn trường phái Vượng Suy/Phù Ức (Thiệu Vĩ Hoa) cho Dụng "
+                            + "Thần (2026-09-03) — xem mục Dụng Thần ở trên khi có. Nhưng Điều "
+                            + "Hầu (chọn theo khí hậu mùa sinh) và Thông Quan (hòa giải hai hành "
+                            + "xung khắc ngang nhau) vẫn là hai kỹ thuật riêng, cố tình chưa áp "
+                            + "dụng: chính nguồn được chọn cũng dùng Điều Hầu ngay trong các ví "
+                            + "dụ Phù Ức bình thường mà không nêu quy tắc khi nào Điều Hầu thắng "
+                            + "Phù Ức, nên hệ thống không tự chế ra quy tắc đó. Với một số lá số, "
+                            + "Dụng Thần đúng theo Điều Hầu có thể khác Dụng Thần hệ thống đang "
+                            + "hiển thị.",
+                    List.of("Bỏ qua Điều Hầu, chỉ dùng Phù Ức (đang làm)",
+                            "Điều Hầu luôn thắng khi mùa sinh cực lạnh/cực nóng",
+                            "Thông Quan luôn thắng khi hai hành xung khắc ngang lực")),
             new BlockedSection("NHAT_CHU_CUONG_DO",
                     "Cường độ Nhật Chủ — thang điểm liên trường phái", "R3",
                     "Cường độ Nhật Chủ đã được tính, nhưng theo đúng một trường phái có tên: "
@@ -337,6 +350,10 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                 : resolveDayMasterStrength(yearPillar, monthPillar, dayPillar, hourPillar,
                         uncertainties, warnings);
 
+        BaziDungThanResolver.DungThanResult dungThan = dayMasterStrength == null ? null
+                : resolveDungThan(yearPillar, monthPillar, dayPillar, hourPillar, dayMasterStrength,
+                        uncertainties, warnings);
+
         BaziChart chart = new BaziChart(
                 yearPillar, monthPillar, dayPillar, hourPillar,
                 BaziYearBoundary.LAP_XUAN,
@@ -347,6 +364,7 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                 tally(yearPillar, monthPillar, dayPillar, hourPillar),
                 luckCycles,
                 dayMasterStrength,
+                dungThan,
                 BLOCKED_SECTIONS,
                 uncertainties);
 
@@ -454,6 +472,51 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                         + "định lá số thuộc dạng bình thường; các cách cục đặc biệt (tòng cách…) "
                         + "chưa được hệ thống này nhận diện."));
         return result.get();
+    }
+
+    /**
+     * Thiệu Vĩ Hoa's Dụng Thần verdict (R1), or {@code null} for a chart
+     * {@link BaziDungThanResolver} declines rather than guesses at — see its
+     * Javadoc for the four distinct refusal reasons. A named school's own
+     * computed answer, independent of R1's own "no consensus between
+     * schools" gap ({@code BLOCKED_SECTIONS} no longer names Dụng Thần
+     * itself, only Điều Hầu/Thông Quan, since 2026-09-03).
+     */
+    private static BaziDungThanResolver.DungThanResult resolveDungThan(
+            BaziPillar year, BaziPillar month, BaziPillar day, BaziPillar hour,
+            DayMasterStrength strength, List<Uncertainty> uncertainties, List<EngineWarning> warnings) {
+        BaziDungThanResolver.Outcome outcome =
+                BaziDungThanResolver.resolve(year, month, day, hour, strength);
+        if (outcome instanceof BaziDungThanResolver.Refused refused) {
+            uncertainties.add(Uncertainty.of(UncertaintyKind.METHODOLOGY_UNRESOLVED,
+                    dungThanRefusalMessageVi(refused.reason()), "R1"));
+            warnings.add(EngineWarning.critical("BAZI_DUNG_THAN_UNAVAILABLE",
+                    "Không xác định được Dụng Thần (Thiệu Vĩ Hoa) cho lá số này: "
+                            + dungThanRefusalMessageVi(refused.reason())));
+            return null;
+        }
+        uncertainties.add(Uncertainty.informational(UncertaintyKind.METHODOLOGY_UNRESOLVED,
+                "Dụng Thần dưới đây theo trường phái Vượng Suy/Phù Ức của Thiệu Vĩ Hoa — không "
+                        + "áp dụng Điều Hầu (theo mùa) hay Thông Quan (xem mục bị chặn riêng), "
+                        + "không phát hiện lá số trung hòa hay cách cục đặc biệt (tòng cách…). "
+                        + "Với một số lá số hiếm, kết quả có thể khác nếu áp Điều Hầu."));
+        return ((BaziDungThanResolver.Resolved) outcome).result();
+    }
+
+    private static String dungThanRefusalMessageVi(BaziDungThanResolver.RefuseReason reason) {
+        return switch (reason) {
+            case DAY_MASTER_STRENGTH_UNAVAILABLE ->
+                    "cần cường độ Nhật Chủ (R3) trước, mà lá số này chưa tính được cường độ đó.";
+            case PATTERN_NOT_IDENTIFIED ->
+                    "khí chủ của Chi Tháng ứng với Thiên Ấn/Kiêu Thần — nguồn đã chọn không có "
+                            + "\"cách thiên ấn\" trong mục quy tắc Dụng Thần.";
+            case NO_RULE_FOR_PATTERN_BRANCH ->
+                    "lá số thuộc cách Chính Tài/Thiên Tài, Nhật Chủ nhược — nhánh Nhược của quy "
+                            + "tắc này chưa đọc/trích đủ từ nguồn (đoạn sách bị cắt giữa câu).";
+            case NO_TRIGGER_MATCHED ->
+                    "không có Thập Thần nào trong chuỗi quy tắc của cách này được đánh giá là "
+                            + "\"nhiều\" đối với lá số cụ thể này.";
+        };
     }
 
     /**
@@ -646,6 +709,24 @@ public final class BaziEngine implements MetaphysicalEngine<BaziInput, BaziChart
                     DAY_MASTER_STRENGTH_SCHOOL, "BAZI_DAY_MASTER_STRENGTH",
                     DayMasterStrengthResolver.RULE_VERSION, Dimension.OTHER, fact,
                     "day-master-strength-tvh", groupId, null));
+        }
+
+        if (chart.dungThan() != null) {
+            BaziDungThanResolver.DungThanResult dungThan = chart.dungThan();
+            Map<String, Object> fact = new LinkedHashMap<>();
+            fact.put("pattern", dungThan.pattern().name());
+            fact.put("dungThan", dungThan.dungThan().name());
+            fact.put("hyThan", dungThan.hyThan().stream().map(Enum::name).toList());
+            fact.put("citation", dungThan.citation());
+            fact.put("note", "Kết quả theo trường phái Vượng Suy/Phù Ức của Thiệu Vĩ Hoa, phủ 8/10 "
+                    + "\"cách phổ thông\". KHÔNG áp dụng Điều Hầu (theo mùa) hay Thông Quan, KHÔNG "
+                    + "phát hiện lá số trung hòa hay cách cục đặc biệt (tòng cách…) — xem mục bị "
+                    + "chặn \"Dụng Thần Điều Hầu và Thông Quan\". Không phải sự đồng thuận chung "
+                    + "giữa các trường phái Bát Tự.");
+            evidence.add(new Evidence(UUID.randomUUID().toString(), ENGINE_ID,
+                    DUNG_THAN_SCHOOL, "BAZI_DUNG_THAN",
+                    BaziDungThanResolver.RULE_VERSION, Dimension.OTHER, fact,
+                    "dung-than-tvh", groupId, null));
         }
 
         for (BlockedSection blocked : chart.blockedSections()) {

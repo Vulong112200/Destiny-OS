@@ -46,6 +46,17 @@ import java.util.Optional;
  *                          named school's answer, not a resolution of R1's
  *                          "no consensus" gap in {@code blockedSections} —
  *                          the two are deliberately independent (Rule D)
+ * @param dungThan          Thiệu Vĩ Hoa's Dụng Thần verdict for the 8 (of 10)
+ *                          "cách phổ thông" this project's {@link
+ *                          BaziDungThanResolver} covers (R1, methodology
+ *                          {@code BAZI_DUNG_THAN_TVH}), or {@code null} when
+ *                          that class refuses (no {@code dayMasterStrength},
+ *                          an unnamed cách, a Chính Tài/Thiên Tài Nhược
+ *                          chart, or no chain trigger matched) — see {@link
+ *                          BaziDungThanResolver}'s own Javadoc for the full,
+ *                          honestly-scoped list of what is and is not
+ *                          covered (Điều Hậu, trung hòa, cách cục đặc biệt
+ *                          are all explicitly NOT applied)
  * @param blockedSections   the reading sections this engine refuses to
  *                          approximate (R1, R3)
  * @param uncertainties     conditions that must reach the user (ADR D3)
@@ -63,6 +74,7 @@ public record BaziChart(
         ElementTally elementTally,
         LuckCycles luckCycles,
         DayMasterStrength dayMasterStrength,
+        BaziDungThanResolver.DungThanResult dungThan,
         List<BlockedSection> blockedSections,
         List<Uncertainty> uncertainties
 ) {
@@ -113,5 +125,10 @@ public record BaziChart(
     /** Thiệu Vĩ Hoa's Day Master strength verdict (R3), absent per this record's own Javadoc. */
     public Optional<DayMasterStrength> dayMasterStrengthIfPresent() {
         return Optional.ofNullable(dayMasterStrength);
+    }
+
+    /** Thiệu Vĩ Hoa's Dụng Thần verdict (R1), absent per this record's own Javadoc. */
+    public Optional<BaziDungThanResolver.DungThanResult> dungThanIfPresent() {
+        return Optional.ofNullable(dungThan);
     }
 }

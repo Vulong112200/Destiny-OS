@@ -1,0 +1,8 @@
+# ELP26 — ELP2000-82B, component=2 (1=longitude,2=latitude,3=distance)
+# Source: same as ELP1-3, see elp1.csv. Phase: y = pha_deg*deg + sum_k(iz*zeta_k*T^k + sum_i ilu_i*del_i_k*T^k), value added is amplitude*sin(y).
+# columns: iz = zeta multiplier; d,lp,l,f = Delaunay argument multipliers; phaDeg = phase offset in degrees; amplitude = arcsec (longitude/latitude) or km (distance)
+iz,d,lp,l,f,phaDeg,amplitude
+0,0,0,0,1,180.0,5e-05
+0,0,0,1,-1,0.0,3e-05
+0,0,0,1,1,0.0,3e-05
+0,2,0,0,-1,0.0,1e-05

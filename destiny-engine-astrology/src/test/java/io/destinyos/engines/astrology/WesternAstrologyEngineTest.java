@@ -42,15 +42,15 @@ class WesternAstrologyEngineTest {
         }
 
         @Test
-        @DisplayName("Planets beyond the Sun, and aspects, are named as blocked")
+        @DisplayName("Only Pluto's position remains blocked")
         void blockedSectionsAreNamed() {
             var chart = run(hanoi()).data();
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::sectionId)
-                    .containsExactlyInAnyOrder("PLANETS_BEYOND_SUN", "ASPECTS");
+                    .containsExactly("PLUTO_POSITION");
             assertThat(chart.blockedSections())
                     .extracting(BlockedSection::researchId)
-                    .containsExactlyInAnyOrder("R5", "R6");
+                    .containsExactly("R5");
             assertThat(chart.blockedSections())
                     .allSatisfy(section -> assertThat(section.knownVariants()).isNotEmpty());
         }
@@ -61,7 +61,7 @@ class WesternAstrologyEngineTest {
             var warnings = run(hanoi()).warnings();
             assertThat(warnings)
                     .filteredOn(w -> w.code().startsWith("ASTROLOGY_SECTION_BLOCKED_"))
-                    .hasSize(2)
+                    .hasSize(1)
                     .allSatisfy(w -> assertThat(w.critical()).isTrue());
         }
 
@@ -146,6 +146,30 @@ class WesternAstrologyEngineTest {
             // in ObliquityOfEcliptic's own derivation and SiderealTimeTest).
             assertThat(chart.obliquityDegrees()).isBetween(23.0, 23.6);
             assertThat(chart.ramcDegrees()).isBetween(0.0, 360.0);
+        }
+
+        @Test
+        @DisplayName("The Moon and all seven planets are present, each in a real zodiac sign")
+        void allEightBodiesPresent() {
+            var chart = run(hanoi()).data();
+            assertThat(chart.bodies()).containsOnlyKeys(
+                    "MOON", "MERCURY", "VENUS", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE");
+            chart.bodies().values().forEach(body -> {
+                assertThat(body.point().sign()).isNotNull();
+                assertThat(body.point().degreesIntoSign()).isBetween(0.0, 30.0);
+                assertThat(body.distanceAu()).isGreaterThan(0.0);
+            });
+        }
+
+        @Test
+        @DisplayName("At least one aspect is found for a real chart, every one within its declared orb")
+        void aspectsAreFoundAndWithinOrb() {
+            var chart = run(hanoi()).data();
+            assertThat(chart.aspects()).isNotEmpty();
+            assertThat(chart.aspects()).allSatisfy(aspect -> {
+                assertThat(aspect.orbDegrees()).isLessThanOrEqualTo(aspect.orbLimitDegrees());
+                assertThat(aspect.exactAngleDegrees()).isEqualTo(aspect.type().exactAngleDegrees());
+            });
         }
     }
 

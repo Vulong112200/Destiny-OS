@@ -10,7 +10,7 @@ import java.util.Objects;
  * than to a whole engine) — the same device {@code destiny-engine-bazi} uses
  * for Dụng Thần and Day Master strength.
  *
- * @param sectionId     stable id, e.g. {@code PLANETS_BEYOND_SUN}
+ * @param sectionId     stable id, e.g. {@code PLUTO_POSITION}
  * @param displayNameVi Vietnamese name of the section (CLAUDE.md §9)
  * @param researchId    register entry in {@code docs/RESEARCH_BLOCKERS.md}
  * @param reasonVi      why it is blocked, in Vietnamese, for the user

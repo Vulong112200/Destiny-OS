@@ -311,7 +311,7 @@ class ScenarioApiIntegrationTest {
         // supplied in this request, so the chart still has no luck cycles, but
         // for a different reason (missing input, not unresolved research).
         assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
-                .contains("BAZI_BLOCKED_DUNG_THAN", "BAZI_BLOCKED_NHAT_CHU_CUONG_DO")
+                .contains("BAZI_BLOCKED_DUNG_THAN_DIEU_HAU_TONG_QUAN", "BAZI_BLOCKED_NHAT_CHU_CUONG_DO")
                 .doesNotContain("BAZI_BLOCKED_DAI_VAN");
 
         // And Bát Tự casts no vote: every signal in this run came from
@@ -689,12 +689,15 @@ class ScenarioApiIntegrationTest {
 
         assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
                 .contains("ASTROLOGY_SUN", "ASTROLOGY_MIDHEAVEN", "ASTROLOGY_ASCENDANT",
-                        "ASTROLOGY_WHOLE_SIGN_HOUSES", "ASTROLOGY_FRAME");
+                        "ASTROLOGY_MOON", "ASTROLOGY_MERCURY", "ASTROLOGY_VENUS", "ASTROLOGY_MARS",
+                        "ASTROLOGY_JUPITER", "ASTROLOGY_SATURN", "ASTROLOGY_URANUS",
+                        "ASTROLOGY_NEPTUNE", "ASTROLOGY_WHOLE_SIGN_HOUSES", "ASTROLOGY_FRAME");
 
-        // The two registered blocked sections travel to the client too, so a
-        // UI cannot render a chart that silently lacks the other planets.
+        // Only Pluto remains blocked (R5 closed the Moon and the other seven
+        // planets 2026-09-03) - it still travels to the client so a UI cannot
+        // render a chart that silently lacks it.
         assertThat(body.evidence()).extracting(EvidenceDto::ruleId)
-                .contains("ASTROLOGY_BLOCKED_PLANETS_BEYOND_SUN", "ASTROLOGY_BLOCKED_ASPECTS");
+                .contains("ASTROLOGY_BLOCKED_PLUTO_POSITION");
 
         // Chart evidence only, same as Bát Tự's chart half - no vote yet.
         assertThat(body.signals()).noneMatch(signal -> signal.engine().equals("WESTERN_ASTROLOGY"));

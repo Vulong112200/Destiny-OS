@@ -1,0 +1,24 @@
+# ELP18 — ELP2000-82B planetary perturbations, component=3 (1=longitude,2=latitude,3=distance) — truncated to |amplitude| >= 0.001 (114 -> 20 rows)
+# Source: same as ELP1-3, see elp1.csv. ipla has 11 integer multipliers: for group <16, ipla(1..8) multiply the 8 planetary mean longitudes p(1..8) and ipla(9,10,11) multiply del(D),del(l),del(F); for group >=16, ipla(1..7) multiply p(1..7) and ipla(8..11) multiply del(D),del(l'),del(l),del(F). Phase: y = pha_deg*deg + that sum, value added is amplitude*sin(y).
+# columns: ipla1..ipla11 = integer multipliers; phaDeg = phase offset in degrees; amplitude = arcsec (longitude/latitude) or km (distance)
+ipla1,ipla2,ipla3,ipla4,ipla5,ipla6,ipla7,ipla8,ipla9,ipla10,ipla11,phaDeg,amplitude
+0,0,0,0,0,0,0,0,0,0,0,270.0,0.02702
+0,0,0,0,0,0,0,0,0,1,0,89.99752,0.01035
+0,0,0,0,0,0,0,0,1,-1,0,244.23379,0.00126
+0,0,0,0,0,0,0,0,1,1,0,64.4294,0.00112
+0,0,0,0,0,0,0,1,1,0,0,245.78631,0.00147
+0,0,0,0,0,0,0,2,0,-1,0,90.09472,0.00166
+0,0,1,0,0,0,0,-1,0,-1,1,5.13138,0.00101
+0,0,1,0,0,0,0,-1,0,0,-1,185.13603,0.00328
+0,0,1,0,0,0,0,-1,0,0,1,5.13237,0.00149
+0,0,1,0,0,0,0,-1,0,1,-1,5.13343,0.00648
+0,0,1,0,0,0,0,-1,0,1,1,5.13217,0.00133
+0,0,1,0,0,0,0,-1,0,2,-1,185.13414,0.0011
+0,0,1,0,0,0,0,1,0,-2,-1,185.13459,0.00311
+0,0,1,0,0,0,0,1,0,-1,-1,185.13459,0.05703
+0,0,1,0,0,0,0,1,0,-1,1,5.1319,0.01447
+0,0,1,0,0,0,0,1,0,0,-1,185.12989,0.00183
+0,0,1,0,0,0,0,1,0,1,-1,5.13453,0.05765
+0,0,1,0,0,0,0,1,0,2,-1,5.13453,0.00314
+0,0,1,0,0,0,0,3,0,-1,-1,185.13456,0.00351
+0,0,1,0,0,0,0,3,0,0,-1,5.13469,0.00503

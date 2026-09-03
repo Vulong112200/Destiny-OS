@@ -22,6 +22,20 @@ import { NguHanhWheel } from "./charts/NguHanhWheel";
 const PILLAR_ORDER = ["YEAR", "MONTH", "DAY", "HOUR"] as const;
 const ELEMENT_ORDER = ["WOOD", "FIRE", "EARTH", "METAL", "WATER"] as const;
 
+// `BaziDungThanResolver.Pattern` — a "cách phổ thông" name, not a `TenGod`
+// (Kiến Lộc/Kình Dương in particular have no TenGod label of their own).
+const DUNG_THAN_PATTERN_LABELS: Record<string, string> = {
+  CHINH_TAI: "Chính Tài",
+  THIEN_TAI: "Thiên Tài",
+  CHINH_QUAN: "Chính Quan",
+  CHINH_AN: "Chính Ấn",
+  THUONG_QUAN: "Thương Quan",
+  THAT_SAT: "Thất Sát",
+  THUC_THAN: "Thực Thần",
+  KIEN_LOC: "Kiến Lộc",
+  KINH_DUONG: "Kình Dương",
+};
+
 /** Falls back to the technical name so a missing label degrades, never blanks. */
 function label(labels: LabelRegistries, type: string, key: unknown): string {
   if (typeof key !== "string") return "—";
@@ -97,6 +111,8 @@ export function BaziChartCard({
   const dayMasterStrengthSchool = baziEvidence.find(
     (e) => e.ruleId === "BAZI_DAY_MASTER_STRENGTH",
   )?.school;
+  const dungThan = factOf(baziEvidence, "BAZI_DUNG_THAN");
+  const dungThanSchool = baziEvidence.find((e) => e.ruleId === "BAZI_DUNG_THAN")?.school;
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -448,6 +464,43 @@ export function BaziChartCard({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {dungThan && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Dụng Thần</h3>
+          <p className="mb-2 text-xs text-slate-500">
+            Theo <span className="font-medium">{dungThanSchool ?? "một trường phái"}</span> — kết
+            quả của <span className="font-medium">một trường phái cụ thể</span> (Vượng Suy/Phù
+            Ức), phủ 8/10 &ldquo;cách phổ thông&rdquo;.{" "}
+            <span className="font-medium">Chưa</span> áp dụng Điều Hầu (theo mùa sinh) hay Thông
+            Quan, và chưa nhận diện lá số trung hòa hay cách cục đặc biệt (tòng cách…) — xem mục
+            &ldquo;Dụng Thần Điều Hầu và Thông Quan&rdquo; trong phần luận giải chưa cung cấp bên
+            dưới. Với một số lá số hiếm, kết quả đúng theo Điều Hầu có thể khác kết quả này.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-900">
+              {label(labels, "FiveElement", dungThan.dungThan)}
+            </span>
+            <span className="text-xs text-slate-500">
+              Cách:{" "}
+              {DUNG_THAN_PATTERN_LABELS[String(dungThan.pattern)] ?? String(dungThan.pattern)}
+            </span>
+            {asStringArray(dungThan.hyThan).length > 0 && (
+              <span className="text-xs text-slate-500">
+                Hỷ Thần:{" "}
+                {asStringArray(dungThan.hyThan)
+                  .map((el) => label(labels, "FiveElement", el))
+                  .join(", ")}
+              </span>
+            )}
+          </div>
+          {typeof dungThan.citation === "string" && (
+            <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              {dungThan.citation}
+            </p>
+          )}
         </div>
       )}
 
